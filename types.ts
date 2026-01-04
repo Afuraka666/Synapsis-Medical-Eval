@@ -100,6 +100,7 @@ export interface ChatMessage {
 }
 
 export interface PatientCase {
+  id?: string; // Internal ID for persistence tracking
   title: string;
   patientProfile: string;
   presentingComplaint: string;
@@ -158,7 +159,7 @@ export interface InteractionState {
   caseEdited: boolean;
   caseSaved: boolean;
   snippetSaved: boolean;
-  nodeClicks: number;
+  nodeClicks: 0;
 }
 
 export interface Tip {
@@ -180,7 +181,6 @@ export interface AnalyticsContextType {
   eventLog: LoggedEvent[];
 }
 
-// FIX: Added EcgFindings interface to fix the "Cannot find name 'EcgFindings'" error in services/geminiService.ts.
 export interface EcgFindings {
   rate: string;
   rhythm: string;

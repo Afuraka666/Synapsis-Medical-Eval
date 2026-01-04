@@ -75,7 +75,7 @@ export const App: React.FC = () => {
     const [patientCase, setPatientCase] = useState<PatientCase | null>(null);
     const [mapData, setMapData] = useState<KnowledgeMapData | null>(null);
 
-    // Theme State - Initialize with stored preference or system default
+    // Theme State
     const [theme, setTheme] = useState(() => {
         const saved = localStorage.getItem('ungana_theme');
         if (saved) return saved;
@@ -101,7 +101,7 @@ export const App: React.FC = () => {
     const [savedCases, setSavedCases] = useState<SavedCase[]>([]);
     const [savedSnippets, setSavedSnippets] = useState<Snippet[]>([]);
 
-    // User Interaction Tracking for Tips
+    // User Interaction Tracking
     const [interactionState, setInteractionState] = useState<InteractionState>({
         caseGenerated: false,
         caseEdited: false,
@@ -126,7 +126,6 @@ export const App: React.FC = () => {
     
     // -- EFFECTS --
 
-    // Apply theme class
     useEffect(() => {
         if (theme === 'dark') {
             document.documentElement.classList.add('dark');
@@ -306,16 +305,28 @@ export const App: React.FC = () => {
     const handleSaveCase = () => {
         if (!patientCase || !mapData) return;
         logEvent('save_case', { case_title: patientCase.title });
+        
+        const caseId = patientCase.id || crypto.randomUUID();
         const newSavedCase: SavedCase = {
-            id: crypto.randomUUID(),
+            id: caseId,
             title: patientCase.title,
             savedAt: new Date().toISOString(),
-            caseData: patientCase,
+            caseData: { ...patientCase, id: caseId },
             mapData: mapData,
         };
-        const updatedCases = [...savedCases, newSavedCase];
+
+        const existingIdx = savedCases.findIndex(c => c.id === caseId);
+        let updatedCases;
+        if (existingIdx >= 0) {
+            updatedCases = [...savedCases];
+            updatedCases[existingIdx] = newSavedCase;
+        } else {
+            updatedCases = [...savedCases, newSavedCase];
+        }
+
         setSavedCases(updatedCases);
         localStorage.setItem('ungana_saved_cases', JSON.stringify(updatedCases));
+        setPatientCase(newSavedCase.caseData);
         setInteractionState(prev => ({...prev, caseSaved: true }));
         alert('Case saved successfully!');
     };
@@ -334,6 +345,9 @@ export const App: React.FC = () => {
         const updatedCases = savedCases.filter(c => c.id !== caseId);
         setSavedCases(updatedCases);
         localStorage.setItem('ungana_saved_cases', JSON.stringify(updatedCases));
+        if (patientCase?.id === caseId) {
+            setPatientCase(prev => prev ? { ...prev, id: undefined } : null);
+        }
     };
 
     const handleSaveSnippet = (title: string, content: string, visualData?: Partial<Snippet>) => {
@@ -370,6 +384,22 @@ export const App: React.FC = () => {
     const handlePatientCaseUpdate = (updatedCase: PatientCase) => {
         setPatientCase(updatedCase);
         setInteractionState(prev => ({ ...prev, caseEdited: true }));
+        
+        // AUTO-PERSISTENCE: If this is a previously saved case, update it in the collection automatically
+        if (updatedCase.id) {
+            const existingIdx = savedCases.findIndex(c => c.id === updatedCase.id);
+            if (existingIdx >= 0 && mapData) {
+                const updatedSavedCase: SavedCase = {
+                    ...savedCases[existingIdx],
+                    caseData: updatedCase,
+                    savedAt: new Date().toISOString(),
+                };
+                const newSavedCases = [...savedCases];
+                newSavedCases[existingIdx] = updatedSavedCase;
+                setSavedCases(newSavedCases);
+                localStorage.setItem('ungana_saved_cases', JSON.stringify(newSavedCases));
+            }
+        }
     };
 
     const handleDiscussNode = (nodeInfo: { node: KnowledgeNode; abstract: string; loading: boolean }) => {

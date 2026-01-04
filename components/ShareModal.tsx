@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
-import type { PatientCase } from '../types';
-import { Document, Packer, Paragraph, HeadingLevel, AlignmentType, ImageRun, Table, TableRow, TableCell, WidthType } from 'docx';
+import type { PatientCase, ChatMessage } from '../types';
+import { Document, Packer, Paragraph, HeadingLevel, AlignmentType, ImageRun, Table, TableRow, TableCell, WidthType, TextRun } from 'docx';
 
 interface ShareModalProps {
     isOpen: boolean;
@@ -25,7 +25,6 @@ async function compressAndEncode(object: object): Promise<string> {
         }
         const buffer = await new Blob(chunks).arrayBuffer();
         const base64 = btoa(String.fromCharCode(...new Uint8Array(buffer)));
-        // Make it URL-safe
         return base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
     } catch (error) {
         console.error("Compression failed:", error);
@@ -52,27 +51,11 @@ const formatCaseForTextFile = (patientCase: PatientCase, T: Record<string, any>)
         text += `- **${T.asaScoreLabel}:** ${patientCase.procedureDetails.asaScore}\r\n\r\n`;
     }
 
-    if (patientCase.outcomes) {
-        text += `## ${T.outcomesSection}\r\n`;
-        text += `- **${T.icuAdmissionLabel}:** ${patientCase.outcomes.icuAdmission ? 'Yes' : 'No'}\r\n`;
-        text += `- **${T.lengthOfStayLabel}:** ${patientCase.outcomes.lengthOfStayDays} days\r\n`;
-        text += `- **${T.outcomeSummaryLabel}:** ${patientCase.outcomes.outcomeSummary}\r\n\r\n`;
-    }
-
     if (patientCase.biochemicalPathway) {
         text += `## ${T.biochemicalPathwaySection}\r\n`;
-        text += `### ${patientCase.biochemicalPathway.title} (${patientCase.biochemicalPathway.type})\r\n`;
-        text += `${patientCase.biochemicalPathway.description}\r\n`;
-        text += `Reference: ${patientCase.biochemicalPathway.reference}\r\n\r\n`;
+        text += `### ${patientCase.biochemicalPathway.title}\r\n`;
+        text += `${patientCase.biochemicalPathway.description}\r\n\r\n`;
     }
-
-    text += `## ${T.multidisciplinaryConnections}\r\n`;
-    if (patientCase.multidisciplinaryConnections) {
-        patientCase.multidisciplinaryConnections.forEach(conn => {
-            text += `- **${conn.discipline}:** ${conn.connection}\r\n`;
-        });
-    }
-    text += '\r\n';
 
     if (patientCase.disciplineSpecificConsiderations && patientCase.disciplineSpecificConsiderations.length > 0) {
         text += `## ${T.managementConsiderations}\r\n`;
@@ -82,41 +65,22 @@ const formatCaseForTextFile = (patientCase: PatientCase, T: Record<string, any>)
         text += '\r\n';
     }
 
-    if (patientCase.educationalContent && patientCase.educationalContent.length > 0) {
-        text += `## ${T.educationalContent}\r\n`;
-        patientCase.educationalContent.forEach(item => {
-            text += `### ${item.title} (${item.type})\r\n`;
-            text += `${item.description}\r\n`;
-            text += `Reference: ${item.reference}\r\n\r\n`;
-        });
-    }
-
-    if (patientCase.traceableEvidence && patientCase.traceableEvidence.length > 0) {
-        text += `## ${T.traceableEvidence}\r\n`;
-        patientCase.traceableEvidence.forEach(item => {
-            text += `- **Claim:** "${item.claim}"\r\n`;
-            text += `  **Source:** ${item.source}\r\n`;
-        });
-        text += '\r\n';
-    }
-    
-    if (patientCase.furtherReadings && patientCase.furtherReadings.length > 0) {
-        text += `## ${T.furtherReading}\r\n`;
-        patientCase.furtherReadings.forEach(item => {
-            text += `- **${item.topic}:** ${item.reference}\r\n`;
-        });
-        text += '\r\n';
-    }
-
-    if (patientCase.quiz && patientCase.quiz.length > 0) {
-        text += `## ${T.quizTitle}\r\n`;
-        patientCase.quiz.forEach((q, i) => {
-            text += `${i + 1}. ${q.question}\r\n`;
-            q.options.forEach((opt, oIndex) => {
-                text += `   ${String.fromCharCode(65 + oIndex)}. ${opt}\r\n`;
+    // APPEND DISCUSSIONS
+    if (patientCase.discussions && Object.keys(patientCase.discussions).length > 0) {
+        text += `\r\n========================================\r\n`;
+        text += `## SESSION DISCUSSIONS APPENDIX\r\n`;
+        text += `========================================\r\n\r\n`;
+        
+        // FIX: Explicitly cast Object.entries result to fix 'unknown' type error for 'messages'.
+        (Object.entries(patientCase.discussions) as [string, ChatMessage[]][]).forEach(([topic, messages]) => {
+            if (messages.length <= 1) return;
+            text += `TOPIC: ${topic}\r\n`;
+            text += `----------------------------------------\r\n`;
+            messages.forEach(m => {
+                if (m.role === 'system') return;
+                text += `[${m.role.toUpperCase()}]: ${m.text}\r\n\r\n`;
             });
-            text += `   **Answer:** ${q.options[q.correctAnswerIndex]}\r\n`;
-            text += `   **Explanation:** ${q.explanation}\r\n\r\n`;
+            text += `\r\n`;
         });
     }
 
@@ -179,19 +143,40 @@ export const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, patient
             a.download = `${patientCase.title.replace(/ /g, '_')}.txt`;
             a.click();
         } else if (format === 'word') {
-            // Simplified Word export without images for share modal quick access
-            const sections = [];
+            const sections: any[] = [];
             sections.push(new Paragraph({ text: patientCase.title, heading: HeadingLevel.HEADING_1, alignment: AlignmentType.CENTER, spacing: { after: 400 } }));
             
             const addTxt = (h: string, c: string) => {
                 if(!c) return;
-                sections.push(new Paragraph({ text: h, heading: HeadingLevel.HEADING_2, spacing: { before: 200 } }));
+                sections.push(new Paragraph({ text: h, heading: HeadingLevel.HEADING_2, spacing: { before: 200, after: 100 } }));
                 sections.push(new Paragraph({ text: c }));
             }
             
             addTxt(T.patientProfile, patientCase.patientProfile);
             addTxt(T.presentingComplaint, patientCase.presentingComplaint);
             addTxt(T.history, patientCase.history);
+
+            // Discussions Appendix in Word
+            if (patientCase.discussions && Object.keys(patientCase.discussions).length > 0) {
+                sections.push(new Paragraph({ text: 'Session Discussions Archive', heading: HeadingLevel.HEADING_1, alignment: AlignmentType.CENTER, spacing: { before: 800, after: 400 } }));
+                
+                // FIX: Explicitly cast Object.entries result to [string, ChatMessage[]][] to fix 'unknown' type errors for messages on lines 163 and 166.
+                (Object.entries(patientCase.discussions) as [string, ChatMessage[]][]).forEach(([topic, messages]) => {
+                    if (messages.length <= 1) return;
+                    sections.push(new Paragraph({ text: `Discussion Topic: ${topic}`, heading: HeadingLevel.HEADING_3, spacing: { before: 300, after: 100 } }));
+                    
+                    messages.forEach(m => {
+                        if (m.role === 'system') return;
+                        sections.push(new Paragraph({
+                            children: [
+                                new TextRun({ text: `${m.role.toUpperCase()}: `, bold: true, color: m.role === 'user' ? '1e3a8a' : '6b7280' }),
+                                new TextRun({ text: m.text })
+                            ],
+                            spacing: { after: 150 }
+                        }));
+                    });
+                });
+            }
 
             const doc = new Document({ sections: [{ children: sections }] });
             const blob = await Packer.toBlob(doc);
@@ -200,7 +185,6 @@ export const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, patient
             a.download = `${patientCase.title.replace(/ /g, '_')}.docx`;
             a.click();
         } else if (format === 'pdf') {
-            // PDFs are best generated from the PatientCaseView due to SVG/canvas dependencies
             alert("Please use the Export menu in the main case view to generate a high-quality PDF with diagrams.");
         }
     };
@@ -221,30 +205,19 @@ export const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, patient
                     <div>
                         <label className="block text-sm font-medium text-gray-700">{T.shareLinkDescription}</label>
                         <div className="mt-1 flex rounded-md shadow-sm">
-                            <input
-                                type="text"
-                                readOnly
-                                value={isGeneratingLink ? 'Generating link...' : shareLink}
-                                className="flex-1 block w-full rounded-none rounded-l-md p-2 border border-gray-300 bg-gray-50 text-gray-600 text-sm"
-                            />
-                            <button
-                                onClick={handleCopyLink}
-                                disabled={isGeneratingLink || isCopied}
-                                className="inline-flex items-center px-4 py-2 border border-l-0 border-gray-300 rounded-r-md bg-gray-50 text-sm font-medium text-gray-700 hover:bg-gray-100 disabled:bg-gray-200"
-                            >
-                               {isCopied ? T.linkCopied : T.copyLinkButton}
-                            </button>
+                            <input type="text" readOnly value={isGeneratingLink ? 'Generating link...' : shareLink} className="flex-1 block w-full rounded-none rounded-l-md p-2 border border-gray-300 bg-gray-50 text-gray-600 text-sm" />
+                            <button onClick={handleCopyLink} disabled={isGeneratingLink || isCopied} className="inline-flex items-center px-4 py-2 border border-l-0 border-gray-300 rounded-r-md bg-gray-50 text-sm font-medium text-gray-700 hover:bg-gray-100 disabled:bg-gray-200">{isCopied ? T.linkCopied : T.copyLinkButton}</button>
                         </div>
                     </div>
                     
                     <div className="grid grid-cols-2 gap-3">
                         <button onClick={() => handleDownloadFormat('word')} className="flex items-center justify-center space-x-2 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md transition text-sm">
                              <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2c5.514 0 10 4.486 10 10s-4.486 10-10 10-10-4.486-10-10 4.486-10 10-10zm0-2c-6.627 0-12 5.373-12 12s5.373 12 12 12 12-5.373 12-12-5.373-12-12-12zm-3 8h6v1h-6v-1zm0 2h6v1h-6v-1zm0 2h6v1h-6v-1zm0 2h6v1h-6v-1zm0 2h6v1h-6v-1z" /></svg>
-                             <span>{T.downloadWordButton}</span>
+                             <span>Full Archive (.docx)</span>
                         </button>
                         <button onClick={() => handleDownloadFormat('text')} className="flex items-center justify-center space-x-2 bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-md transition text-sm">
                              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd" /></svg>
-                            <span>{T.downloadTextButton}</span>
+                            <span>Download Text</span>
                         </button>
                     </div>
 
@@ -257,18 +230,13 @@ export const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, patient
                         )}
                         <button onClick={() => handleDownloadFormat('json')} className="w-full flex items-center justify-center space-x-2 bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-md transition">
                              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd" /></svg>
-                            <span>{T.downloadJSONButton}</span>
+                            <span>JSON Data</span>
                         </button>
                     </div>
                 </main>
 
                 <footer className="p-3 border-t border-gray-200 text-right bg-gray-50">
-                    <button 
-                        onClick={onClose} 
-                        className="bg-brand-blue hover:bg-blue-800 text-white font-bold py-2 px-6 rounded-md transition duration-300"
-                    >
-                        {T.closeButton}
-                    </button>
+                    <button onClick={onClose} className="bg-brand-blue hover:bg-blue-800 text-white font-bold py-2 px-6 rounded-md transition duration-300">{T.closeButton}</button>
                 </footer>
             </div>
         </div>

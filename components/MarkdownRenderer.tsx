@@ -11,22 +11,41 @@ interface MarkdownRendererProps {
 }
 
 /**
- * Aggressively sanitizes AI output to remove LaTeX artifacts and formatting glitches.
- * Targets symbols like $\, \$, and raw backslashes that interfere with readability.
+ * High-fidelity sanitization for medical text.
+ * Converts LaTeX artifacts to Unicode and ensures proper word separation.
  */
 const sanitizeContent = (text: string): string => {
     if (!text) return '';
-    return text
-        // 1. Remove specific problematic LaTeX escaping artifacts
-        .replace(/\\\$/g, '$')           // Convert \$ to $
-        .replace(/\$\\/g, '')            // Remove raw $\ artifacts
-        .replace(/\\_/g, '_')            // Convert \_ to _
-        .replace(/\\\^/g, '^')           // Convert \^ to ^
-        .replace(/\\\[/g, '[')           // Convert \[ to [
-        .replace(/\\\]/g, ']')           // Convert \] to ]
-        .replace(/\\/g, '')              // Aggressively remove stray backslashes
+    
+    let cleaned = text
+        // 1. Replace common LaTeX command words with Unicode symbols BEFORE stripping backslashes
+        .replace(/\\rightarrow|rightarrow/gi, ' → ')
+        .replace(/\\leftarrow|leftarrow/gi, ' ← ')
+        .replace(/\\Delta|Delta/g, ' Δ ')
+        .replace(/\\alpha|alpha/gi, ' α ')
+        .replace(/\\beta|beta/gi, ' β ')
+        .replace(/\\gamma|gamma/gi, ' γ ')
+        .replace(/\\mu|mu/gi, ' μ ')
+        .replace(/\\approx|approx/gi, ' ≈ ')
+        .replace(/\\pm|pm/gi, ' ± ')
         
-        // 2. Clean up common medical/chemical variables to Unicode for high fidelity
+        // 2. Clean up LaTeX escaping artifacts
+        .replace(/\\\$/g, '$')           
+        .replace(/\$\\/g, '')            
+        .replace(/\\_/g, '_')            
+        .replace(/\\\^/g, '^')           
+        .replace(/\\\[/g, '[')           
+        .replace(/\\\]/g, ']')           
+        
+        // 3. Normalize spacing and word separation
+        // Adds space between punctuation and following words if missing
+        .replace(/([\.!\?])([A-Z])/g, '$1 $2')
+        // Adds space between numbers and units if missing (e.g., 50mmHg -> 50 mmHg)
+        .replace(/(\d)(mg|mcg|mL|mmHg|bpm|mmol|meq)/gi, '$1 $2')
+        // Fix smushed words (lowercase followed by uppercase without space)
+        .replace(/([a-z])([A-Z])/g, '$1 $2')
+        
+        // 4. Unicode for medical variables
         .replace(/\bPaO2\b/g, 'PaO₂')
         .replace(/\bSaO2\b/g, 'SaO₂')
         .replace(/\bPvO2\b/g, 'PvO₂')
@@ -35,20 +54,15 @@ const sanitizeContent = (text: string): string => {
         .replace(/\bH2O\b/g, 'H₂O')
         .replace(/\bt1\/2\b/gi, 'T½')
         
-        // 3. Normalize spacing and ensure word separation
-        .replace(/([a-z])([A-Z][a-z])/g, '$1 $2') // Basic camelCase separation for concatenated text
-        .replace(/([\.!\?])([A-Z])/g, '$1 $2')     // Ensure space after punctuation
-        .replace(/[ \t]+/g, ' ')                  // Collapse multiple spaces
+        // 5. Final cleanup: Remove stray backslashes and collapse whitespace
+        .replace(/\\/g, '')
+        .replace(/[ \t]+/g, ' ')
+        .replace(/\n{3,}/g, '\n\n')
         
-        // 4. Remove stray $ that aren't part of a pair
-        .replace(/(^|[^\$])\$([^\$]|$)/g, (match, p1, p2) => {
-            if (/\d/.test(p2)) return match; // Keep for currency $5 etc
-            return p1 + p2;
-        })
-        
-        // 5. Final cleanup of bullet markers
-        .replace(/^\s*[\-\*]\s+/gm, '• ')
-        .trim();
+        // 6. Fix bullet formatting
+        .replace(/^\s*[\-\*]\s+/gm, '• ');
+
+    return cleaned.trim();
 };
 
 export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, className }) => {

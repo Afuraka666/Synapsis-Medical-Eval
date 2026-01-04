@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useCallback, useReducer, useRef } from 'react';
 import { EducationalContentType, Discipline } from '../types';
-import type { PatientCase, EducationalContent, QuizQuestion, DisciplineSpecificConsideration, MultidisciplinaryConnection, TraceableEvidence, FurtherReading, ProcedureDetails, PatientOutcome, KnowledgeMapData, Snippet } from '../types';
+import type { PatientCase, EducationalContent, QuizQuestion, DisciplineSpecificConsideration, MultidisciplinaryConnection, TraceableEvidence, FurtherReading, ProcedureDetails, PatientOutcome, KnowledgeMapData, Snippet, ChatMessage } from '../types';
 import { DisciplineColors } from './KnowledgeMap';
 import { QuizView } from './QuizView';
 import { ImageGenerator } from './ImageGenerator';
@@ -95,7 +95,7 @@ const Section: React.FC<{
                 </button>
             )}
            <button onClick={handleSaveSnippet} title="Save Snippet" className="p-1 rounded-full text-gray-400 hover:bg-gray-100 dark:hover:bg-slate-800 hover:text-brand-blue transition">
-              {isSnippetSaved ? <svg className="h-3.5 w-3.5 text-green-500" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" /></svg> : <svg className="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor"><path d="M5 4a2 2 0 012-2h6a2 2 0 012 2v12a1 1 0 01-1.447.894L10 14.586l-3.553 2.308A1 1 0 015 16V4z" /></svg>}
+              {isSnippetSaved ? <svg className="h-3.5 w-3.5 text-green-500" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" /></svg> : <svg className="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor"><path d="M5 4a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" /></svg>}
             </button>
           <button onClick={handleCopy} title="Copy Section" className="p-1 rounded-full text-gray-400 hover:bg-gray-100 dark:hover:bg-slate-800 hover:text-brand-blue transition">
             {isCopied ? <svg className="h-3.5 w-3.5 text-green-500" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" /></svg> : <svg className="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor"><path d="M7 9a2 2 0 012-2h6a2 2 0 012 2v6a2 2 0 01-2 2H9a2 2 0 01-2-2V9z" /><path d="M5 3a2 2 0 00-2 2v6a2 2 0 002 2V5h8a2 2 0 00-2-2H5z" /></svg>}
@@ -110,21 +110,12 @@ const Section: React.FC<{
 const SmartContent: React.FC<{ content: string; language: string; T: Record<string, any>; onTriggerIllustration: (desc: string) => void; allowVisuals?: boolean }> = ({ content, language, T, onTriggerIllustration, allowVisuals = false }) => {
     const graphMatches = allowVisuals ? [...content.matchAll(/\[GRAPH:\s*(.*?)\s*\]/g)] : [];
     const illustrateMatches = allowVisuals ? [...content.matchAll(/\[ILLUSTRATE:\s*(.*?)\s*\]/g)] : [];
-    
-    // Strictly filter out graph/illustration tags if not allowed (e.g., in history section)
     const cleanContent = content.replace(/\[GRAPH:.*?\]/g, '').replace(/\[ILLUSTRATE:.*?\]/g, '').replace(/\[DIAGRAM:.*?\]/g, '').trim();
-    
     return (
         <div className="space-y-1.5">
             <MarkdownRenderer content={cleanContent} />
-            <div className="pt-0.5">
-                <SourceRenderer text={content} />
-            </div>
-            {allowVisuals && graphMatches.length > 0 && (
-                <div className="space-y-2 mt-1">
-                    {graphMatches.map((m, i) => <ScientificGraph key={i} type={m[1].trim() as any} title="Physiological Model Visualization" />)}
-                </div>
-            )}
+            <div className="pt-0.5"><SourceRenderer text={content} /></div>
+            {allowVisuals && graphMatches.length > 0 && (<div className="space-y-2 mt-1">{graphMatches.map((m, i) => <ScientificGraph key={i} type={m[1].trim() as any} title="Physiological Model Visualization" />)}</div>)}
             {allowVisuals && illustrateMatches.length > 0 && (
                 <div className="flex flex-wrap gap-2 mt-1">
                     {illustrateMatches.map((m, i) => (
@@ -147,6 +138,16 @@ const SkeletonLoader: React.FC = () => (
     </div>
 );
 
+const DiscussionBadge: React.FC<{ messages: ChatMessage[] | undefined }> = ({ messages }) => {
+    if (!messages || messages.length <= 1) return null;
+    return (
+        <span className="flex items-center gap-1 bg-brand-blue text-white text-[9px] font-black px-1.5 py-0.5 rounded-full shadow-xs animate-pulse">
+            <svg className="w-2.5 h-2.5" fill="currentColor" viewBox="0 0 20 20"><path d="M2 5a2 2 0 012-2h7a2 2 0 012 2v4a2 2 0 01-2 2H9l-3 3v-3H4a2 2 0 01-2-2V5z" /></svg>
+            {messages.length - 1}
+        </span>
+    );
+};
+
 export const PatientCaseView: React.FC<PatientCaseViewProps> = ({ patientCase: initialCase, isGeneratingDetails, onSave, language, T, onSaveSnippet, onOpenShare, onOpenDiscussion, onGetMapImage, mapData }) => {
   const { state: patientCase, setState: setPatientCase, undo, redo, canUndo, canRedo, resetState } = useHistoryState<PatientCase>(initialCase);
   const [isEditing, setIsEditing] = useState(false);
@@ -166,12 +167,10 @@ export const PatientCaseView: React.FC<PatientCaseViewProps> = ({ patientCase: i
   const handleMicClick = useCallback((key: keyof PatientCase) => {
     if (!isSpeechRecognitionSupported) return;
     if (isListening && recognitionRef.current) { recognitionRef.current.stop(); return; }
-    
     const recognition = new SpeechRecognition();
     recognition.lang = getBCP47Language(language);
     recognition.continuous = false;
     recognition.interimResults = true;
-    
     recognition.onstart = () => setIsListening(true);
     recognition.onend = () => { setIsListening(false); recognitionRef.current = null; };
     recognition.onerror = () => setIsListening(false);
@@ -209,27 +208,12 @@ export const PatientCaseView: React.FC<PatientCaseViewProps> = ({ patientCase: i
   const EditableField: React.FC<{ value: string; fieldKey: keyof PatientCase; isEditing: boolean; allowVisuals?: boolean }> = ({ value, fieldKey, isEditing, allowVisuals = false }) => {
     const ref = useRef<HTMLTextAreaElement>(null);
     useEffect(() => { if (isEditing && ref.current) { ref.current.style.height = 'auto'; ref.current.style.height = `${ref.current.scrollHeight}px`; } }, [isEditing, value]);
-    
     if (isEditing) {
         return (
             <div className="relative group">
-                <textarea 
-                    ref={ref} 
-                    value={value} 
-                    onChange={(e) => handleTextChange(e.target.value, fieldKey)} 
-                    className="w-full p-3 pr-12 border border-blue-200 dark:border-blue-800 rounded-lg focus:ring-4 focus:ring-brand-blue/10 bg-blue-50/50 dark:bg-blue-900/20 text-black dark:text-white resize-none transition-all shadow-inner font-serif min-h-[100px]" 
-                />
+                <textarea ref={ref} value={value} onChange={(e) => handleTextChange(e.target.value, fieldKey)} className="w-full p-3 pr-12 border border-blue-200 dark:border-blue-800 rounded-lg focus:ring-4 focus:ring-brand-blue/10 bg-blue-50/50 dark:bg-blue-900/20 text-black dark:text-white resize-none transition-all shadow-inner font-serif min-h-[100px]" />
                 <div className="absolute top-2 right-2 flex flex-col gap-2 opacity-60 group-hover:opacity-100 transition-opacity">
-                    <button 
-                        type="button"
-                        onClick={() => handleMicClick(fieldKey)} 
-                        className={`p-2 rounded-full transition shadow-sm ${isListening ? 'bg-red-500 text-white animate-pulse' : 'bg-white dark:bg-slate-800 text-gray-500 border border-gray-200 dark:border-slate-700 hover:bg-gray-100'}`}
-                        title="Voice input"
-                    >
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                            <path fillRule="evenodd" d="M7 4a3 3 0 016 0v4a3 3 0 11-6 0V4zm-1 4a4 4 0 108 0V4a4 4 0 10-8 0v4zM2 11a1 1 0 011-1h1a1 1 0 011 1v.5a.5.5 0 001 0V11a3 3 0 013-3h0a3 3 0 013 3v.5a.5.5 0 001 0V11a1 1 0 011 1h1a1 1 0 110 2h-1a1 1 0 01-1-1v-.5a2.5 2.5 0 00-5 0v.5a1 1 0 01-1 1H3a1 1 0 01-1-1v-2z" clipRule="evenodd" />
-                        </svg>
-                    </button>
+                    <button type="button" onClick={() => handleMicClick(fieldKey)} className={`p-2 rounded-full transition shadow-sm ${isListening ? 'bg-red-500 text-white animate-pulse' : 'bg-white dark:bg-slate-800 text-gray-500 border border-gray-200 dark:border-slate-700 hover:bg-gray-100'}`} title="Voice input"><svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M7 4a3 3 0 016 0v4a3 3 0 11-6 0V4zm-1 4a4 4 0 108 0V4a4 4 0 10-8 0v4zM2 11a1 1 0 011-1h1a1 1 0 011 1v.5a.5.5 0 001 0V11a3 3 0 013-3h0a3 3 0 013 3v.5a.5.5 0 001 0V11a1 1 0 011 1h1a1 1 0 110 2h-1a1 1 0 01-1-1v-.5a2.5 2.5 0 00-5 0v.5a1 1 0 01-1 1H3a1 1 0 01-1-1v-2z" clipRule="evenodd" /></svg></button>
                     {isListening && <div className="mx-auto"><AudioVisualizer isListening={isListening} /></div>}
                 </div>
             </div>
@@ -237,6 +221,9 @@ export const PatientCaseView: React.FC<PatientCaseViewProps> = ({ patientCase: i
     }
     return <SmartContent content={value} language={language} T={T} onTriggerIllustration={(d) => handleTriggerIllustration(d, -1)} allowVisuals={allowVisuals} />;
   };
+
+  // FIX: Explicitly cast Object.entries result to [string, ChatMessage[]][] to fix 'unknown' type errors for msgs on lines 225 and 322.
+  const archivedDiscussions = (Object.entries(patientCase.discussions || {}) as [string, ChatMessage[]][]).filter(([_, msgs]) => msgs.length > 1);
 
   return (
     <div className="p-3 sm:p-5 relative bg-white dark:bg-dark-surface transition-colors duration-300">
@@ -265,16 +252,13 @@ export const PatientCaseView: React.FC<PatientCaseViewProps> = ({ patientCase: i
         <Section title={T.history} onCopy={() => {}} onSaveSnippet={() => onSaveSnippet(T.history, patientCase.history)} T={T}><EditableField value={patientCase.history} fieldKey="history" isEditing={isEditing} /></Section>
         
         { patientCase.biochemicalPathway ? (
-            <Section 
-              title={T.biochemicalPathwaySection} 
-              onCopy={() => {}} 
-              onSaveSnippet={() => onSaveSnippet(patientCase.biochemicalPathway!.title, patientCase.biochemicalPathway!.description, { diagramData: patientCase.biochemicalPathway!.diagramData })} 
-              T={T}
-              groundingSources={patientCase.groundingSources}
-            >
+            <Section title={T.biochemicalPathwaySection} onCopy={() => {}} onSaveSnippet={() => onSaveSnippet(patientCase.biochemicalPathway!.title, patientCase.biochemicalPathway!.description, { diagramData: patientCase.biochemicalPathway!.diagramData })} T={T} groundingSources={patientCase.groundingSources}>
                 <div className="flex items-center justify-between mb-1">
                     <div className="flex items-center gap-2"><h4 className="text-sm font-black text-gray-900 dark:text-slate-100 uppercase tracking-tighter">{patientCase.biochemicalPathway.title}</h4><TextToSpeechPlayer textToRead={`${patientCase.biochemicalPathway.title}. ${patientCase.biochemicalPathway.description}`} language={language} /></div>
-                    <button onClick={() => onOpenDiscussion({ aspect: patientCase.biochemicalPathway!.title, consideration: patientCase.biochemicalPathway!.description })} className="text-[8px] bg-brand-blue dark:bg-brand-blue-light text-white font-black py-1 px-2.5 rounded-full shadow-xs transition-transform hover:scale-105 uppercase tracking-widest">{T.discussButton}</button>
+                    <div className="flex items-center gap-2">
+                        <DiscussionBadge messages={patientCase.discussions?.[patientCase.biochemicalPathway.title]} />
+                        <button onClick={() => onOpenDiscussion({ aspect: patientCase.biochemicalPathway!.title, consideration: patientCase.biochemicalPathway!.description })} className="text-[8px] bg-brand-blue dark:bg-brand-blue-light text-white font-black py-1 px-2.5 rounded-full shadow-xs transition-transform hover:scale-105 uppercase tracking-widest">{T.discussButton}</button>
+                    </div>
                 </div>
                 <p className="text-[8px] text-gray-400 font-mono mb-1 uppercase tracking-tighter">{patientCase.biochemicalPathway.reference}</p>
                 <SmartContent content={patientCase.biochemicalPathway.description} language={language} T={T} onTriggerIllustration={(d) => handleTriggerIllustration(d, -1)} allowVisuals={true} />
@@ -294,7 +278,10 @@ export const PatientCaseView: React.FC<PatientCaseViewProps> = ({ patientCase: i
                                 </div>
                                 <div className="text-[11px] text-gray-700 dark:text-slate-300 leading-relaxed mb-2"><SmartContent content={conn.connection} language={language} T={T} onTriggerIllustration={(d) => handleTriggerIllustration(d, -1)} /></div>
                             </div>
-                            <button onClick={() => onOpenDiscussion({ aspect: conn.discipline, consideration: conn.connection })} className="self-end flex items-center gap-1 text-[8px] bg-white dark:bg-slate-700 border border-blue-100 dark:border-blue-900 text-brand-blue dark:text-blue-300 hover:bg-brand-blue hover:text-white font-black py-1 px-2.5 rounded-full transition-all shadow-xs uppercase tracking-widest">Consult</button>
+                            <div className="flex items-center gap-2 self-end">
+                                <DiscussionBadge messages={patientCase.discussions?.[conn.discipline]} />
+                                <button onClick={() => onOpenDiscussion({ aspect: conn.discipline, consideration: conn.connection })} className="flex items-center gap-1 text-[8px] bg-white dark:bg-slate-700 border border-blue-100 dark:border-blue-900 text-brand-blue dark:text-blue-300 hover:bg-brand-blue hover:text-white font-black py-1 px-2.5 rounded-full transition-all shadow-xs uppercase tracking-widest">Consult</button>
+                            </div>
                         </div>
                     ))}
                 </div>
@@ -311,13 +298,12 @@ export const PatientCaseView: React.FC<PatientCaseViewProps> = ({ patientCase: i
                                 <div className="flex justify-between items-center mb-2 border-b border-gray-50 dark:border-dark-border pb-2">
                                     <div className="flex items-center gap-2">
                                         {isPhased && <div className="h-2 w-2 rounded-full bg-brand-blue dark:bg-brand-blue-light animate-pulse" />}
-                                        <strong className={`text-sm font-black tracking-tight uppercase ${isPhased ? 'text-brand-blue dark:text-brand-blue-light' : 'text-gray-900 dark:text-slate-200'}`}>
-                                            {item.aspect}
-                                        </strong>
+                                        <strong className={`text-sm font-black tracking-tight uppercase ${isPhased ? 'text-brand-blue dark:text-brand-blue-light' : 'text-gray-900 dark:text-slate-200'}`}>{item.aspect}</strong>
                                     </div>
-                                    <button onClick={() => onOpenDiscussion(item)} className="text-[8px] bg-blue-50 dark:bg-blue-900/30 text-brand-blue dark:text-blue-300 font-black py-1 px-2.5 rounded-full border border-blue-100 dark:border-blue-900 transition-all hover:bg-brand-blue hover:text-white uppercase tracking-widest shadow-xs">
-                                        {T.discussButton}
-                                    </button>
+                                    <div className="flex items-center gap-2">
+                                        <DiscussionBadge messages={patientCase.discussions?.[item.aspect]} />
+                                        <button onClick={() => onOpenDiscussion(item)} className="text-[8px] bg-blue-50 dark:bg-blue-900/30 text-brand-blue dark:text-blue-300 font-black py-1 px-2.5 rounded-full border border-blue-100 dark:border-blue-900 transition-all hover:bg-brand-blue hover:text-white uppercase tracking-widest shadow-xs">{T.discussButton}</button>
+                                    </div>
                                 </div>
                                 <div className="mt-1"><SmartContent content={item.consideration} language={language} T={T} onTriggerIllustration={(d) => handleTriggerIllustration(d, -1)} /></div>
                             </div>
@@ -326,6 +312,22 @@ export const PatientCaseView: React.FC<PatientCaseViewProps> = ({ patientCase: i
                 </div>
             </Section>
         ) : isGeneratingDetails ? <Section title={T.managementConsiderations} onCopy={() => {}} onSaveSnippet={() => {}} T={T}><SkeletonLoader /></Section> : null }
+
+        { archivedDiscussions.length > 0 && (
+            <Section title="Session Discussions Archive" onCopy={() => {}} onSaveSnippet={() => {}} T={T}>
+                <div className="grid grid-cols-1 gap-2 mt-2">
+                    {archivedDiscussions.map(([topicId, msgs]) => (
+                        <div key={topicId} className="bg-slate-50 dark:bg-slate-800/20 rounded-lg p-3 border border-gray-100 dark:border-dark-border flex items-center justify-between gap-4">
+                            <div className="min-w-0">
+                                <h5 className="font-bold text-gray-900 dark:text-slate-100 text-xs truncate">{topicId}</h5>
+                                <p className="text-[10px] text-gray-500 dark:text-gray-400 italic truncate mt-0.5">Last: "{msgs[msgs.length - 1].text.substring(0, 60)}..."</p>
+                            </div>
+                            <button onClick={() => onOpenDiscussion({ aspect: topicId, consideration: '' })} className="flex-shrink-0 bg-white dark:bg-slate-700 px-3 py-1.5 rounded-lg border border-blue-100 dark:border-blue-900 text-brand-blue dark:text-blue-300 font-black text-[9px] uppercase tracking-widest shadow-xs hover:bg-brand-blue hover:text-white transition-all">Reopen History</button>
+                        </div>
+                    ))}
+                </div>
+            </Section>
+        )}
 
         { (Array.isArray(patientCase.traceableEvidence) && patientCase.traceableEvidence.length > 0) || (Array.isArray(patientCase.furtherReadings) && patientCase.furtherReadings.length > 0) ? (
             <Section title={T.evidenceAndReading} onCopy={() => {}} onSaveSnippet={() => {}} T={T} onEnrich={handleEnrichSources} isEnriching={isEnrichingEvidence} groundingSources={groundingSources}>
