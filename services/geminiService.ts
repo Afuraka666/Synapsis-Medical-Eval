@@ -36,7 +36,6 @@ const SYNTHESIS_GUIDELINE = `
 2. **Accurate Symbol Rendering:** Use Unicode for physiological variables (e.g., PaO₂, SaO₂, PvO₂, CO₂, H₂O, P_c, P_i, T½). Use subscripts/superscripts directly in the text.
 3. **Formula Handling:** ONLY use LaTeX ($...$) for complex, multi-variable mathematical equations.
 4. **Physiological Relevancy (PLACEMENT RESTRICTION):** If a physiological graph is relevant, you MUST embed the tag [GRAPH: type] at the END of the 'biochemicalPathway.description' field. 
-   **STRICT PROHIBITION:** Do NOT include [GRAPH: type] or [ILLUSTRATE: type] tags in 'patientProfile', 'presentingComplaint', or 'history'.
    Available Tags:
    - \`[GRAPH: oxygen_dissociation]\` (ARDS, Anemia, Sepsis)
    - \`[GRAPH: frank_starling]\` (CHF, Fluid resuscitation, Shock)
@@ -46,8 +45,9 @@ const SYNTHESIS_GUIDELINE = `
 5. **Narrative Integrity:** No citations/PMIDs in 'patientProfile', 'presentingComplaint', or 'history'. Reads like a clinical record.
 6. **Quiz Quality:** Exactly 5 high-yield MCQs.
 7. **Phased Management Structuring:** Categorize 'disciplineSpecificConsiderations' into "Preoperative", "Intraoperative", and "Postoperative" (or equivalent acute/recovery phases).
-8. **Discipline Authenticity (CRITICAL):** Use technical language specific to the discipline (e.g., NANDA-I for Nursing, Pharmacokinetics for Pharmacology). Do NOT provide generalized medical advice.
-9. **Multidisciplinary Spectrum:** Provide 4-6 distinct items covering both Acute Management AND Rehabilitation/Community Re-integration phases.
+8. **Discipline Authenticity (CRITICAL):** Use technical language specific to the discipline (e.g., NANDA-I for Nursing, Pharmacokinetics for Pharmacology).
+9. **Multidisciplinary Spectrum:** Provide 4-6 distinct items covering Acute Management AND Rehabilitation.
+10. **DRUG SAFETY (MANDATORY):** For any drug therapy mentioned in management plans, you MUST provide exactly 3 critical adverse effects using this tag: [ADVERSE: effect1; effect2; effect3].
 `;
 
 const diagramNodeSchema = {
@@ -241,6 +241,9 @@ export const generateExtendedDetails = async (coreCase: PatientCase, discipline:
     
     **PHYSIOLOGICAL MODEL VISUALIZATION (CORE REQUIREMENT):** 
     If a physiological graph (oxygen_dissociation, frank_starling, pressure_volume_loop, cerebral_pressure_volume, cerebral_autoregulation) is relevant to the pathophysiology of "${coreCase.title}", you MUST embed the correct [GRAPH: type] tag strictly within the 'biochemicalPathway.description' field.
+    
+    **DRUG ADVERSE EFFECTS:**
+    For every medication mentioned, provide 3 adverse effects using [ADVERSE: e1; e2; e3].
     
     Language: ${language}. ${SYNTHESIS_GUIDELINE}`;
     const response: GenerateContentResponse = await retryWithBackoff(() => ai.models.generateContent({

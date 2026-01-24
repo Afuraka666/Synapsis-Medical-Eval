@@ -32,9 +32,6 @@ const getBCP47Language = (lang: string): string => {
     return map[lang] || 'en-US';
 };
 
-/**
- * Capture an SVG element as a high-fidelity PNG base64 string
- */
 const captureSvgAsBase64 = async (svgElement: SVGSVGElement): Promise<string> => {
     return new Promise((resolve) => {
         const xml = new XMLSerializer().serializeToString(svgElement);
@@ -163,6 +160,7 @@ export const DiscussionModal: React.FC<DiscussionModalProps> = ({
     const [isLoading, setIsLoading] = useState(false);
     const [isSaved, setIsSaved] = useState(false);
     const [isFullscreen, setIsFullscreen] = useState(false);
+    const [isMinimised, setIsMinimised] = useState(false);
     const [showShareMenu, setShowShareMenu] = useState(false);
     const [activeImagePrompt, setActiveImagePrompt] = useState<{prompt: string, index: number} | null>(null);
     const chatRef = useRef<Chat | null>(null);
@@ -225,8 +223,10 @@ export const DiscussionModal: React.FC<DiscussionModalProps> = ({
     };
 
     useEffect(() => {
-        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }, [messages, isLoading]);
+        if (!isMinimised) {
+            messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+        }
+    }, [messages, isLoading, isMinimised]);
 
     const handleSendMessage = async (e?: React.FormEvent, customMsg?: string) => {
         if (e) e.preventDefault();
@@ -338,10 +338,8 @@ export const DiscussionModal: React.FC<DiscussionModalProps> = ({
                 }
             }
 
-            // Graphs and Diagrams
             if (scrollContainerRef.current) {
                 const svgs = scrollContainerRef.current.querySelectorAll('svg');
-                // FIX: Cast Array.from result to SVGSVGElement[] to resolve 'unknown' type errors for closest, clientHeight, and clientWidth.
                 for (const svg of Array.from(svgs) as SVGSVGElement[]) {
                     if (svg.closest(`.msg-${mIdx}`)) {
                         const imgData = await captureSvgAsBase64(svg);
@@ -360,7 +358,6 @@ export const DiscussionModal: React.FC<DiscussionModalProps> = ({
                 }
             }
 
-            // Illustrations
             if (m.imageData) {
                 const imgBuffer = Uint8Array.from(atob(m.imageData), c => c.charCodeAt(0));
                 sections.push(new Paragraph({
@@ -402,7 +399,6 @@ export const DiscussionModal: React.FC<DiscussionModalProps> = ({
 
         for (const [mIdx, m] of messages.filter(msg => msg.role !== 'system').entries()) {
             const isUser = m.role === 'user';
-            
             if (y > 270) { doc.addPage(); y = 20; }
             doc.setFont('helvetica', 'bold').setFontSize(10).setTextColor(isUser ? brandColor : '#6b7280');
             doc.text(`${isUser ? 'STUDENT QUESTION' : 'AI TUTOR RESPONSE'}`, margin, y);
@@ -435,7 +431,6 @@ export const DiscussionModal: React.FC<DiscussionModalProps> = ({
             const graphMatches = [...m.text.matchAll(/\[GRAPH: (.*?)\]/g)];
             if ((graphMatches.length > 0 || m.diagramData) && scrollContainerRef.current) {
                 const svgs = scrollContainerRef.current.querySelectorAll('svg');
-                // FIX: Cast Array.from result to SVGSVGElement[] to resolve 'unknown' type errors for closest, clientHeight, and clientWidth.
                 for (const svg of Array.from(svgs) as SVGSVGElement[]) {
                     if (svg.closest(`.msg-${mIdx}`)) {
                         const imgData = await captureSvgAsBase64(svg);
@@ -456,7 +451,6 @@ export const DiscussionModal: React.FC<DiscussionModalProps> = ({
                 doc.addImage(imgData, 'PNG', (pageWidth - imgW) / 2, y, imgW, imgH);
                 y += imgH + 10;
             }
-
             y += 5; 
         }
         
@@ -466,13 +460,35 @@ export const DiscussionModal: React.FC<DiscussionModalProps> = ({
 
     if (!isOpen) return null;
 
+    if (isMinimised) {
+        return (
+            <div className="fixed bottom-6 right-6 z-[60] animate-bounce-slow">
+                <button 
+                    onClick={() => setIsMinimised(false)}
+                    className="group relative flex items-center gap-3 bg-brand-blue hover:bg-blue-800 text-white p-3 pr-5 rounded-full shadow-2xl transition-all hover:scale-105 active:scale-95"
+                    title="Resume AI Tutorial"
+                >
+                    <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center font-black text-sm">AI</div>
+                    <div className="flex flex-col items-start leading-none">
+                        <span className="text-[10px] font-black uppercase tracking-widest opacity-70">Tutorial Active</span>
+                        <span className="text-sm font-bold truncate max-w-[120px]">{topic.aspect}</span>
+                    </div>
+                    {isLoading && <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full animate-ping border-2 border-white"></div>}
+                </button>
+            </div>
+        );
+    }
+
     return (
         <div className={`fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4 animate-fade-in ${isFullscreen ? 'bg-white dark:bg-dark-bg' : ''}`} aria-modal="true" role="dialog">
             <div className={`bg-white dark:bg-dark-surface flex flex-col transition-all duration-300 ${isFullscreen ? 'w-full h-full rounded-none' : 'rounded-xl shadow-2xl w-full max-w-lg h-[90vh] sm:h-[85vh]'}`}>
                 <header className={`p-4 border-b border-gray-200 dark:border-dark-border bg-white dark:bg-dark-surface z-10 transition-colors ${isFullscreen ? 'rounded-none' : 'rounded-t-xl'}`}>
                     <div className="flex justify-between items-center">
-                        <h2 className="text-lg font-bold text-gray-800 dark:text-slate-100 truncate pr-4">{T.discussionTitle}</h2>
-                        <div className="flex items-center gap-2">
+                        <div className="flex flex-col min-w-0 pr-4">
+                            <h2 className="text-sm font-black text-brand-blue uppercase tracking-widest leading-none mb-1">AI Medical Tutor</h2>
+                            <h3 className="text-lg font-bold text-gray-800 dark:text-slate-100 truncate">{topic.aspect}</h3>
+                        </div>
+                        <div className="flex items-center gap-1 sm:gap-2">
                              <div className="relative" ref={shareMenuRef}>
                                 <button onClick={() => setShowShareMenu(!showShareMenu)} className="p-1.5 text-gray-500 dark:text-gray-400 hover:text-brand-blue rounded-full transition" title="Export">
                                     <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
@@ -490,10 +506,13 @@ export const DiscussionModal: React.FC<DiscussionModalProps> = ({
                                     </div>
                                 )}
                             </div>
-                            <button onClick={() => setIsFullscreen(!isFullscreen)} className="p-1.5 text-gray-500 dark:text-gray-400 hover:text-brand-blue rounded-full transition">
+                            <button onClick={() => setIsFullscreen(!isFullscreen)} className="p-1.5 text-gray-500 dark:text-gray-400 hover:text-brand-blue rounded-full transition" title="Toggle Fullscreen">
                                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5v-4m0 4h-4m4 0l-5-5" /></svg>
                             </button>
-                            <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition"><svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>
+                            <button onClick={() => setIsMinimised(true)} className="p-1.5 text-gray-500 dark:text-gray-400 hover:text-brand-blue rounded-full transition" title="Minimise Discussion">
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M20 12H4" /></svg>
+                            </button>
+                            <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition" title="Close Tutorial"><svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>
                         </div>
                     </div>
                 </header>

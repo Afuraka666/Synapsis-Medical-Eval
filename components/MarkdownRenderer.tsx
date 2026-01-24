@@ -18,16 +18,17 @@ const sanitizeContent = (text: string): string => {
     if (!text) return '';
     
     let cleaned = text
-        // 1. Replace common LaTeX command words with Unicode symbols BEFORE stripping backslashes
-        .replace(/\\rightarrow|rightarrow/gi, ' → ')
-        .replace(/\\leftarrow|leftarrow/gi, ' ← ')
-        .replace(/\\Delta|Delta/g, ' Δ ')
-        .replace(/\\alpha|alpha/gi, ' α ')
-        .replace(/\\beta|beta/gi, ' β ')
-        .replace(/\\gamma|gamma/gi, ' γ ')
-        .replace(/\\mu|mu/gi, ' μ ')
-        .replace(/\\approx|approx/gi, ' ≈ ')
-        .replace(/\\pm|pm/gi, ' ± ')
+        // 1. Replace LaTeX commands with Unicode - USING STRICT WORD BOUNDARIES
+        .replace(/\\rightarrow|\brightarrow\b/gi, ' → ')
+        .replace(/\\leftarrow|\bleftarrow\b/gi, ' ← ')
+        .replace(/\\Delta|\bDelta\b/g, ' Δ ')
+        .replace(/\\alpha|\balpha\b/gi, ' α ')
+        .replace(/\\beta|\bbeta\b/gi, ' β ')
+        .replace(/\\gamma|\bgamma\b/gi, ' γ ')
+        // FIX: Added \b word boundaries to prevent 'mu' in 'muscle' or 'mutation' from being replaced.
+        .replace(/\\mu\b|\bmu\b/gi, ' μ ')
+        .replace(/\\approx|\bapprox\b/gi, ' ≈ ')
+        .replace(/\\pm|\bpm\b/gi, ' ± ')
         
         // 2. Clean up LaTeX escaping artifacts
         .replace(/\\\$/g, '$')           
@@ -38,11 +39,8 @@ const sanitizeContent = (text: string): string => {
         .replace(/\\\]/g, ']')           
         
         // 3. Normalize spacing and word separation
-        // Adds space between punctuation and following words if missing
         .replace(/([\.!\?])([A-Z])/g, '$1 $2')
-        // Adds space between numbers and units if missing (e.g., 50mmHg -> 50 mmHg)
         .replace(/(\d)(mg|mcg|mL|mmHg|bpm|mmol|meq)/gi, '$1 $2')
-        // Fix smushed words (lowercase followed by uppercase without space)
         .replace(/([a-z])([A-Z])/g, '$1 $2')
         
         // 4. Unicode for medical variables
@@ -54,7 +52,7 @@ const sanitizeContent = (text: string): string => {
         .replace(/\bH2O\b/g, 'H₂O')
         .replace(/\bt1\/2\b/gi, 'T½')
         
-        // 5. Final cleanup: Remove stray backslashes and collapse whitespace
+        // 5. Final cleanup
         .replace(/\\/g, '')
         .replace(/[ \t]+/g, ' ')
         .replace(/\n{3,}/g, '\n\n')

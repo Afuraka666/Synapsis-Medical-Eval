@@ -110,10 +110,43 @@ const Section: React.FC<{
 const SmartContent: React.FC<{ content: string; language: string; T: Record<string, any>; onTriggerIllustration: (desc: string) => void; allowVisuals?: boolean }> = ({ content, language, T, onTriggerIllustration, allowVisuals = false }) => {
     const graphMatches = allowVisuals ? [...content.matchAll(/\[GRAPH:\s*(.*?)\s*\]/g)] : [];
     const illustrateMatches = allowVisuals ? [...content.matchAll(/\[ILLUSTRATE:\s*(.*?)\s*\]/g)] : [];
-    const cleanContent = content.replace(/\[GRAPH:.*?\]/g, '').replace(/\[ILLUSTRATE:.*?\]/g, '').replace(/\[DIAGRAM:.*?\]/g, '').trim();
+    const adverseMatches = [...content.matchAll(/\[ADVERSE:\s*(.*?)\s*\]/g)];
+    
+    const cleanContent = content
+        .replace(/\[GRAPH:.*?\]/g, '')
+        .replace(/\[ILLUSTRATE:.*?\]/g, '')
+        .replace(/\[DIAGRAM:.*?\]/g, '')
+        .replace(/\[ADVERSE:.*?\]/g, '')
+        .trim();
+        
     return (
         <div className="space-y-1.5">
             <MarkdownRenderer content={cleanContent} />
+            
+            {adverseMatches.length > 0 && (
+                <div className="mt-3 space-y-2">
+                    {adverseMatches.map((m, i) => {
+                        const effects = m[1].split(';').map(e => e.trim()).filter(Boolean);
+                        return (
+                            <div key={i} className="bg-red-50 dark:bg-red-900/10 border-l-4 border-red-500 p-3 rounded-r-lg">
+                                <h5 className="text-[10px] font-black text-red-700 dark:text-red-400 uppercase tracking-widest mb-1.5 flex items-center gap-1.5">
+                                    <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.21 3.03-1.742 3.03H4.42c-1.532 0-2.492-1.696-1.742-3.03l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" /></svg>
+                                    Critical Monitoring Watchlist
+                                </h5>
+                                <div className="grid grid-cols-1 gap-1">
+                                    {effects.map((effect, idx) => (
+                                        <div key={idx} className="flex items-start gap-2 text-xs text-gray-800 dark:text-slate-200">
+                                            <span className="text-red-500 font-bold">•</span>
+                                            <span>{effect}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        );
+                    })}
+                </div>
+            )}
+
             <div className="pt-0.5"><SourceRenderer text={content} /></div>
             {allowVisuals && graphMatches.length > 0 && (<div className="space-y-2 mt-1">{graphMatches.map((m, i) => <ScientificGraph key={i} type={m[1].trim() as any} title="Physiological Model Visualization" />)}</div>)}
             {allowVisuals && illustrateMatches.length > 0 && (
@@ -222,7 +255,6 @@ export const PatientCaseView: React.FC<PatientCaseViewProps> = ({ patientCase: i
     return <SmartContent content={value} language={language} T={T} onTriggerIllustration={(d) => handleTriggerIllustration(d, -1)} allowVisuals={allowVisuals} />;
   };
 
-  // FIX: Explicitly cast Object.entries result to [string, ChatMessage[]][] to fix 'unknown' type errors for msgs on lines 225 and 322.
   const archivedDiscussions = (Object.entries(patientCase.discussions || {}) as [string, ChatMessage[]][]).filter(([_, msgs]) => msgs.length > 1);
 
   return (
