@@ -44,19 +44,21 @@ const adultDrugDatabase: Drug[] = [
         doseText: '6 mg rapid IV push; followed by 12 mg if unsuccessful',
         concentration: '3 mg/mL',
         notes: 'Administer into a large vein (e.g., antecubital) followed by a rapid 20mL saline flush.',
-        adverseEvents: ['Chest pain', 'Dyspnea', 'Flushing', 'Transient asystole'],
+        adverseEvents: ['Transient asystole', 'Chest pain/pressure', 'Dyspnea'],
         calculation: () => ({ dose: 6, unit: 'mg', volume: 2, volumeUnit: 'mL', notes: 'Initial dose 6mg. If no effect in 1-2 min, give 12mg.' })
     },
     {
         name: 'Adrenaline (Epinephrine) 1:10,000 (Cardiac Arrest)',
         doseText: '1 mg every 3-5 minutes',
         concentration: '1 mg / 10 mL (100 mcg/mL)',
+        adverseEvents: ['Severe Hypertension', 'Ventricular Tachyarrhythmias', 'Myocardial Ischemia'],
         calculation: () => ({ dose: 1, unit: 'mg', volume: 10, volumeUnit: 'mL' })
     },
     {
         name: 'Adrenaline (Epinephrine) 1:1,000 (Anaphylaxis)',
         doseText: '0.5 mg IM',
         concentration: '1 mg / 1 mL (1,000 mcg/mL)',
+        adverseEvents: ['Severe Hypertension', 'Ventricular Tachyarrhythmias', 'Myocardial Ischemia'],
         calculation: () => ({ dose: 0.5, unit: 'mg', volume: 0.5, volumeUnit: 'mL', notes: 'Repeat every 5-15 min if no improvement.' })
     },
     {
@@ -64,6 +66,7 @@ const adultDrugDatabase: Drug[] = [
         doseText: '300 mg IV/IO bolus; second dose 150 mg',
         concentration: '50 mg/mL',
         notes: 'For shock-refractory VF/pVT.',
+        adverseEvents: ['Hypotension', 'Bradycardia', 'QT Prolongation'],
         calculation: () => ({ dose: 300, unit: 'mg', volume: 6, volumeUnit: 'mL' })
     },
     {
@@ -72,13 +75,14 @@ const adultDrugDatabase: Drug[] = [
         concentration: '500 mg tablets or IV',
         maxDose: 'Max 6 g/day in severe infections',
         notes: 'Adjust dose in severe renal impairment.',
+        adverseEvents: ['Hypersensitivity/Anaphylaxis', 'Diarrhea', 'Drug-induced Liver Injury'],
         calculation: () => ({ dose: 500, unit: 'mg', notes: 'Standard dose is 500mg-1g TDS.' })
     },
     {
         name: 'Atracurium',
         doseText: '0.5 mg/kg for intubation',
         concentration: '10 mg/mL',
-        adverseEvents: ['Histamine release (hypotension, flushing)', 'Bronchospasm'],
+        adverseEvents: ['Histamine Release (Hypotension)', 'Bronchospasm', 'Skin Flushing'],
         calculation: (weight) => {
             const dose = 0.5 * weight;
             return { dose, unit: 'mg', volume: dose / 10, volumeUnit: 'mL' };
@@ -89,6 +93,7 @@ const adultDrugDatabase: Drug[] = [
         doseText: '0.5 - 1 mg IV every 3-5 minutes',
         concentration: '0.6 mg/mL or 1 mg/mL',
         maxDose: 'Total max 3 mg (asystole/bradycardia)',
+        adverseEvents: ['Tachycardia', 'Delirium/Confusion', 'Urinary Retention'],
         calculation: () => ({ dose: 0.5, unit: 'mg', notes: 'Standard dose for bradycardia.' })
     },
     {
@@ -96,6 +101,7 @@ const adultDrugDatabase: Drug[] = [
         doseText: '10 - 20 mg (2 - 4 mL)',
         concentration: '5 mg/mL in 8% Dextrose',
         notes: 'Adjust based on patient height and desired block level.',
+        adverseEvents: ['Hypotension', 'High Spinal Block (Respiratory failure)', 'Bradycardia'],
         calculation: () => ({ dose: 15, unit: 'mg', volume: 3, volumeUnit: 'mL', notes: 'Example dose for T10 block.' })
     },
     {
@@ -103,6 +109,7 @@ const adultDrugDatabase: Drug[] = [
         doseText: '2.5 mg/kg IV bolus',
         concentration: '0.33 mg/mL (reconstituted)',
         notes: 'For Malignant Hyperthermia. Reconstitute 20mg vial with 60mL sterile water.',
+        adverseEvents: ['Severe Muscle Weakness', 'Hepatotoxicity', 'Respiratory Insufficiency'],
         calculation: (weight) => {
             const dose = 2.5 * weight;
             return { dose, unit: 'mg', volume: dose / 0.33, volumeUnit: 'mL' };
@@ -113,12 +120,14 @@ const adultDrugDatabase: Drug[] = [
         doseText: '4 - 8 mg IV/IM',
         concentration: '4 mg/mL',
         notes: 'Used for PONV prophylaxis, airway edema, or inflammation.',
+        adverseEvents: ['Hyperglycemia', 'Psychotic reactions', 'Perianal Pruritus (IV bolus)'],
         calculation: () => ({ dose: 4, unit: 'mg', volume: 1, volumeUnit: 'mL' })
     },
     {
         name: 'Dexmedetomidine',
         doseText: 'Load: 1 mcg/kg over 10 min; Infusion: 0.2 - 1.0 mcg/kg/hr',
         concentration: '100 mcg/mL',
+        adverseEvents: ['Bradycardia', 'Hypotension', 'Hypertension (loading bolus)'],
         calculation: (weight) => ({ dose: 1 * weight, unit: 'mcg', notes: 'Loading dose.' }),
         infusionCalculation: (weight) => ({
             rate: '0.2-1.0 mcg/kg/hr',
@@ -131,6 +140,7 @@ const adultDrugDatabase: Drug[] = [
         doseText: '75 mg IM or 50 mg PO',
         concentration: '75 mg / 3 mL ampoule',
         maxDose: 'Max 150 mg/day',
+        adverseEvents: ['GI Bleeding/Ulceration', 'Acute Kidney Injury', 'Platelet Dysfunction'],
         calculation: () => ({ dose: 75, unit: 'mg', volume: 3, volumeUnit: 'mL' })
     },
     {
@@ -138,12 +148,14 @@ const adultDrugDatabase: Drug[] = [
         doseText: '3 - 6 mg IV bolus',
         concentration: '3 mg/mL (diluted from 30mg ampoule)',
         notes: 'Titrate to effect for hypotension.',
+        adverseEvents: ['Tachycardia', 'Arrhythmias', 'Hypertension'],
         calculation: () => ({ unit: 'mg', notes: 'Standard bolus: 3-6mg. Repeat as necessary.' })
     },
     {
         name: 'Esmolol',
         doseText: 'Load: 500 mcg/kg over 1 min; Infusion: 50 - 300 mcg/kg/min',
         concentration: '10 mg/mL',
+        adverseEvents: ['Hypotension', 'Bradycardia', 'Bronchospasm'],
         calculation: (weight) => ({ dose: 500 * weight, unit: 'mcg', notes: 'Loading dose over 60 seconds.' }),
         infusionCalculation: (weight) => ({
             rate: '50-300 mcg/kg/min',
@@ -155,7 +167,7 @@ const adultDrugDatabase: Drug[] = [
         name: 'Fentanyl',
         doseText: '1 - 2 mcg/kg for induction',
         concentration: '50 mcg/mL',
-        adverseEvents: ['Respiratory depression', 'Bradycardia'],
+        adverseEvents: ['Respiratory Depression', 'Chest Wall Rigidity', 'Bradycardia'],
         calculation: (weight) => {
             const dose = 1.5 * weight;
             return { dose, unit: 'mcg', volume: dose / 50, volumeUnit: 'mL' };
@@ -165,12 +177,14 @@ const adultDrugDatabase: Drug[] = [
         name: 'Ibuprofen',
         doseText: '400 mg every 6-8 hours',
         maxDose: 'Max 2.4 g/day',
+        adverseEvents: ['GI Bleeding', 'Renal Impairment', 'Bronchospasm (Aspirin sensitivity)'],
         calculation: () => ({ dose: 400, unit: 'mg' })
     },
     {
         name: 'Intralipid 20%',
         doseText: 'Bolus: 1.5 mL/kg; Infusion: 0.25 mL/kg/min',
         notes: 'LAST Protocol. Can repeat bolus x2.',
+        adverseEvents: ['Hypertriglyceridemia', 'Pancreatitis', 'Laboratory interference (lipemia)'],
         calculation: (weight) => ({ dose: 0, unit: 'mL', volume: 1.5 * weight, volumeUnit: 'mL', notes: 'Bolus over 1 min.' }),
         infusionCalculation: (weight) => ({
             rate: '0.25 mL/kg/min',
@@ -182,12 +196,14 @@ const adultDrugDatabase: Drug[] = [
         name: 'Ketamine (Analgesia)',
         doseText: '0.1 - 0.3 mg/kg IV',
         concentration: '10 mg/mL or 50 mg/mL',
+        adverseEvents: ['Dissociation/Hallucinations', 'Laryngospasm', 'Hypertension/Tachycardia'],
         calculation: (weight) => ({ dose: 0.2 * weight, unit: 'mg', notes: 'Sub-dissociative dose.' })
     },
     {
         name: 'Ketamine (Induction)',
         doseText: '1 - 2 mg/kg IV',
         concentration: '10 mg/mL or 50 mg/mL',
+        adverseEvents: ['Dissociation/Hallucinations', 'Laryngospasm', 'Hypertension/Tachycardia'],
         calculation: (weight) => ({ dose: 1.5 * weight, unit: 'mg' })
     },
     {
@@ -195,24 +211,28 @@ const adultDrugDatabase: Drug[] = [
         doseText: '2 g IV over 10-20 minutes',
         concentration: '500 mg/mL (50%)',
         notes: 'Dilute to 10-20% for administration.',
+        adverseEvents: ['Hypotension', 'Loss of Deep Tendon Reflexes', 'Respiratory Depression'],
         calculation: () => ({ dose: 2000, unit: 'mg', volume: 4, volumeUnit: 'mL', notes: 'Standard dose for arrhythmias or asthma.' })
     },
     {
         name: 'Metronidazole',
         doseText: '500 mg every 8 hours',
         concentration: '500 mg / 100 mL IV',
+        adverseEvents: ['Seizures', 'Peripheral Neuropathy', 'Disulfiram-like reaction'],
         calculation: () => ({ dose: 500, unit: 'mg', volume: 100, volumeUnit: 'mL' })
     },
     {
         name: 'Midazolam (Sedation)',
         doseText: '0.5 - 2 mg titrated IV',
         concentration: '1 mg/mL',
+        adverseEvents: ['Respiratory Depression', 'Hypotension', 'Paradoxical Agitation'],
         calculation: () => ({ dose: 1, unit: 'mg', notes: 'Start with 0.5-1mg in elderly.' })
     },
     {
         name: 'Morphine',
         doseText: '0.1 mg/kg or titration (e.g. 2mg every 5 min)',
         concentration: '10 mg/mL (usually diluted to 1mg/mL)',
+        adverseEvents: ['Respiratory Depression', 'Pruritus/Histamine Release', 'Nausea and Vomiting'],
         calculation: (weight) => ({ dose: 0.1 * weight, unit: 'mg', notes: 'Titrate IV to pain relief and respiratory rate.' })
     },
     {
@@ -220,6 +240,7 @@ const adultDrugDatabase: Drug[] = [
         doseText: '0.4 - 2 mg IV/IM/SC',
         concentration: '0.4 mg/mL',
         notes: 'Titrate 40-100mcg increments if trying to preserve analgesia.',
+        adverseEvents: ['Pulmonary Edema', 'Severe Tachycardia/Hypertension', 'Acute Opioid Withdrawal'],
         calculation: () => ({ dose: 0.4, unit: 'mg', volume: 1, volumeUnit: 'mL' })
     },
     {
@@ -228,11 +249,13 @@ const adultDrugDatabase: Drug[] = [
         concentration: '2.5 mg/mL',
         maxDose: 'Max 5 mg',
         notes: 'Must give with anticholinergic (Atropine or Glycopyrrolate).',
+        adverseEvents: ['Severe Bradycardia', 'Bronchospasm', 'Increased Secretions'],
         calculation: (weight) => ({ dose: Math.min(0.05 * weight, 5), unit: 'mg' })
     },
     {
         name: 'Norepinephrine',
         doseText: '0.05 - 1.0 mcg/kg/min',
+        adverseEvents: ['Peripheral Ischemia/Necrosis', 'Myocardial Ischemia', 'Reflex Bradycardia'],
         infusionCalculation: (weight) => ({
             rate: '0.05-1.0 mcg/kg/min',
             preparation: '80 mcg/mL (4mg in 50mL D5W)',
@@ -243,12 +266,14 @@ const adultDrugDatabase: Drug[] = [
         name: 'Ondansetron',
         doseText: '4 - 8 mg IV/PO',
         concentration: '2 mg/mL',
+        adverseEvents: ['QT Prolongation', 'Headache', 'Constipation'],
         calculation: () => ({ dose: 4, unit: 'mg', volume: 2, volumeUnit: 'mL' })
     },
     {
         name: 'Pancuronium',
         doseText: '0.1 mg/kg IV',
         concentration: '2 mg/mL',
+        adverseEvents: ['Tachycardia', 'Hypertension', 'Prolonged Neuromuscular Block'],
         calculation: (weight) => ({ dose: 0.1 * weight, unit: 'mg', volume: (0.1 * weight) / 2, volumeUnit: 'mL' })
     },
     {
@@ -256,20 +281,21 @@ const adultDrugDatabase: Drug[] = [
         doseText: '1 g every 4-6 hours',
         concentration: '10 mg/mL (100mL bag IV)',
         maxDose: 'Max 4 g/day',
+        adverseEvents: ['Hepatotoxicity', 'Hypersensitivity Reactions', 'Hypotension (Rapid IV infusion)'],
         calculation: () => ({ dose: 1000, unit: 'mg', volume: 100, volumeUnit: 'mL' })
     },
     {
         name: 'Phenylephrine',
         doseText: '50 - 100 mcg IV bolus',
         concentration: '100 mcg/mL (diluted)',
-        adverseEvents: ['Reflex bradycardia', 'Hypertension'],
+        adverseEvents: ['Severe Reflex Bradycardia', 'Pulmonary Edema', 'Hypertension'],
         calculation: () => ({ unit: 'mcg', notes: 'Standard bolus: 50-100mcg. Titrate to MAP.' })
     },
     {
         name: 'Propofol',
         doseText: '1.5 - 2.5 mg/kg for induction',
         concentration: '10 mg/mL (1%)',
-        adverseEvents: ['Hypotension', 'Pain on injection', 'Apnea'],
+        adverseEvents: ['Profound Hypotension', 'Apnea', 'Propofol Infusion Syndrome (long term)'],
         calculation: (weight) => {
             const dose = 2.0 * weight;
             return { dose, unit: 'mg', volume: dose / 10, volumeUnit: 'mL' };
@@ -279,6 +305,7 @@ const adultDrugDatabase: Drug[] = [
         name: 'Rocuronium',
         doseText: '0.6 - 1.2 mg/kg for intubation',
         concentration: '10 mg/mL',
+        adverseEvents: ['Anaphylaxis', 'Prolonged Paralysis', 'Tachycardia'],
         calculation: (weight) => {
             const dose = 0.6 * weight;
             return { dose, unit: 'mg', volume: dose / 10, volumeUnit: 'mL' };
@@ -288,12 +315,14 @@ const adultDrugDatabase: Drug[] = [
         name: 'Sildenafil',
         doseText: '20 mg PO TDS',
         notes: 'Standard adult dose for PAH.',
+        adverseEvents: ['Hypotension (especially with Nitrates)', 'Vision changes (blue tint)', 'Headache'],
         calculation: () => ({ dose: 20, unit: 'mg' })
     },
     {
         name: 'Sugammadex',
         doseText: '2 - 4 mg/kg depending on block depth',
         concentration: '100 mg/mL',
+        adverseEvents: ['Anaphylaxis', 'Coagulopathy (Transient)', 'Bradycardia'],
         calculation: (weight) => {
             const dose = 2.0 * weight;
             return { dose, unit: 'mg', volume: dose / 100, volumeUnit: 'mL', notes: '2mg/kg for routine reversal (TOF count ≥2).' };
@@ -303,6 +332,7 @@ const adultDrugDatabase: Drug[] = [
         name: 'Suxamethonium',
         doseText: '1.0 - 1.5 mg/kg IV',
         concentration: '50 mg/mL',
+        adverseEvents: ['Severe Hyperkalemia', 'Malignant Hyperthermia', 'Masseter Muscle Spasm'],
         calculation: (weight) => ({ dose: 1.0 * weight, unit: 'mg', volume: (1.0 * weight) / 50, volumeUnit: 'mL' })
     }
 ].sort((a, b) => a.name.localeCompare(b.name));
@@ -315,7 +345,7 @@ const paediatricDrugDatabase: Drug[] = [
         concentration: '3 mg/mL',
         maxDose: 'Max initial 6mg, max subsequent 12mg',
         notes: 'For SVT. Administer as a rapid IV push followed by a saline flush.',
-        adverseEvents: ['Transient asystole/bradycardia', 'Flushing', 'Chest discomfort', 'Bronchospasm'],
+        adverseEvents: ['Transient asystole/bradycardia', 'Flushing', 'Bronchospasm'],
         calculation: (weight) => {
             const initialDose = Math.min(0.1 * weight, 6);
             const subsequentDose = Math.min(0.2 * weight, 12);
@@ -332,7 +362,7 @@ const paediatricDrugDatabase: Drug[] = [
         name: 'Adrenaline (Epinephrine) 1:10,000 (IV, Cardiac Arrest)',
         doseText: '10 mcg/kg (0.1 mL/kg)',
         concentration: '1 mg / 10 mL (100 mcg/mL)',
-        adverseEvents: ['Tachyarrhythmias', 'Hypertension', 'Myocardial ischemia'],
+        adverseEvents: ['Tachyarrhythmias', 'Severe Hypertension', 'Myocardial Ischemia'],
         calculation: (weight) => {
             const doseMcg = 10 * weight;
             const volume = 0.1 * weight;
@@ -357,7 +387,7 @@ const paediatricDrugDatabase: Drug[] = [
         concentration: '50 mg/mL',
         maxDose: 'Max single dose 300mg',
         notes: 'For shock-refractory VF/pulseless VT. Can be repeated up to 2 times.',
-        adverseEvents: ['Hypotension', 'Bradycardia', 'QT prolongation/Torsades de pointes'],
+        adverseEvents: ['Severe Hypotension', 'Bradycardia', 'QT prolongation'],
         calculation: (weight) => {
             const dose = Math.min(5 * weight, 300);
             const volume = dose / 50;
@@ -375,7 +405,7 @@ const paediatricDrugDatabase: Drug[] = [
         concentration: '50 mg/mL',
         maxDose: 'Max single dose 300mg',
         notes: 'For stable wide-complex tachycardia. Followed by an infusion.',
-        adverseEvents: ['Hypotension', 'Bradycardia', 'QT prolongation/Torsades de pointes'],
+        adverseEvents: ['Severe Hypotension', 'Bradycardia', 'Phlebitis (peripheral)'],
         calculation: (weight) => {
             const dose = Math.min(5 * weight, 300);
             return {
@@ -399,7 +429,7 @@ const paediatricDrugDatabase: Drug[] = [
         name: 'Atracurium',
         doseText: 'Intubation: 0.5 mg/kg; Infusion: 5-10 mcg/kg/min',
         concentration: '10 mg/mL',
-        adverseEvents: ['Histamine release (hypotension, flushing)', 'Bronchospasm', 'Seizures (laudanosine metabolite)'],
+        adverseEvents: ['Histamine release (Hypotension)', 'Bronchospasm', 'Seizures (Laudanosine build-up)'],
         calculation: (weight) => {
             const dose = 0.5 * weight;
             const volume = dose / 10;
@@ -427,7 +457,7 @@ const paediatricDrugDatabase: Drug[] = [
         doseText: '0.02 mg/kg',
         concentration: '0.6 mg/mL',
         notes: 'Minimum dose 0.1mg. Maximum single dose 0.5mg (child) or 1mg (adolescent).',
-        adverseEvents: ['Tachycardia', 'Dry mouth, blurred vision', 'Confusion/delirium'],
+        adverseEvents: ['Paradoxical Bradycardia (if dose too low)', 'Hyperthermia', 'Central Anticholinergic Syndrome'],
         calculation: (weight) => {
             let dose = 0.02 * weight;
             if (dose < 0.1) dose = 0.1;
@@ -446,7 +476,7 @@ const paediatricDrugDatabase: Drug[] = [
         doseText: '0.3-0.5 mg/kg',
         concentration: '5 mg/mL in 8% Dextrose',
         notes: 'Hyperbaric solution for spinal anaesthesia. Dose depends on patient height, desired block level, and surgical procedure.',
-        adverseEvents: ['Hypotension', 'Bradycardia', 'High spinal block (respiratory arrest)'],
+        adverseEvents: ['Hypotension', 'Bradycardia', 'Total Spinal (Apnea)'],
         calculation: (weight) => {
             const doseLower = 0.3 * weight;
             const doseUpper = 0.5 * weight;
@@ -464,7 +494,7 @@ const paediatricDrugDatabase: Drug[] = [
         doseText: 'Bolus: 0.3-0.5 mg/kg; Infusion: 0.1-0.4 mg/kg/hr',
         concentration: '5 mg/mL',
         notes: 'Spinal/Epidural dose is complex. This is a guideline for educational purposes.',
-        adverseEvents: ['Hypotension (neuraxial)', 'Bradycardia (neuraxial)', 'LAST (Local Anesthetic Systemic Toxicity)'],
+        adverseEvents: ['LAST (Cardiac Arrest)', 'Hypotension', 'Bradycardia'],
         calculation: (weight) => {
             const doseLower = 0.3 * weight;
             const doseUpper = 0.5 * weight;
@@ -492,7 +522,7 @@ const paediatricDrugDatabase: Drug[] = [
         doseText: '20 mg/kg',
         concentration: '20 mg/mL',
         notes: 'Standard dose for neonatal apnea.',
-        adverseEvents: ['Tachycardia', 'Jitteriness', 'Feeding intolerance'],
+        adverseEvents: ['Tachycardia', 'Feeding intolerance', 'Jitteriness'],
         calculation: (weight) => {
             const dose = 20 * weight;
             const volume = dose / 20;
@@ -505,7 +535,7 @@ const paediatricDrugDatabase: Drug[] = [
         doseText: 'Initial bolus: 2.5 mg/kg',
         concentration: 'Reconstituted to 0.33 mg/mL',
         notes: 'For Malignant Hyperthermia. Each 20mg vial must be reconstituted with 60mL of sterile water for injection without a bacteriostatic agent.',
-        adverseEvents: ['Muscle weakness', 'Hepatotoxicity (with prolonged use)', 'Drowsiness/dizziness'],
+        adverseEvents: ['Profound Muscle Weakness', 'Respiratory Arrest', 'Phlebitis'],
         calculation: (weight) => {
             const dose = 2.5 * weight;
             const volume = dose / (20 / 60); // 20mg in 60mL = 0.333... mg/mL
@@ -523,7 +553,7 @@ const paediatricDrugDatabase: Drug[] = [
         doseText: '0.15 mg/kg',
         concentration: '4 mg/mL',
         maxDose: 'Max 8mg',
-        adverseEvents: ['Hyperglycemia', 'Immunosuppression', 'Fluid retention'],
+        adverseEvents: ['Hyperglycemia', 'Gastrointestinal bleeding', 'Insomnia'],
         calculation: (weight) => {
             const dose = Math.min(0.15 * weight, 8);
             const volume = dose / 4;
@@ -534,7 +564,7 @@ const paediatricDrugDatabase: Drug[] = [
         name: 'Dexmedetomidine',
         doseText: 'Loading: 1 mcg/kg over 10 min; Infusion: 0.2-0.7 mcg/kg/hr',
         concentration: '100 mcg/mL vial (dilute before use)',
-        adverseEvents: ['Bradycardia', 'Hypotension', 'Respiratory depression'],
+        adverseEvents: ['Bradycardia', 'Hypotension', 'Hypertension (bolus phase)'],
         calculation: (weight) => { // Loading dose
             const dose = 1 * weight;
             return {
@@ -555,7 +585,7 @@ const paediatricDrugDatabase: Drug[] = [
         name: 'Dextrose 10% (Hypoglycemia)',
         doseText: '2 mL/kg',
         notes: 'Can also be given as 0.2 g/kg.',
-        adverseEvents: ['Hyperglycemia', 'Phlebitis (if given peripherally)', 'Osmotic diuresis'],
+        adverseEvents: ['Hyperglycemia', 'Fluid Overload', 'Hypokalemia'],
         calculation: (weight) => {
             const volume = 2 * weight;
             return { dose: 0.2 * weight, unit: 'g', volume: parseFloat(volume.toFixed(2)), volumeUnit: 'mL' };
@@ -566,7 +596,7 @@ const paediatricDrugDatabase: Drug[] = [
         doseText: '1 mg/kg',
         concentration: '75 mg / 2 mL',
         maxDose: 'Max 75mg',
-        adverseEvents: ['Gastric irritation/bleeding', 'Renal impairment', 'Bronchospasm (in asthmatics)'],
+        adverseEvents: ['Acute Kidney Injury', 'Gastric Ulceration', 'Platelet Dysfunction'],
         calculation: (weight) => {
             const dose = Math.min(1 * weight, 75);
             const volume = (dose / 75) * 2;
@@ -579,7 +609,7 @@ const paediatricDrugDatabase: Drug[] = [
         doseText: '0.1-0.2 mg/kg',
         concentration: '3 mg/mL',
         notes: 'Typically for treating hypotension under anaesthesia.',
-        adverseEvents: ['Tachycardia', 'Hypertension', 'Arrhythmias'],
+        adverseEvents: ['Tachycardia', 'Arrhythmias', 'Hypertension'],
         calculation: (weight) => {
             const doseLower = 0.1 * weight;
             const doseUpper = 0.2 * weight;
@@ -623,7 +653,7 @@ const paediatricDrugDatabase: Drug[] = [
         name: 'Fentanyl',
         doseText: 'Bolus: 1-2 mcg/kg; Infusion: 1-5 mcg/kg/hr',
         concentration: '50 mcg/mL',
-        adverseEvents: ['Respiratory depression', 'Bradycardia', 'Chest wall rigidity'],
+        adverseEvents: ['Respiratory Depression', 'Chest Wall Rigidity', 'Bradycardia'],
         calculation: (weight) => {
             const doseLower = 1 * weight;
             const doseUpper = 2 * weight;
@@ -650,7 +680,7 @@ const paediatricDrugDatabase: Drug[] = [
         doseText: '10 mg/kg',
         concentration: '100 mg / 5 mL',
         maxDose: 'Max 600mg per dose',
-        adverseEvents: ['Gastric irritation/bleeding', 'Renal impairment', 'Bronchospasm (in asthmatics)'],
+        adverseEvents: ['Gastric Ulceration', 'Renal Impairment', 'Platelet Inhibition'],
         calculation: (weight) => {
             const dose = Math.min(10 * weight, 600);
             const volume = (dose / 100) * 5;
@@ -662,7 +692,7 @@ const paediatricDrugDatabase: Drug[] = [
         doseText: 'Bolus: 1.5 mL/kg; Infusion: 0.25 mL/kg/min',
         concentration: '20% Lipid Emulsion',
         notes: 'For treatment of Local Anesthetic Systemic Toxicity (LAST). Follow established protocols (e.g., AAGBI, ASRA).',
-        adverseEvents: ['Fat overload syndrome', 'Pancreatitis', 'Interference with lab tests (lipemia)'],
+        adverseEvents: ['Hypertriglyceridemia', 'Fat Overload Syndrome', 'Interference with blood gas analysis'],
         calculation: (weight) => { // Bolus calculation
             const volume = 1.5 * weight;
             return {
@@ -689,7 +719,7 @@ const paediatricDrugDatabase: Drug[] = [
         doseText: 'Bolus: 0.1-0.3 mg/kg; Infusion: 0.1-0.5 mg/kg/hr',
         concentration: '10 mg/mL (Dilute for infusion)',
         notes: 'Sub-anaesthetic dose for analgesia.',
-        adverseEvents: ['Emergence reactions (hallucinations)', 'Laryngospasm', 'Hypertension/Tachycardia'],
+        adverseEvents: ['Psychomimetic effects (hallucinations)', 'Salivary Hypersecretion', 'Laryngospasm'],
         calculation: (weight) => {
             const doseLower = 0.1 * weight;
             const doseUpper = 0.3 * weight;
@@ -712,7 +742,7 @@ const paediatricDrugDatabase: Drug[] = [
         name: 'Ketamine (IV Induction)',
         doseText: 'Bolus: 1-2 mg/kg; Infusion: 0.5-2 mg/kg/hr',
         concentration: '10 mg/mL',
-        adverseEvents: ['Emergence reactions (hallucinations)', 'Laryngospasm', 'Hypertension/Tachycardia'],
+        adverseEvents: ['Laryngospasm', 'Hypertension/Tachycardia', 'Nystagmus'],
         calculation: (weight) => {
             const doseLower = 1 * weight;
             const doseUpper = 2 * weight;
@@ -738,7 +768,7 @@ const paediatricDrugDatabase: Drug[] = [
         concentration: '500 mg/mL vial (must be diluted)',
         maxDose: 'Max 2g',
         notes: 'Used for severe asthma, eclampsia, and as an adjunct for analgesia.',
-        adverseEvents: ['Hypotension', 'Respiratory depression', 'Loss of deep tendon reflexes'],
+        adverseEvents: ['Hypotension', 'Loss of Deep Tendon Reflexes', 'Respiratory Muscle Paralysis'],
         calculation: (weight) => {
             const doseLower = Math.min(25 * weight, 2000);
             const doseUpper = Math.min(50 * weight, 2000);
@@ -752,7 +782,7 @@ const paediatricDrugDatabase: Drug[] = [
         name: 'Midazolam',
         doseText: 'Procedural Sedation: 0.05-0.1 mg/kg; ICU Infusion: 0.02-0.1 mg/kg/hr',
         concentration: '1 mg/mL',
-        adverseEvents: ['Respiratory depression', 'Hypotension', 'Paradoxical agitation/confusion'],
+        adverseEvents: ['Apnea/Respiratory Depression', 'Hypotension', 'Paradoxical Reaction (Agitation)'],
         calculation: (weight) => { // Procedural Sedation Bolus
             const doseLower = 0.05 * weight;
             const doseUpper = 0.1 * weight;
@@ -778,7 +808,7 @@ const paediatricDrugDatabase: Drug[] = [
         doseText: 'Bolus: 0.1 mg/kg; Infusion: 10-30 mcg/kg/hr',
         concentration: '10 mg/mL (Dilute for infusion)',
         maxDose: 'Max 10mg per bolus dose',
-        adverseEvents: ['Respiratory depression', 'Hypotension', 'Nausea/Vomiting'],
+        adverseEvents: ['Respiratory Depression', 'Nausea and Vomiting', 'Pruritus'],
         calculation: (weight) => {
             const dose = Math.min(0.1 * weight, 10);
             const volume = dose / 10;
@@ -801,7 +831,7 @@ const paediatricDrugDatabase: Drug[] = [
         concentration: '0.4 mg/mL',
         maxDose: 'Max 2mg per dose',
         notes: 'For severe opioid overdose. For reversal of respiratory depression while preserving analgesia, use much smaller titrated doses (e.g., 1-2 mcg/kg).',
-        adverseEvents: ['Acute opioid withdrawal', 'Hypertension', 'Tachycardia', 'Pulmonary edema'],
+        adverseEvents: ['Pulmonary Edema', 'Seizures', 'Severe Hypertension'],
         calculation: (weight) => {
             const dose = Math.min(0.1 * weight, 2);
             const volume = dose / 0.4;
@@ -819,7 +849,7 @@ const paediatricDrugDatabase: Drug[] = [
         concentration: '2.5 mg/mL',
         maxDose: 'Max 5mg',
         notes: 'Reversal agent. MUST be given with an anticholinergic (e.g., Atropine 0.02 mg/kg or Glycopyrrolate 0.01 mg/kg).',
-        adverseEvents: ['Bradycardia', 'Increased salivation/secretions', 'Bronchospasm'],
+        adverseEvents: ['Profound Bradycardia', 'Increased Bronchial Secretions', 'Cholinergic Crisis'],
         calculation: (weight) => {
             const dose = Math.min(0.05 * weight, 5);
             const volume = dose / 2.5;
@@ -829,7 +859,7 @@ const paediatricDrugDatabase: Drug[] = [
     {
         name: 'Norepinephrine (Infusion)',
         doseText: '0.05-1 mcg/kg/min',
-        adverseEvents: ['Peripheral ischemia/necrosis (extravasation)', 'Hypertension', 'Arrhythmias'],
+        adverseEvents: ['Peripheral Ischemia', 'Reflex Bradycardia', 'Necrosis if extravasated'],
         infusionCalculation: (weight) => {
              return {
                 rate: '0.05 - 1 mcg/kg/min',
@@ -844,7 +874,7 @@ const paediatricDrugDatabase: Drug[] = [
         doseText: '0.1 mg/kg',
         concentration: '2 mg/mL',
         maxDose: 'Max 4mg',
-        adverseEvents: ['QT prolongation', 'Headache', 'Constipation'],
+        adverseEvents: ['QT Prolongation', 'Headache', 'Constipation'],
         calculation: (weight) => {
             const dose = Math.min(0.1 * weight, 4);
             const volume = dose / 2;
@@ -857,7 +887,7 @@ const paediatricDrugDatabase: Drug[] = [
         doseText: '0.1 mg/kg',
         concentration: '2 mg/mL',
         notes: 'Long-acting non-depolarizing muscle relaxant.',
-        adverseEvents: ['Tachycardia', 'Hypertension', 'Prolonged paralysis'],
+        adverseEvents: ['Tachycardia', 'Prolonged Paralysis', 'Hypertension'],
         calculation: (weight) => {
             const dose = 0.1 * weight;
             const volume = dose / 2;
@@ -869,7 +899,7 @@ const paediatricDrugDatabase: Drug[] = [
         doseText: '15 mg/kg',
         concentration: '120 mg / 5 mL',
         maxDose: 'Max 1g per dose',
-        adverseEvents: ['Hepatotoxicity (in overdose)', 'Rash', 'Allergic reactions'],
+        adverseEvents: ['Hepatotoxicity (overdose)', 'Severe Hypersensitivity', 'Drug-induced fever'],
         calculation: (weight) => {
             const dose = Math.min(15 * weight, 1000);
             const volume = (dose / 120) * 5;
@@ -880,7 +910,7 @@ const paediatricDrugDatabase: Drug[] = [
         name: 'Propofol',
         doseText: 'Induction: 2-3 mg/kg; Infusion: 50-200 mcg/kg/min',
         concentration: '10 mg/mL',
-        adverseEvents: ['Hypotension', 'Apnea/Respiratory depression', 'Propofol Infusion Syndrome (PRIS)'],
+        adverseEvents: ['Profound Hypotension', 'Apnea', 'Propofol Infusion Syndrome (PRIS)'],
         calculation: (weight) => {
             const doseLower = 2 * weight;
             const doseUpper = 3 * weight;
@@ -910,6 +940,7 @@ const paediatricDrugDatabase: Drug[] = [
         doseText: '2 mg/kg (0.4 mL/kg of 0.5% Bupivacaine)',
         notes: 'Interfascial plane block. Local anesthetic spreads to paravertebral space.',
         coverage: 'Both (Somatosensory and Visceral, depending on dermatomal level)',
+        adverseEvents: ['LAST (Systemic Toxicity)', 'Pneumothorax', 'Total Spinal (if needle too deep)'],
         calculation: (weight) => {
             const dose = 2 * weight; // 2mg/kg
             const volume = 0.4 * weight; // 2mg / (5mg/mL) = 0.4mL
@@ -921,6 +952,7 @@ const paediatricDrugDatabase: Drug[] = [
         doseText: '2 mg/kg (0.4 mL/kg of 0.5% Bupivacaine)',
         notes: 'Targeting femoral nerve in the femoral crease/inguinal region.',
         coverage: 'Somatosensory (Anterior thigh, medial lower leg, and knee joint)',
+        adverseEvents: ['LAST (Systemic Toxicity)', 'Intravascular Injection', 'Nerve Injury'],
         calculation: (weight) => {
             const dose = 2 * weight;
             const volume = 0.4 * weight;
@@ -932,6 +964,7 @@ const paediatricDrugDatabase: Drug[] = [
         doseText: '2 mg/kg (0.2-0.3 mL/kg of 0.5% Bupivacaine)',
         notes: 'Targeting brachial plexus roots/trunks between scalene muscles. Phrenic nerve palsy is common.',
         coverage: 'Somatosensory (Shoulder, lateral 2/3 of clavicle, proximal humerus)',
+        adverseEvents: ['Phrenic Nerve Palsy', 'Intra-arterial injection (Seizure)', 'Horner Syndrome'],
         calculation: (weight) => {
             const dose = 2 * weight;
             const volume = 0.3 * weight;
@@ -943,6 +976,7 @@ const paediatricDrugDatabase: Drug[] = [
         doseText: '2 mg/kg (0.4 mL/kg of 0.5% Bupivacaine)',
         notes: 'Targeting pectoral, intercostobrachial, and long thoracic nerves.',
         coverage: 'Somatosensory (Breast tissue, pectoralis major/minor, hemithorax)',
+        adverseEvents: ['Pneumothorax', 'LAST (Systemic Toxicity)', 'Vascular puncture'],
         calculation: (weight) => {
             const dose = 2 * weight;
             const volume = 0.4 * weight;
@@ -954,6 +988,7 @@ const paediatricDrugDatabase: Drug[] = [
         doseText: '2 mg/kg (0.3-0.4 mL/kg of 0.5% Bupivacaine)',
         notes: 'Targeting sciatic nerve proximal to its division in the popliteal fossa.',
         coverage: 'Somatosensory (Foot, ankle, and lower leg excluding medial strip)',
+        adverseEvents: ['Nerve Injury (Neuropraxia)', 'LAST (Systemic Toxicity)', 'Hematoma'],
         calculation: (weight) => {
             const dose = 2 * weight;
             const volume = 0.4 * weight;
@@ -965,6 +1000,7 @@ const paediatricDrugDatabase: Drug[] = [
         doseText: '2 mg/kg total (0.2 mL/kg per side of 0.5% Bupivacaine)',
         notes: 'Local anesthetic deposited between rectus abdominis muscle and posterior sheath.',
         coverage: 'Somatosensory (Midline anterior abdominal wall)',
+        adverseEvents: ['Peritoneal perforation', 'LAST (Systemic Toxicity)', 'Superior epigastric artery injury'],
         calculation: (weight) => {
             const dose = 2 * weight;
             const volumePerSide = 0.2 * weight;
@@ -976,6 +1012,7 @@ const paediatricDrugDatabase: Drug[] = [
         doseText: '2 mg/kg (0.4 mL/kg of 0.5% Bupivacaine)',
         notes: 'Targeting T6-L1 nerves in the plane between internal oblique and transversus abdominis.',
         coverage: 'Somatosensory (Anterior abdominal wall skin and parietal peritoneum)',
+        adverseEvents: ['Intra-peritoneal injection', 'LAST (Systemic Toxicity)', 'Liver/Spleen injury (rare)'],
         calculation: (weight) => {
             const dose = 2 * weight;
             const volume = 0.4 * weight;
@@ -987,7 +1024,7 @@ const paediatricDrugDatabase: Drug[] = [
         name: 'Rocuronium',
         doseText: 'Intubation: 0.6-1.2 mg/kg; Infusion: 5-15 mcg/kg/min',
         concentration: '10 mg/mL',
-        adverseEvents: ['Anaphylaxis', 'Tachycardia', 'Residual paralysis'],
+        adverseEvents: ['Severe Anaphylaxis', 'Prolonged Paralysis', 'Tachycardia'],
         calculation: (weight) => {
             const standardDose = 0.6 * weight;
             const rsiDose = 1.2 * weight;
@@ -1016,7 +1053,7 @@ const paediatricDrugDatabase: Drug[] = [
         doseText: 'Load: 10 mcg/kg over 3 min; Infusion: 10 mcg/kg/hr',
         concentration: '0.8 mg/mL (800 mcg/mL)',
         notes: 'For treatment of pulmonary hypertension.',
-        adverseEvents: ['Hypotension', 'Flushing', 'Visual disturbances'],
+        adverseEvents: ['Hypotension', 'Flushing', 'Visual color changes'],
         calculation: (weight) => { // Loading dose
             const dose = 10 * weight;
             const volume = dose / 800;
@@ -1043,7 +1080,7 @@ const paediatricDrugDatabase: Drug[] = [
         doseText: '2-16 mg/kg depending on block depth',
         concentration: '100 mg/mL',
         notes: 'Reversal agent for Rocuronium/Vecuronium.',
-        adverseEvents: ['Anaphylaxis / Hypersensitivity', 'Bradycardia', 'Coagulopathy (transient)'],
+        adverseEvents: ['Severe Anaphylaxis', 'Marked Bradycardia', 'Transient Coagulopathy'],
         calculation: (weight) => {
             const moderateDose = 2 * weight;
             const deepDose = 4 * weight;
@@ -1059,7 +1096,7 @@ const paediatricDrugDatabase: Drug[] = [
         name: 'Suxamethonium',
         doseText: '1-2 mg/kg',
         concentration: '50 mg/mL',
-        adverseEvents: ['Hyperkalemia (in burns/neuromuscular disease)', 'Malignant hyperthermia', 'Bradycardia'],
+        adverseEvents: ['Lethal Hyperkalemia', 'Malignant Hyperthermia', 'Profound Bradycardia'],
         calculation: (weight) => {
             const doseLower = 1 * weight;
             const doseUpper = 2 * weight;
@@ -1191,6 +1228,26 @@ const DoseCalculator: React.FC<{
                                  <div className="mt-3">
                                     <p className="text-sm font-medium text-gray-600">{T.drugNotesLabel}</p>
                                     <p className="text-md font-semibold text-slate-900 whitespace-pre-wrap">{infusionResult.notes}</p>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* DRUG SAFETY SECTION FOR CALCULATORS */}
+                        {selectedDrug.adverseEvents && selectedDrug.adverseEvents.length > 0 && (
+                            <div className="mt-4 p-4 bg-red-50 dark:bg-red-900/10 border-l-4 border-red-500 rounded-r-lg shadow-sm">
+                                <h4 className="text-xs font-black text-red-700 dark:text-red-400 uppercase tracking-widest mb-3 flex items-center gap-2">
+                                    <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.21 3.03-1.742 3.03H4.42c-1.532 0-2.492-1.696-1.742-3.03l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                                    </svg>
+                                    Clinical Vigilance: Top 3 Adverse Effects
+                                </h4>
+                                <div className="space-y-2">
+                                    {selectedDrug.adverseEvents.slice(0, 3).map((effect, idx) => (
+                                        <div key={idx} className="flex items-start gap-2.5 text-sm text-gray-800 dark:text-slate-200 font-bold">
+                                            <span className="text-red-500 mt-0.5">•</span>
+                                            <span>{effect}</span>
+                                        </div>
+                                    ))}
                                 </div>
                             </div>
                         )}

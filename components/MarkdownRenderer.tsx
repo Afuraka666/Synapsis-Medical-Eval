@@ -25,8 +25,9 @@ const sanitizeContent = (text: string): string => {
         .replace(/\\alpha|\balpha\b/gi, ' α ')
         .replace(/\\beta|\bbeta\b/gi, ' β ')
         .replace(/\\gamma|\bgamma\b/gi, ' γ ')
-        // FIX: Added \b word boundaries to prevent 'mu' in 'muscle' or 'mutation' from being replaced.
-        .replace(/\\mu\b|\bmu\b/gi, ' μ ')
+        // FIX: Only replace the explicit LaTeX command. Never target 'mu' as a word boundary
+        // to prevent corruption of words like 'muscle', 'mutation', etc.
+        .replace(/\\mu\b/gi, ' μ ')
         .replace(/\\approx|\bapprox\b/gi, ' ≈ ')
         .replace(/\\pm|\bpm\b/gi, ' ± ')
         

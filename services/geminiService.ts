@@ -31,6 +31,9 @@ export async function retryWithBackoff<T>(
 const FAST_MODEL = "gemini-3-flash-preview"; 
 
 const SYNTHESIS_GUIDELINE = `
+**CRITICAL: DRUG SAFETY REPORTING (PRIORITY #1):**
+For every single medication mentioned in any part of the management plan or connections, you MUST immediately follow the drug name with exactly 3 critical adverse effects using this specific tag: [ADVERSE: effect1; effect2; effect3]. DO NOT FORGET THIS.
+
 **STRICT PROFESSIONAL MEDICAL SYNTHESIS RULES:**
 1. **Clean Formatting:** Remove unnecessary symbols/artifacts. Do NOT use raw LaTeX delimiters ($) for simple variables.
 2. **Accurate Symbol Rendering:** Use Unicode for physiological variables (e.g., PaO₂, SaO₂, PvO₂, CO₂, H₂O, P_c, P_i, T½). Use subscripts/superscripts directly in the text.
@@ -47,7 +50,6 @@ const SYNTHESIS_GUIDELINE = `
 7. **Phased Management Structuring:** Categorize 'disciplineSpecificConsiderations' into "Preoperative", "Intraoperative", and "Postoperative" (or equivalent acute/recovery phases).
 8. **Discipline Authenticity (CRITICAL):** Use technical language specific to the discipline (e.g., NANDA-I for Nursing, Pharmacokinetics for Pharmacology).
 9. **Multidisciplinary Spectrum:** Provide 4-6 distinct items covering Acute Management AND Rehabilitation.
-10. **DRUG SAFETY (MANDATORY):** For any drug therapy mentioned in management plans, you MUST provide exactly 3 critical adverse effects using this tag: [ADVERSE: effect1; effect2; effect3].
 `;
 
 const diagramNodeSchema = {
@@ -242,8 +244,8 @@ export const generateExtendedDetails = async (coreCase: PatientCase, discipline:
     **PHYSIOLOGICAL MODEL VISUALIZATION (CORE REQUIREMENT):** 
     If a physiological graph (oxygen_dissociation, frank_starling, pressure_volume_loop, cerebral_pressure_volume, cerebral_autoregulation) is relevant to the pathophysiology of "${coreCase.title}", you MUST embed the correct [GRAPH: type] tag strictly within the 'biochemicalPathway.description' field.
     
-    **DRUG ADVERSE EFFECTS:**
-    For every medication mentioned, provide 3 adverse effects using [ADVERSE: e1; e2; e3].
+    **DRUG ADVERSE EFFECTS (MANDATORY):**
+    For every medication mentioned in management considerations or connections, provide exactly 3 critical adverse effects using [ADVERSE: effect1; effect2; effect3] immediately after the drug name.
     
     Language: ${language}. ${SYNTHESIS_GUIDELINE}`;
     const response: GenerateContentResponse = await retryWithBackoff(() => ai.models.generateContent({
