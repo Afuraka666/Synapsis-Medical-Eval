@@ -174,14 +174,23 @@ export const DiscussionModal: React.FC<DiscussionModalProps> = ({
         if (isOpen) {
             const systemInstruction = `You are an expert medical tutor. Facilitate a deep Socratic discussion about "${topic.aspect}" for "${caseTitle}". 
             
+            **MANDATORY VISUAL GENERATION RULE (PRIORITY #1):**
+            Do NOT describe physiological models, clinical algorithms, or data comparisons in text if a visual option exists. You MUST use visual triggers:
+            1. **PHYSIOLOGY GRAPHS:** Use [GRAPH: type] for:
+               - oxygen_dissociation (Respiratory/Saturation)
+               - frank_starling (Cardiac Function/Fluid responsiveness)
+               - pressure_volume_loop (Ventricular Loops/Valvular disease)
+               - cerebral_pressure_volume (ICP/Compliance)
+               - cerebral_autoregulation (Brain blood flow)
+            2. **ALGORITHMS/PATHWAYS:** Use [DIAGRAM: description] for cascades, treatment algorithms, or anatomical flow.
+            3. **DATA TRENDS:** Use Markdown tables for comparing drugs, signs, or lab values.
+            4. **ILLUSTRATIONS:** Use [ILLUSTRATE: description] for physical signs or anatomical views.
+            
             **STRICT FORMATTING RULES:**
             1. **NO LaTeX WORDS:** Never use words like 'rightarrow' or 'leftarrow'. Use Unicode symbols: '→', '←', 'Δ'.
             2. **NO BACKSLASHES:** Never use \\. 
             3. **NO '$' FOR VARIABLES:** Use Unicode symbols (e.g., PaO₂, SaO₂).
             4. **WORD SEPARATION:** Ensure all words are clearly separated by spaces.
-            5. **VISUAL TRIGGERS:** 
-               - For complex physiology, embed: [GRAPH: type]. 
-               - For pathways, algorithms, or cascades, embed: [DIAGRAM: Concise prompt of what to draw].
             
             Language: ${language}.`;
             
@@ -210,13 +219,16 @@ export const DiscussionModal: React.FC<DiscussionModalProps> = ({
         if (isListening) { recognitionRef.current?.stop(); return; }
         const recognition = new SpeechRecognition();
         recognition.lang = getBCP47Language(language);
-        recognition.continuous = false;
+        recognition.continuous = true;
         recognition.interimResults = true;
         recognition.onstart = () => setIsListening(true);
         recognition.onend = () => { setIsListening(false); };
         recognition.onresult = (e: any) => {
-            const transcript = e.results[0][0].transcript;
-            setUserInput(transcript);
+            let fullTranscript = '';
+            for (let i = 0; i < e.results.length; i++) {
+                fullTranscript += e.results[i][0].transcript;
+            }
+            setUserInput(fullTranscript);
         };
         recognitionRef.current = recognition;
         recognition.start();
@@ -340,15 +352,15 @@ export const DiscussionModal: React.FC<DiscussionModalProps> = ({
 
             if (scrollContainerRef.current) {
                 const svgs = scrollContainerRef.current.querySelectorAll('svg');
-                for (const svg of Array.from(svgs) as SVGSVGElement[]) {
-                    if (svg.closest(`.msg-${mIdx}`)) {
-                        const imgData = await captureSvgAsBase64(svg);
+                for (const svgsOfMsg of Array.from(svgs) as SVGSVGElement[]) {
+                    if (svgsOfMsg.closest(`.msg-${mIdx}`)) {
+                        const imgData = await captureSvgAsBase64(svgsOfMsg);
                         const imgBuffer = Uint8Array.from(atob(imgData.split(',')[1]), c => c.charCodeAt(0));
                         sections.push(new Paragraph({
                             children: [
                                 new ImageRun({
                                     data: imgBuffer,
-                                    transformation: { width: 500, height: (500 * svg.clientHeight) / svg.clientWidth }
+                                    transformation: { width: 500, height: (500 * svgsOfMsg.clientHeight) / svgsOfMsg.clientWidth }
                                 })
                             ],
                             alignment: AlignmentType.CENTER,
@@ -428,15 +440,14 @@ export const DiscussionModal: React.FC<DiscussionModalProps> = ({
                 }
             }
 
-            const graphMatches = [...m.text.matchAll(/\[GRAPH: (.*?)\]/g)];
-            if ((graphMatches.length > 0 || m.diagramData) && scrollContainerRef.current) {
+            if (scrollContainerRef.current) {
                 const svgs = scrollContainerRef.current.querySelectorAll('svg');
-                for (const svg of Array.from(svgs) as SVGSVGElement[]) {
-                    if (svg.closest(`.msg-${mIdx}`)) {
-                        const imgData = await captureSvgAsBase64(svg);
+                for (const svgsOfMsg of Array.from(svgs) as SVGSVGElement[]) {
+                    if (svgsOfMsg.closest(`.msg-${mIdx}`)) {
+                        const imgData = await captureSvgAsBase64(svgsOfMsg);
                         if (y > 180) { doc.addPage(); y = 20; }
                         const imgW = pageWidth - (margin * 2);
-                        const imgH = (imgW * svg.clientHeight) / svg.clientWidth;
+                        const imgH = (imgW * svgsOfMsg.clientHeight) / svgsOfMsg.clientWidth;
                         doc.addImage(imgData, 'PNG', margin, y, imgW, imgH);
                         y += imgH + 10;
                     }
@@ -500,7 +511,7 @@ export const DiscussionModal: React.FC<DiscussionModalProps> = ({
                                             Download High-Fidelity PDF
                                         </button>
                                         <button onClick={handleDownloadWord} className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-slate-200 hover:bg-gray-100 dark:hover:bg-slate-700 flex items-center gap-2">
-                                            <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2c5.514 0 10 4.486 10 10s-4.486 10-10 10-10-4.486-10-10 4.486-10 10-10zm0-2c-6.627 0-12 5.373-12 12s5.373 12 12 12 12-5.373 12-12-5.373-12-12-12zm-3 8h6v1h-6v-1zm0 2h6v1h-6v-1zm0 2h6v1h-6v-1zm0 2h6v1h-6v-1zm0 2h6v1h-6v-1z" /></svg>
+                                            <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2c5.514 0 10 4.486 10 10s-4.486 10-10 10-10-4.486-10-10 4.486-10 10-10zm0-2c-6.627 0-12 5.373-12 12s5.373 12 12 12 12-5.373 12-12-5.373-12-12-12zm-3 8h6v1h-6v-1zm0 2h6v1h-6v-1zm0 2h6v1h-6v-1zm0 2h6v1h-6v-1zm0 2h6v1h-6v-1zm0 2h6v1h-6v-1z" /></svg>
                                             Download Microsoft Word (.docx)
                                         </button>
                                     </div>
@@ -587,7 +598,7 @@ export const DiscussionModal: React.FC<DiscussionModalProps> = ({
                 <footer className={`p-4 border-t border-gray-200 dark:border-dark-border bg-white dark:bg-dark-surface transition-colors ${isFullscreen ? 'rounded-none' : 'rounded-b-xl'}`}>
                     <div className={`flex flex-col ${isFullscreen ? 'max-w-4xl mx-auto w-full' : ''}`}>
                         <form onSubmit={(e) => handleSendMessage(e)} className="flex items-center gap-2 mb-3">
-                            <button type="button" onClick={handleMicClick} disabled={isLoading} className={`p-2 rounded-md border transition ${isListening ? 'text-red-500 border-red-500 bg-red-50' : 'text-gray-600 dark:text-gray-400 border-gray-300 dark:border-dark-border hover:bg-gray-100'}`}>
+                            <button type="button" onClick={handleMicClick} disabled={isLoading} className={`p-2 rounded-md border transition flex items-center justify-center gap-2 ${isListening ? 'text-red-500 border-red-500 bg-red-50' : 'text-gray-600 dark:text-gray-400 border-gray-300 dark:border-dark-border hover:bg-gray-100'}`}>
                                 <AudioVisualizer isListening={isListening} />
                                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M7 4a3 3 0 016 0v4a3 3 0 11-6 0V4zm-1 4a4 4 0 108 0V4a4 4 0 10-8 0v4zM2 11a1 1 0 011-1h1a1 1 0 011 1v.5a.5.5 0 001 0V11a3 3 0 013-3h0a3 3 0 013 3v.5a.5.5 0 001 0V11a1 1 0 011 1h1a1 1 0 110 2h-1a1 1 0 01-1-1v-.5a2.5 2.5 0 00-5 0v.5a1 1 0 01-1 1H3a1 1 0 01-1-1v-2z" clipRule="evenodd" /></svg>
                             </button>

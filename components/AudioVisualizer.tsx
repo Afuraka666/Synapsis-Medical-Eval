@@ -19,11 +19,28 @@ export const AudioVisualizer: React.FC<AudioVisualizerProps> = ({ isListening })
 
         const startVisualizer = async () => {
             try {
-                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
+                // High-fidelity microphone constraints for improved clarity and sensitivity
+                const stream = await navigator.mediaDevices.getUserMedia({ 
+                    audio: { 
+                        echoCancellation: true, 
+                        noiseSuppression: true, 
+                        autoGainControl: true,
+                        sampleRate: 48000,
+                        channelCount: 1
+                    } 
+                });
+                
+                // Use interactive latency hint for real-time responsiveness
+                audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)({
+                    latencyHint: 'interactive'
+                });
+                
                 const source = audioContextRef.current.createMediaStreamSource(stream);
                 analyzerRef.current = audioContextRef.current.createAnalyser();
-                analyzerRef.current.fftSize = 64;
+                
+                // High FFT size for granular frequency analysis
+                analyzerRef.current.fftSize = 512;
+                analyzerRef.current.smoothingTimeConstant = 0.7; // Smooth transitions
                 source.connect(analyzerRef.current);
 
                 const bufferLength = analyzerRef.current.frequencyBinCount;
@@ -40,18 +57,29 @@ export const AudioVisualizer: React.FC<AudioVisualizerProps> = ({ isListening })
 
                     ctx.clearRect(0, 0, canvas.width, canvas.height);
                     
-                    const barWidth = (canvas.width / bufferLength) * 2.5;
+                    const barWidth = (canvas.width / (bufferLength / 2)) * 1.5;
                     let x = 0;
 
-                    for (let i = 0; i < bufferLength; i++) {
-                        // Enhance visual dynamic range
-                        const barHeight = (dataArray[i] / 255) * canvas.height * 1.2;
+                    // Focus on human speech frequencies (lower half of spectrum)
+                    for (let i = 0; i < bufferLength / 2; i++) {
+                        // High sensitivity scaling for better visibility of low volume
+                        const normalized = dataArray[i] / 255;
+                        const barHeight = normalized * canvas.height * 2.8;
                         
-                        // Vibrant medical blue color
-                        ctx.fillStyle = `rgba(59, 130, 246, ${0.5 + (dataArray[i] / 510)})`;
-                        ctx.fillRect(x, canvas.height - barHeight, barWidth, barHeight);
+                        // Reactive gradient based on intensity
+                        const hue = 210 + (normalized * 30); // Shifts from blue to lighter teal
+                        ctx.fillStyle = `hsla(${hue}, 80%, 60%, ${0.5 + (normalized * 0.5)})`;
                         
-                        x += barWidth + 1;
+                        // Rounded bars for clinical aesthetics
+                        const radius = barWidth / 2;
+                        const bx = x;
+                        const by = canvas.height - barHeight;
+                        
+                        ctx.beginPath();
+                        ctx.roundRect(bx, by, barWidth, barHeight, [radius, radius, 0, 0]);
+                        ctx.fill();
+                        
+                        x += barWidth + 1.5;
                     }
                 };
                 draw();
@@ -64,7 +92,9 @@ export const AudioVisualizer: React.FC<AudioVisualizerProps> = ({ isListening })
 
         return () => {
             if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current);
-            audioContextRef.current?.close();
+            if (audioContextRef.current?.state !== 'closed') {
+                audioContextRef.current?.close();
+            }
         };
     }, [isListening]);
 
@@ -73,9 +103,9 @@ export const AudioVisualizer: React.FC<AudioVisualizerProps> = ({ isListening })
     return (
         <canvas 
             ref={canvasRef} 
-            width="40" 
-            height="20" 
-            className="rounded-sm opacity-90 shadow-sm"
+            width="60" 
+            height="24" 
+            className="rounded-md opacity-100 shadow-sm border border-brand-blue/10 bg-blue-50/20"
         />
     );
 };

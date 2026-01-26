@@ -38,17 +38,17 @@ For every single medication mentioned in any part of the management plan or conn
 1. **Clean Formatting:** Remove unnecessary symbols/artifacts. Do NOT use raw LaTeX delimiters ($) for simple variables.
 2. **Accurate Symbol Rendering:** Use Unicode for physiological variables (e.g., PaO₂, SaO₂, PvO₂, CO₂, H₂O, P_c, P_i, T½). Use subscripts/superscripts directly in the text.
 3. **Formula Handling:** ONLY use LaTeX ($...$) for complex, multi-variable mathematical equations.
-4. **Physiological Relevancy (PLACEMENT RESTRICTION):** If a physiological graph is relevant, you MUST embed the tag [GRAPH: type] at the END of the 'biochemicalPathway.description' field. 
-   Available Tags:
+4. **PHYSIOLOGICAL MODEL VISUALIZATION (MANDATORY):** Do NOT describe graphs or pathways in text. Use the triggers:
    - \`[GRAPH: oxygen_dissociation]\` (ARDS, Anemia, Sepsis)
    - \`[GRAPH: frank_starling]\` (CHF, Fluid resuscitation, Shock)
    - \`[GRAPH: pressure_volume_loop]\` (Valvular disease, Heart Failure)
    - \`[GRAPH: cerebral_pressure_volume]\` (TBI, ICH, ICP issues)
    - \`[GRAPH: cerebral_autoregulation]\` (Stroke, Neuro-anaesthesia)
+   - Embed these at the end of the relevant description.
 5. **Narrative Integrity:** No citations/PMIDs in 'patientProfile', 'presentingComplaint', or 'history'. Reads like a clinical record.
 6. **Quiz Quality:** Exactly 5 high-yield MCQs.
 7. **Phased Management Structuring:** Categorize 'disciplineSpecificConsiderations' into "Preoperative", "Intraoperative", and "Postoperative" (or equivalent acute/recovery phases).
-8. **Discipline Authenticity (CRITICAL):** Use technical language specific to the discipline (e.g., NANDA-I for Nursing, Pharmacokinetics for Pharmacology).
+8. **HYPER-SPECIFIC DISCIPLINE TARGETING:** Management considerations MUST be strictly tailored to the professional scope of the selected discipline. DO NOT PROVIDE GENERAL MEDICAL ADVICE. If the discipline is Nursing, use NANDA/NIC/NOC and specific nursing interventions. If Physiotherapy, focus on mobility, respiratory toilet, and specific exercises. Use technical language unique to that field.
 9. **Multidisciplinary Spectrum:** Provide 4-6 distinct items covering Acute Management AND Rehabilitation.
 `;
 
@@ -235,14 +235,14 @@ export const generateExtendedDetails = async (coreCase: PatientCase, discipline:
     const prompt = `Provide extended clinical depth for "${coreCase.title}" specifically for the discipline of "${discipline}". 
     
     **MANAGEMENT DEPTH REQUIREMENTS:** 
-    For 'disciplineSpecificConsiderations', adopt an expert specialist persona for "${discipline}". Use technical terminology, mention specific tools/scales/protocols unique to this field. 
+    For 'disciplineSpecificConsiderations', adopt an expert specialist persona for "${discipline}". Use technical terminology, mention specific tools/scales/protocols unique to this field. AVOID ANY GENERALIZATION. Interventions must be specific to this professional scope.
     STRUCTURE: Use three items with 'aspect' labels matching the relevant clinical phases (e.g., "Preoperative/Initial", "Intraoperative/Ongoing", "Postoperative/Recovery").
     
     **MULTIDISCIPLINARY CONNECTION SPECTRUM:** 
     Synthesize 4-6 distinct multidisciplinary connections. Ensure a logical progression from Acute Management to Rehabilitation and Community Re-integration.
     
     **PHYSIOLOGICAL MODEL VISUALIZATION (CORE REQUIREMENT):** 
-    If a physiological graph (oxygen_dissociation, frank_starling, pressure_volume_loop, cerebral_pressure_volume, cerebral_autoregulation) is relevant to the pathophysiology of "${coreCase.title}", you MUST embed the correct [GRAPH: type] tag strictly within the 'biochemicalPathway.description' field.
+    Do NOT describe models in text. You MUST embed the correct [GRAPH: type] tag strictly within the 'biochemicalPathway.description' field.
     
     **DRUG ADVERSE EFFECTS (MANDATORY):**
     For every medication mentioned in management considerations or connections, provide exactly 3 critical adverse effects using [ADVERSE: effect1; effect2; effect3] immediately after the drug name.

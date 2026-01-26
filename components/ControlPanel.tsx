@@ -89,7 +89,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
       if (isListening && activeInput === targetInput && recognitionRef.current) { recognitionRef.current.stop(); return; }
       setMicError(null); setActiveInput(targetInput);
       const recognition = new SpeechRecognition();
-      recognition.continuous = false; 
+      recognition.continuous = true; 
       recognition.interimResults = true; 
       recognition.maxAlternatives = 1;
       recognition.lang = getBCP47Language(language);
@@ -103,9 +103,12 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
       };
       
       recognition.onresult = (event: any) => { 
-          const transcript = event.results[0][0].transcript; 
-          if (targetInput === 'condition') setConditionInput(transcript); 
-          else setDisciplineInput(transcript); 
+          let fullTranscript = '';
+          for (let i = 0; i < event.results.length; i++) {
+              fullTranscript += event.results[i][0].transcript;
+          }
+          if (targetInput === 'condition') setConditionInput(fullTranscript); 
+          else setDisciplineInput(fullTranscript); 
       };
 
       try { 

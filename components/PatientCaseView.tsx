@@ -206,14 +206,17 @@ export const PatientCaseView: React.FC<PatientCaseViewProps> = ({ patientCase: i
     if (isListening && recognitionRef.current) { recognitionRef.current.stop(); return; }
     const recognition = new SpeechRecognition();
     recognition.lang = getBCP47Language(language);
-    recognition.continuous = false;
+    recognition.continuous = true;
     recognition.interimResults = true;
     recognition.onstart = () => setIsListening(true);
     recognition.onend = () => { setIsListening(false); recognitionRef.current = null; };
     recognition.onerror = () => setIsListening(false);
     recognition.onresult = (e: any) => {
-        const transcript = e.results[0][0].transcript;
-        handleTextChange(transcript, key);
+        let fullTranscript = '';
+        for (let i = 0; i < e.results.length; i++) {
+            fullTranscript += e.results[i][0].transcript;
+        }
+        handleTextChange(fullTranscript, key);
     };
     recognitionRef.current = recognition;
     recognition.start();
