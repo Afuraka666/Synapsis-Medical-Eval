@@ -29,27 +29,31 @@ export async function retryWithBackoff<T>(
 }
 
 const FAST_MODEL = "gemini-3-flash-preview"; 
+const PRO_MODEL = "gemini-3-pro-preview";
 
 const SYNTHESIS_GUIDELINE = `
-**CRITICAL: DRUG SAFETY REPORTING (PRIORITY #1):**
-For every single medication mentioned in any part of the management plan or connections, you MUST immediately follow the drug name with exactly 3 critical adverse effects using this specific tag: [ADVERSE: effect1; effect2; effect3]. DO NOT FORGET THIS.
-
 **STRICT PROFESSIONAL MEDICAL SYNTHESIS RULES:**
-1. **Clean Formatting:** Remove unnecessary symbols/artifacts. Do NOT use raw LaTeX delimiters ($) for simple variables.
-2. **Accurate Symbol Rendering:** Use Unicode for physiological variables (e.g., PaO₂, SaO₂, PvO₂, CO₂, H₂O, P_c, P_i, T½). Use subscripts/superscripts directly in the text.
-3. **Formula Handling:** ONLY use LaTeX ($...$) for complex, multi-variable mathematical equations.
-4. **PHYSIOLOGICAL MODEL VISUALIZATION (MANDATORY):** Do NOT describe graphs or pathways in text. Use the triggers:
-   - \`[GRAPH: oxygen_dissociation]\` (ARDS, Anemia, Sepsis)
-   - \`[GRAPH: frank_starling]\` (CHF, Fluid resuscitation, Shock)
-   - \`[GRAPH: pressure_volume_loop]\` (Valvular disease, Heart Failure)
-   - \`[GRAPH: cerebral_pressure_volume]\` (TBI, ICH, ICP issues)
-   - \`[GRAPH: cerebral_autoregulation]\` (Stroke, Neuro-anaesthesia)
-   - Embed these at the end of the relevant description.
-5. **Narrative Integrity:** No citations/PMIDs in 'patientProfile', 'presentingComplaint', or 'history'. Reads like a clinical record.
-6. **Quiz Quality:** Exactly 5 high-yield MCQs.
-7. **Phased Management Structuring:** Categorize 'disciplineSpecificConsiderations' into "Preoperative", "Intraoperative", and "Postoperative" (or equivalent acute/recovery phases).
-8. **HYPER-SPECIFIC DISCIPLINE TARGETING:** Management considerations MUST be strictly tailored to the professional scope of the selected discipline. DO NOT PROVIDE GENERAL MEDICAL ADVICE. If the discipline is Nursing, use NANDA/NIC/NOC and specific nursing interventions. If Physiotherapy, focus on mobility, respiratory toilet, and specific exercises. Use technical language unique to that field.
-9. **Multidisciplinary Spectrum:** Provide 4-6 distinct items covering Acute Management AND Rehabilitation.
+
+1. **VISUAL PREFERENCE (MANDATORY):** Do NOT describe physiological graphs, clinical algorithms, or biochemical cascades in text. You MUST use visual triggers:
+   - \`[GRAPH: oxygen_dissociation]\` (Respiratory, Saturation, Acid-Base)
+   - \`[GRAPH: frank_starling]\` (CHF, Preload, Fluid resuscitation, Shock)
+   - \`[GRAPH: pressure_volume_loop]\` (Valvular disease, Cardiac Cycle, Compliance)
+   - \`[GRAPH: cerebral_pressure_volume]\` (TBI, ICH, Monro-Kellie)
+   - \`[GRAPH: cerebral_autoregulation]\` (Stroke, HTN management, CBF)
+   - Embed these at the END of the 'biochemicalPathway.description' or 'disciplineSpecificConsiderations.consideration' fields.
+
+2. **CRITICAL: DRUG SAFETY REPORTING:** For every medication mentioned, you MUST immediately follow the drug name with [ADVERSE: effect1; effect2; effect3].
+
+3. **HYPER-SPECIFIC DISCIPLINE TARGETING:** All management considerations MUST be strictly tailored to the professional scope of the selected discipline. AVOID GENERAL MEDICAL ADVICE. If the discipline is Nursing, focus on NANDA-I, monitoring, and NIC. If Physiotherapy, focus on specific mobilization protocols and respiratory toilet. Use precise, field-specific terminology.
+
+4. **Clean Formatting:** Remove unnecessary symbols. Use Unicode for physiological variables (e.g., PaO₂, SaO₂, CO₂, H₂O, P_c, T½).
+
+5. **Phased Management Structuring:** Categorize 'disciplineSpecificConsiderations' into "Preoperative", "Intraoperative", and "Postoperative" (or acute/recovery phases).
+
+6. **RIGOROUS REFERENCE VERIFICATION:** You MUST use the Google Search tool to verify that every PMID and DOI provided is real, accurate, and corresponds exactly to the cited medical article. Fake or "hallucinated" IDs are strictly prohibited. Every ID must lead directly to the referenced study.
+
+7. **Quiz Quality:** Exactly 5 high-yield MCQs.
+8. **Narrative Integrity:** No citations/PMIDs in core case history sections.
 `;
 
 const diagramNodeSchema = {
@@ -235,17 +239,10 @@ export const generateExtendedDetails = async (coreCase: PatientCase, discipline:
     const prompt = `Provide extended clinical depth for "${coreCase.title}" specifically for the discipline of "${discipline}". 
     
     **MANAGEMENT DEPTH REQUIREMENTS:** 
-    For 'disciplineSpecificConsiderations', adopt an expert specialist persona for "${discipline}". Use technical terminology, mention specific tools/scales/protocols unique to this field. AVOID ANY GENERALIZATION. Interventions must be specific to this professional scope.
-    STRUCTURE: Use three items with 'aspect' labels matching the relevant clinical phases (e.g., "Preoperative/Initial", "Intraoperative/Ongoing", "Postoperative/Recovery").
-    
-    **MULTIDISCIPLINARY CONNECTION SPECTRUM:** 
-    Synthesize 4-6 distinct multidisciplinary connections. Ensure a logical progression from Acute Management to Rehabilitation and Community Re-integration.
-    
-    **PHYSIOLOGICAL MODEL VISUALIZATION (CORE REQUIREMENT):** 
-    Do NOT describe models in text. You MUST embed the correct [GRAPH: type] tag strictly within the 'biochemicalPathway.description' field.
+    For 'disciplineSpecificConsiderations', adopt an expert specialist persona for "${discipline}". AVOID ALL GENERALIZATION. Interventions must be specific to this field. Use triggers [GRAPH: type] instead of explaining physiological curves in text.
     
     **DRUG ADVERSE EFFECTS (MANDATORY):**
-    For every medication mentioned in management considerations or connections, provide exactly 3 critical adverse effects using [ADVERSE: effect1; effect2; effect3] immediately after the drug name.
+    For every medication, provide exactly 3 critical adverse effects using [ADVERSE: effect1; effect2; effect3] immediately after the drug name.
     
     Language: ${language}. ${SYNTHESIS_GUIDELINE}`;
     const response: GenerateContentResponse = await retryWithBackoff(() => ai.models.generateContent({
@@ -262,9 +259,14 @@ export const generateExtendedDetails = async (coreCase: PatientCase, discipline:
 
 export const generateEvidenceAndQuiz = async (coreCase: PatientCase, discipline: string, difficulty: string, language: string) => {
     const ai = getAiClient();
-    const prompt = `References & Quiz for "${coreCase.title}". VERIFY ALL PMIDs/DOIs using tools. Language: ${language}. ${SYNTHESIS_GUIDELINE}`;
+    const prompt = `References & Quiz for "${coreCase.title}". 
+    
+    **CRITICAL REQUIREMENT:** You MUST use the Google Search tool to FIND and VERIFY every single clinical trial, meta-analysis, or guideline cited. 
+    For every reference in 'traceableEvidence' and 'furtherReadings', the PMID or DOI provided MUST be factually correct and lead directly to the referenced article.
+    Language: ${language}. ${SYNTHESIS_GUIDELINE}`;
+    
     const response: GenerateContentResponse = await retryWithBackoff(() => ai.models.generateContent({
-        model: FAST_MODEL,
+        model: PRO_MODEL, // Using Pro for better verification reasoning
         contents: prompt,
         config: { 
             responseMimeType: "application/json", 
@@ -298,9 +300,9 @@ export const generateKnowledgeMap = async (coreCase: PatientCase, discipline: st
 
 export const searchForSource = async (sourceQuery: string, language: string): Promise<{ summary: string; sources: any[] }> => {
     const ai = getAiClient();
-    const prompt = `Verified technical research for "${sourceQuery}". Language: ${language}.`;
+    const prompt = `Verified technical research for "${sourceQuery}". Verify all associated academic IDs (PMID/DOI). Language: ${language}.`;
     const response: GenerateContentResponse = await retryWithBackoff(() => ai.models.generateContent({
-        model: FAST_MODEL,
+        model: PRO_MODEL,
         contents: prompt,
         config: { tools: [{ googleSearch: {} }], temperature: 0.1, thinkingConfig: { thinkingBudget: 0 } },
     }));
@@ -397,9 +399,14 @@ export const generateDiagramForDiscussion = async (prompt: string, chatContext: 
 
 export const enrichCaseWithWebSources = async (patientCase: PatientCase, language: string): Promise<{ newEvidence: TraceableEvidence[]; newReadings: FurtherReading[]; groundingSources: any[] }> => {
     const ai = getAiClient();
-    const prompt = `Find 2 trials and 2 meta-analyses for "${patientCase.title}". Language: ${language}. JSON. **RIGOROUSLY VERIFY ALL PMIDs AND DOIs USING GOOGLE SEARCH TOOL.**`;
+    const prompt = `Find 2 trials and 2 meta-analyses for "${patientCase.title}". 
+    
+    **MANDATORY VERIFICATION:** Use the Google Search tool to verify all clinical evidence.
+    Every PMID or DOI MUST be factually verified for accuracy and relevance. 
+    Language: ${language}. JSON.`;
+    
     const response: GenerateContentResponse = await retryWithBackoff(() => ai.models.generateContent({
-        model: FAST_MODEL,
+        model: PRO_MODEL,
         contents: prompt,
         config: { tools: [{ googleSearch: {} }], temperature: 0.2, thinkingConfig: { thinkingBudget: 0 } },
     }));

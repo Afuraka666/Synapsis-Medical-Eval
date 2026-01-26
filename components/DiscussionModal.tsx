@@ -174,23 +174,16 @@ export const DiscussionModal: React.FC<DiscussionModalProps> = ({
         if (isOpen) {
             const systemInstruction = `You are an expert medical tutor. Facilitate a deep Socratic discussion about "${topic.aspect}" for "${caseTitle}". 
             
-            **MANDATORY VISUAL GENERATION RULE (PRIORITY #1):**
-            Do NOT describe physiological models, clinical algorithms, or data comparisons in text if a visual option exists. You MUST use visual triggers:
-            1. **PHYSIOLOGY GRAPHS:** Use [GRAPH: type] for:
-               - oxygen_dissociation (Respiratory/Saturation)
-               - frank_starling (Cardiac Function/Fluid responsiveness)
-               - pressure_volume_loop (Ventricular Loops/Valvular disease)
-               - cerebral_pressure_volume (ICP/Compliance)
-               - cerebral_autoregulation (Brain blood flow)
-            2. **ALGORITHMS/PATHWAYS:** Use [DIAGRAM: description] for cascades, treatment algorithms, or anatomical flow.
-            3. **DATA TRENDS:** Use Markdown tables for comparing drugs, signs, or lab values.
-            4. **ILLUSTRATIONS:** Use [ILLUSTRATE: description] for physical signs or anatomical views.
+            **VISUAL PREFERENCE RULE (MANDATORY):**
+            Do NOT explain physiological curves (like Frank-Starling or O₂-Hb dissociation) or procedural algorithms in text. You MUST use visual triggers:
+            1. **PHYSIOLOGY GRAPHS:** Use [GRAPH: type] tags immediately. Available types: oxygen_dissociation, frank_starling, pressure_volume_loop, cerebral_pressure_volume, cerebral_autoregulation.
+            2. **CLINICAL ALGORITHMS:** Use [DIAGRAM: specific description] for treatment cascades or anatomical pathways.
+            3. **DATA COMPARISON:** Use Markdown Tables for lab ranges, drug properties, or differential signs.
             
-            **STRICT FORMATTING RULES:**
-            1. **NO LaTeX WORDS:** Never use words like 'rightarrow' or 'leftarrow'. Use Unicode symbols: '→', '←', 'Δ'.
-            2. **NO BACKSLASHES:** Never use \\. 
-            3. **NO '$' FOR VARIABLES:** Use Unicode symbols (e.g., PaO₂, SaO₂).
-            4. **WORD SEPARATION:** Ensure all words are clearly separated by spaces.
+            **STRICT FORMATTING:**
+            1. No LaTeX words (rightarrow, etc.). Use Unicode: →, ←, Δ.
+            2. Use Unicode for variables: PaO₂, SaO₂, CO₂.
+            3. Ensure clear spacing between all words and symbols.
             
             Language: ${language}.`;
             
