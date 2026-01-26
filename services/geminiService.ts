@@ -35,11 +35,13 @@ const SYNTHESIS_GUIDELINE = `
 **STRICT PROFESSIONAL MEDICAL SYNTHESIS RULES:**
 
 1. **VISUAL PREFERENCE (MANDATORY):** Do NOT describe physiological graphs, clinical algorithms, or biochemical cascades in text. You MUST use visual triggers:
-   - \`[GRAPH: oxygen_dissociation]\` (Respiratory, Saturation, Acid-Base)
-   - \`[GRAPH: frank_starling]\` (CHF, Preload, Fluid resuscitation, Shock)
-   - \`[GRAPH: pressure_volume_loop]\` (Valvular disease, Cardiac Cycle, Compliance)
-   - \`[GRAPH: cerebral_pressure_volume]\` (TBI, ICH, Monro-Kellie)
-   - \`[GRAPH: cerebral_autoregulation]\` (Stroke, HTN management, CBF)
+   - \`[GRAPH: oxygen_dissociation]\` (Respiratory, Saturation, Acid-Base, Anemia)
+   - \`[GRAPH: frank_starling]\` (CHF, Preload, Fluid resuscitation, Shock, Sepsis)
+   - \`[GRAPH: pressure_volume_loop]\` (Valvular disease, Cardiac Cycle, Compliance, Inotropy)
+   - \`[GRAPH: cerebral_pressure_volume]\` (TBI, ICH, Monro-Kellie, Mass Effect)
+   - \`[GRAPH: cerebral_autoregulation]\` (Stroke, HTN management, CBF, Cerebral Protection)
+   - \`[GRAPH: capnography]\` (Ventilation monitoring, CO₂ kinetics, Obstructive disease, Dead space)
+   - \`[GRAPH: spirometry]\` (Lung volumes, Restrictive vs Obstructive patterns, FRC management)
    - Embed these at the END of the 'biochemicalPathway.description' or 'disciplineSpecificConsiderations.consideration' fields.
 
 2. **CRITICAL: DRUG SAFETY REPORTING:** For every medication mentioned, you MUST immediately follow the drug name with [ADVERSE: effect1; effect2; effect3].

@@ -3,7 +3,7 @@ import React, { useEffect, useRef, useCallback } from 'react';
 
 declare const d3: any;
 
-type GraphType = 'oxygen_dissociation' | 'frank_starling' | 'pressure_volume_loop' | 'cerebral_pressure_volume' | 'cerebral_autoregulation' | 'other';
+type GraphType = 'oxygen_dissociation' | 'frank_starling' | 'pressure_volume_loop' | 'cerebral_pressure_volume' | 'cerebral_autoregulation' | 'capnography' | 'spirometry' | 'other';
 
 interface ScientificGraphProps {
     type: GraphType;
@@ -14,7 +14,7 @@ interface ScientificGraphProps {
 export const ScientificGraph: React.FC<ScientificGraphProps> = ({ type, title, className }) => {
     const containerRef = useRef<HTMLDivElement>(null);
     
-    const isSupportedType = ['oxygen_dissociation', 'frank_starling', 'pressure_volume_loop', 'cerebral_pressure_volume', 'cerebral_autoregulation'].includes(type);
+    const isSupportedType = ['oxygen_dissociation', 'frank_starling', 'pressure_volume_loop', 'cerebral_pressure_volume', 'cerebral_autoregulation', 'capnography', 'spirometry'].includes(type);
 
     const renderGraph = useCallback(() => {
         if (!containerRef.current || !isSupportedType) return;
@@ -201,6 +201,42 @@ export const ScientificGraph: React.FC<ScientificGraphProps> = ({ type, title, c
             
             addMarker(50, 50, '#94a3b8', 'Lower Limit', 'Below 50mmHg, vessels are\nfully dilated; CBF drops\nleading to cerebral ischemia.');
             addMarker(150, 50, '#94a3b8', 'Upper Limit', 'Above 150mmHg, vessels are\nfully constricted; flow rises\nrisking BBB disruption.');
+        } else if (type === 'capnography') {
+            x.domain([0, 10]); y.domain([0, 50]);
+            xLabel = "Time (seconds)"; yLabel = "Partial Pressure (EtCO₂)";
+            xUnit = "s"; yUnit = " mmHg";
+            // Generate characteristic capnogram phases
+            activeData = [
+                {x: 0, y: 0}, {x: 1, y: 0}, // Phase I: Baseline
+                {x: 1.5, y: 38}, // Phase II: Expiratory upstroke
+                {x: 4.5, y: 40}, // Phase III: Alveolar plateau
+                {x: 5, y: 0}, // Phase IV: Inspiratory downstroke
+                {x: 10, y: 0} // Return to baseline
+            ];
+            const line = d3.line().x((d: any) => x(d.x)).y((d: any) => y(d.y)).curve(d3.curveLinear);
+            svg.append('path').datum(activeData).attr('fill', 'none').attr('stroke', '#16a34a').attr('stroke-width', 5).attr('d', line);
+            
+            addMarker(1.2, 20, '#94a3b8', 'Phase II', 'Rapid rise as alveolar gas\nmixes with anatomical dead\nspace gas.');
+            addMarker(4.5, 40, '#dc2626', 'EtCO₂ Peak', 'The maximum CO₂ value at\nthe end of exhalation.\nReflects cardiac output.');
+            addMarker(6, 10, '#3b82f6', 'Inspiration', 'Fresh gas wash-in rapidly\nlowers CO₂ back to baseline.');
+        } else if (type === 'spirometry') {
+            x.domain([0, 10]); y.domain([0, 6]);
+            xLabel = "Time (seconds)"; yLabel = "Volume (Liters)";
+            xUnit = "s"; yUnit = " L";
+            // Normal Spirogram data
+            for (let t = 0; t <= 10; t += 0.1) {
+                // Simplified sine-wave for regular breathing
+                let v = 2.5 + 0.5 * Math.sin(Math.PI * t / 2);
+                // Deep breath in the middle
+                if (t > 4 && t < 6) v = 3.0 + 2.5 * Math.sin(Math.PI * (t-4) / 2);
+                activeData.push({ x: t, y: v });
+            }
+            const line = d3.line().x((d: any) => x(d.x)).y((d: any) => y(d.y)).curve(d3.curveBasis);
+            svg.append('path').datum(activeData).attr('fill', 'none').attr('stroke', '#7c3aed').attr('stroke-width', 5).attr('d', line);
+            
+            addMarker(2, 3, '#94a3b8', 'Tidal Volume', 'Normal volume of air\ndisplaced between normal\ninhalation and exhalation.');
+            addMarker(5, 5.5, '#7c3aed', 'Inspiratory Capacity', 'Maximum volume of air that\ncan be inhaled after a\nnormal tidal expiration.');
+            addMarker(8, 2, '#3b82f6', 'FRC Baseline', 'Functional Residual Capacity.\nVolume remaining in lungs\nafter normal expiration.');
         }
 
         // --- AXES & GRID ---
