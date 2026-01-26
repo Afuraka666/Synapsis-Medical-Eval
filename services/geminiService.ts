@@ -34,7 +34,14 @@ const PRO_MODEL = "gemini-3-pro-preview";
 const SYNTHESIS_GUIDELINE = `
 **STRICT PROFESSIONAL MEDICAL SYNTHESIS RULES:**
 
-1. **VISUAL PREFERENCE (MANDATORY):** Do NOT describe physiological graphs, clinical algorithms, or biochemical cascades in text. You MUST use visual triggers:
+1. **DISCIPLINE-SPECIFIC MANAGEMENT RIGOR (HIGH PRIORITY):** 
+   Management considerations MUST be hyper-pertinent to the selected discipline. Do NOT provide generic medical advice. 
+   - Use advanced clinical nuances (e.g., specialized ventilator modes for Anaesthesia, specific NANDA-I nursing diagnoses, detailed mobilization protocols for Physiotherapy).
+   - Reference field-specific assessment tools and scales (e.g., CAM-ICU, Norton Scale, Barthel Index).
+   - Detail precise interventions, monitoring parameters, and phase-specific goals (Pre/Intra/Postoperative).
+   - Ensure the language reflects senior-level specialist expertise in that specific professional scope.
+
+2. **VISUAL PREFERENCE (MANDATORY):** Do NOT describe physiological graphs, clinical algorithms, or biochemical cascades in text. You MUST use visual triggers:
    - \`[GRAPH: oxygen_dissociation]\` (Respiratory, Saturation, Acid-Base, Anemia)
    - \`[GRAPH: frank_starling]\` (CHF, Preload, Fluid resuscitation, Shock, Sepsis)
    - \`[GRAPH: pressure_volume_loop]\` (Valvular disease, Cardiac Cycle, Compliance, Inotropy)
@@ -42,20 +49,16 @@ const SYNTHESIS_GUIDELINE = `
    - \`[GRAPH: cerebral_autoregulation]\` (Stroke, HTN management, CBF, Cerebral Protection)
    - \`[GRAPH: capnography]\` (Ventilation monitoring, CO₂ kinetics, Obstructive disease, Dead space)
    - \`[GRAPH: spirometry]\` (Lung volumes, Restrictive vs Obstructive patterns, FRC management)
-   - Embed these at the END of the 'biochemicalPathway.description' or 'disciplineSpecificConsiderations.consideration' fields.
+   - Embed these at the END of relevant descriptions.
 
-2. **CRITICAL: DRUG SAFETY REPORTING:** For every medication mentioned, you MUST immediately follow the drug name with [ADVERSE: effect1; effect2; effect3].
-
-3. **HYPER-SPECIFIC DISCIPLINE TARGETING:** All management considerations MUST be strictly tailored to the professional scope of the selected discipline. AVOID GENERAL MEDICAL ADVICE. If the discipline is Nursing, focus on NANDA-I, monitoring, and NIC. If Physiotherapy, focus on specific mobilization protocols and respiratory toilet. Use precise, field-specific terminology.
+3. **DRUG REPORTING:** Do NOT include adverse effect tags or safety warnings in the main case text. Drug safety data is confined to the application's clinical tools.
 
 4. **Clean Formatting:** Remove unnecessary symbols. Use Unicode for physiological variables (e.g., PaO₂, SaO₂, CO₂, H₂O, P_c, T½).
 
-5. **Phased Management Structuring:** Categorize 'disciplineSpecificConsiderations' into "Preoperative", "Intraoperative", and "Postoperative" (or acute/recovery phases).
+5. **RIGOROUS REFERENCE VERIFICATION:** You MUST use the Google Search tool to verify that every PMID and DOI provided is real, accurate, and corresponds exactly to the cited medical article. Fake or "hallucinated" IDs are strictly prohibited.
 
-6. **RIGOROUS REFERENCE VERIFICATION:** You MUST use the Google Search tool to verify that every PMID and DOI provided is real, accurate, and corresponds exactly to the cited medical article. Fake or "hallucinated" IDs are strictly prohibited. Every ID must lead directly to the referenced study.
-
-7. **Quiz Quality:** Exactly 5 high-yield MCQs.
-8. **Narrative Integrity:** No citations/PMIDs in core case history sections.
+6. **Quiz Quality:** Exactly 5 high-yield MCQs.
+7. **Narrative Integrity:** No citations/PMIDs in core case history sections.
 `;
 
 const diagramNodeSchema = {
@@ -241,10 +244,7 @@ export const generateExtendedDetails = async (coreCase: PatientCase, discipline:
     const prompt = `Provide extended clinical depth for "${coreCase.title}" specifically for the discipline of "${discipline}". 
     
     **MANAGEMENT DEPTH REQUIREMENTS:** 
-    For 'disciplineSpecificConsiderations', adopt an expert specialist persona for "${discipline}". AVOID ALL GENERALIZATION. Interventions must be specific to this field. Use triggers [GRAPH: type] instead of explaining physiological curves in text.
-    
-    **DRUG ADVERSE EFFECTS (MANDATORY):**
-    For every medication, provide exactly 3 critical adverse effects using [ADVERSE: effect1; effect2; effect3] immediately after the drug name.
+    For 'disciplineSpecificConsiderations', adopt an expert specialist persona for "${discipline}". Focus on pertinent and relevant professional interventions. Use technical terminology and protocols unique to this field. AVOID GENERALIZATIONS. Include phase-specific considerations (Initial/Peri/Post). Use triggers [GRAPH: type] where physiology/mechanics can be visually represented.
     
     Language: ${language}. ${SYNTHESIS_GUIDELINE}`;
     const response: GenerateContentResponse = await retryWithBackoff(() => ai.models.generateContent({
@@ -268,7 +268,7 @@ export const generateEvidenceAndQuiz = async (coreCase: PatientCase, discipline:
     Language: ${language}. ${SYNTHESIS_GUIDELINE}`;
     
     const response: GenerateContentResponse = await retryWithBackoff(() => ai.models.generateContent({
-        model: PRO_MODEL, // Using Pro for better verification reasoning
+        model: PRO_MODEL, 
         contents: prompt,
         config: { 
             responseMimeType: "application/json", 
@@ -410,7 +410,7 @@ export const enrichCaseWithWebSources = async (patientCase: PatientCase, languag
     const response: GenerateContentResponse = await retryWithBackoff(() => ai.models.generateContent({
         model: PRO_MODEL,
         contents: prompt,
-        config: { tools: [{ googleSearch: {} }], temperature: 0.2, thinkingConfig: { thinkingBudget: 0 } },
+        config: { tools: [{ googleSearch: {} }], temperature: 0.2, thinkingBudget: 0 },
     }));
     const text = extractJson(response.text || "{}");
     const parsedData = JSON.parse(text);
