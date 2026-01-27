@@ -19,8 +19,11 @@ const GRAPH_TITLES: Record<string, string> = {
     'oxygen_dissociation': 'Hemoglobin-Oxygen Dissociation Curve',
     'frank_starling': 'Frank-Starling Relationship Model',
     'pressure_volume_loop': 'Left Ventricular Pressure-Volume Loop',
+    'respiratory_flow_volume': 'Respiratory Flow-Volume Loop',
     'cerebral_pressure_volume': 'Monro-Kellie Intracranial Relationship',
-    'cerebral_autoregulation': 'Cerebral Blood Flow Autoregulation Curve'
+    'cerebral_autoregulation': 'Cerebral Blood Flow Autoregulation Curve',
+    'capnography': 'Capnogram Waveform Analysis',
+    'spirometry': 'Spirogram: Volume vs Time'
 };
 
 const getBCP47Language = (lang: string): string => {
@@ -174,9 +177,11 @@ export const DiscussionModal: React.FC<DiscussionModalProps> = ({
         if (isOpen) {
             const systemInstruction = `You are an expert medical tutor. Facilitate a deep Socratic discussion about "${topic.aspect}" for "${caseTitle}". 
             
-            **VISUAL PREFERENCE RULE (MANDATORY):**
-            Do NOT explain physiological curves (like Frank-Starling or O₂-Hb dissociation) or procedural algorithms in text. You MUST use visual triggers:
-            1. **PHYSIOLOGY GRAPHS:** Use [GRAPH: type] tags immediately. Available types: oxygen_dissociation, frank_starling, pressure_volume_loop, cerebral_pressure_volume, cerebral_autoregulation.
+            **VISUAL PREFERENCE & PHYSIOLOGICAL FIDELITY (MANDATORY):**
+            Do NOT explain physiological curves in text. You MUST use visual triggers:
+            1. **PHYSIOLOGY GRAPHS:** Use [GRAPH: type] tags. 
+               - Available types: oxygen_dissociation, frank_starling, pressure_volume_loop (CARDIAC ONLY), respiratory_flow_volume (RESPIRATORY ONLY), cerebral_pressure_volume, cerebral_autoregulation, capnography, spirometry.
+               - **IMPORTANT:** Use 'respiratory_flow_volume' for airway mechanics, NEVER 'pressure_volume_loop'.
             2. **CLINICAL ALGORITHMS:** Use [DIAGRAM: specific description] for treatment cascades or anatomical pathways.
             3. **DATA COMPARISON:** Use Markdown Tables for lab ranges, drug properties, or differential signs.
             

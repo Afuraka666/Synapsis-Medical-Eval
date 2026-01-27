@@ -41,15 +41,18 @@ const SYNTHESIS_GUIDELINE = `
    - Detail precise interventions, monitoring parameters, and phase-specific goals (Pre/Intra/Postoperative).
    - Ensure the language reflects senior-level specialist expertise in that specific professional scope.
 
-2. **VISUAL PREFERENCE (MANDATORY):** Do NOT describe physiological graphs, clinical algorithms, or biochemical cascades in text. You MUST use visual triggers:
-   - \`[GRAPH: oxygen_dissociation]\` (Respiratory, Saturation, Acid-Base, Anemia)
-   - \`[GRAPH: frank_starling]\` (CHF, Preload, Fluid resuscitation, Shock, Sepsis)
-   - \`[GRAPH: pressure_volume_loop]\` (Valvular disease, Cardiac Cycle, Compliance, Inotropy)
-   - \`[GRAPH: cerebral_pressure_volume]\` (TBI, ICH, Monro-Kellie, Mass Effect)
-   - \`[GRAPH: cerebral_autoregulation]\` (Stroke, HTN management, CBF, Cerebral Protection)
-   - \`[GRAPH: capnography]\` (Ventilation monitoring, CO₂ kinetics, Obstructive disease, Dead space)
-   - \`[GRAPH: spirometry]\` (Lung volumes, Restrictive vs Obstructive patterns, FRC management)
-   - Embed these at the END of relevant descriptions.
+2. **VISUAL PREFERENCE & PHYSIOLOGICAL FIDELITY (CRITICAL):** 
+   Do NOT describe physiological graphs in text. You MUST use appropriate visual triggers. 
+   **STRICT MAPPING RULE:** Do not confuse cardiac loops with respiratory loops.
+   - \`[GRAPH: oxygen_dissociation]\` (Hb-O2 affinity, P50, Shifts)
+   - \`[GRAPH: frank_starling]\` (Stroke Volume vs EDV, Inotropy)
+   - \`[GRAPH: pressure_volume_loop]\` (CARDIAC ONLY: Ventricular pressure/volume, Valve mechanics)
+   - \`[GRAPH: respiratory_flow_volume]\` (RESPIRATORY ONLY: Flow vs Volume loops, Obstructive/Restrictive lung disease)
+   - \`[GRAPH: cerebral_pressure_volume]\` (ICP dynamics, Monro-Kellie)
+   - \`[GRAPH: cerebral_autoregulation]\` (MAP vs CBF relationship)
+   - \`[GRAPH: capnography]\` (EtCO2 waveforms, Ventilation kinetics)
+   - \`[GRAPH: spirometry]\` (Lung volumes over time, TV, FRC, VC)
+   - Embed these at the END of relevant technical descriptions.
 
 3. **DRUG REPORTING:** Do NOT include adverse effect tags or safety warnings in the main case text. Drug safety data is confined to the application's clinical tools.
 

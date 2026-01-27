@@ -3,7 +3,7 @@ import React, { useEffect, useRef, useCallback } from 'react';
 
 declare const d3: any;
 
-type GraphType = 'oxygen_dissociation' | 'frank_starling' | 'pressure_volume_loop' | 'cerebral_pressure_volume' | 'cerebral_autoregulation' | 'capnography' | 'spirometry' | 'other';
+type GraphType = 'oxygen_dissociation' | 'frank_starling' | 'pressure_volume_loop' | 'cerebral_pressure_volume' | 'cerebral_autoregulation' | 'capnography' | 'spirometry' | 'respiratory_flow_volume' | 'other';
 
 interface ScientificGraphProps {
     type: GraphType;
@@ -14,7 +14,7 @@ interface ScientificGraphProps {
 export const ScientificGraph: React.FC<ScientificGraphProps> = ({ type, title, className }) => {
     const containerRef = useRef<HTMLDivElement>(null);
     
-    const isSupportedType = ['oxygen_dissociation', 'frank_starling', 'pressure_volume_loop', 'cerebral_pressure_volume', 'cerebral_autoregulation', 'capnography', 'spirometry'].includes(type);
+    const isSupportedType = ['oxygen_dissociation', 'frank_starling', 'pressure_volume_loop', 'cerebral_pressure_volume', 'cerebral_autoregulation', 'capnography', 'spirometry', 'respiratory_flow_volume'].includes(type);
 
     const renderGraph = useCallback(() => {
         if (!containerRef.current || !isSupportedType) return;
@@ -205,13 +205,12 @@ export const ScientificGraph: React.FC<ScientificGraphProps> = ({ type, title, c
             x.domain([0, 10]); y.domain([0, 50]);
             xLabel = "Time (seconds)"; yLabel = "Partial Pressure (EtCO₂)";
             xUnit = "s"; yUnit = " mmHg";
-            // Generate characteristic capnogram phases
             activeData = [
-                {x: 0, y: 0}, {x: 1, y: 0}, // Phase I: Baseline
-                {x: 1.5, y: 38}, // Phase II: Expiratory upstroke
-                {x: 4.5, y: 40}, // Phase III: Alveolar plateau
-                {x: 5, y: 0}, // Phase IV: Inspiratory downstroke
-                {x: 10, y: 0} // Return to baseline
+                {x: 0, y: 0}, {x: 1, y: 0}, 
+                {x: 1.5, y: 38}, 
+                {x: 4.5, y: 40}, 
+                {x: 5, y: 0}, 
+                {x: 10, y: 0} 
             ];
             const line = d3.line().x((d: any) => x(d.x)).y((d: any) => y(d.y)).curve(d3.curveLinear);
             svg.append('path').datum(activeData).attr('fill', 'none').attr('stroke', '#16a34a').attr('stroke-width', 5).attr('d', line);
@@ -223,11 +222,8 @@ export const ScientificGraph: React.FC<ScientificGraphProps> = ({ type, title, c
             x.domain([0, 10]); y.domain([0, 6]);
             xLabel = "Time (seconds)"; yLabel = "Volume (Liters)";
             xUnit = "s"; yUnit = " L";
-            // Normal Spirogram data
             for (let t = 0; t <= 10; t += 0.1) {
-                // Simplified sine-wave for regular breathing
                 let v = 2.5 + 0.5 * Math.sin(Math.PI * t / 2);
-                // Deep breath in the middle
                 if (t > 4 && t < 6) v = 3.0 + 2.5 * Math.sin(Math.PI * (t-4) / 2);
                 activeData.push({ x: t, y: v });
             }
@@ -237,6 +233,34 @@ export const ScientificGraph: React.FC<ScientificGraphProps> = ({ type, title, c
             addMarker(2, 3, '#94a3b8', 'Tidal Volume', 'Normal volume of air\ndisplaced between normal\ninhalation and exhalation.');
             addMarker(5, 5.5, '#7c3aed', 'Inspiratory Capacity', 'Maximum volume of air that\ncan be inhaled after a\nnormal tidal expiration.');
             addMarker(8, 2, '#3b82f6', 'FRC Baseline', 'Functional Residual Capacity.\nVolume remaining in lungs\nafter normal expiration.');
+        } else if (type === 'respiratory_flow_volume') {
+            x.domain([0, 7]); y.domain([-8, 12]);
+            xLabel = "Volume (L)"; yLabel = "Flow (L/s)";
+            xUnit = " L"; yUnit = " L/s";
+            // Normal loop approximation
+            activeData = [
+                {x: 6, y: 0}, // TLC
+                {x: 5.5, y: 10}, // PEFR
+                {x: 4.5, y: 6},
+                {x: 3.5, y: 4},
+                {x: 2.5, y: 2.5},
+                {x: 1.5, y: 1}, // RV
+                {x: 2.5, y: -3}, // Inspiratory phase
+                {x: 4, y: -4},
+                {x: 5.5, y: -3},
+                {x: 6, y: 0}
+            ];
+            const line = d3.line().x((d: any) => x(d.x)).y((d: any) => y(d.y)).curve(d3.curveCatmullRomClosed.alpha(0.5));
+            svg.append('path').datum(activeData).attr('fill', 'url(#resp-gradient-fid)').attr('stroke', '#06b6d4').attr('stroke-width', 5).attr('d', line);
+            
+            const defs = svg.append('defs');
+            const gradient = defs.append('linearGradient').attr('id', 'resp-gradient-fid').attr('x1', '0%').attr('y1', '0%').attr('x2', '0%').attr('y2', '100%');
+            gradient.append('stop').attr('offset', '0%').attr('stop-color', '#06b6d4').attr('stop-opacity', 0.2);
+            gradient.append('stop').attr('offset', '100%').attr('stop-color', '#06b6d4').attr('stop-opacity', 0.05);
+
+            addMarker(5.5, 10, '#ec4899', 'PEFR', 'Peak Expiratory Flow Rate.\nA sensitive indicator of\nlarge airway patency.');
+            addMarker(6, 0, '#94a3b8', 'TLC', 'Total Lung Capacity.\nThe point of maximum\ninspiration.');
+            addMarker(1.5, 0, '#94a3b8', 'RV', 'Residual Volume.\nVolume remaining after\nmaximal exhalation.');
         }
 
         // --- AXES & GRID ---
