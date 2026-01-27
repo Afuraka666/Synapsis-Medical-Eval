@@ -53,7 +53,10 @@ const SYNTHESIS_GUIDELINE = `
 
 3. **DRUG REPORTING:** Do NOT include adverse effect tags or safety warnings in the main case text. Drug safety data is confined to the application's clinical tools.
 
-4. **Clean Formatting:** Remove unnecessary symbols. Use Unicode for physiological variables (e.g., PaO₂, SaO₂, CO₂, H₂O, P_c, T½).
+4. **Clean Formatting & Math:** 
+   - Remove unnecessary symbols. 
+   - Use Unicode for simple physiological variables (e.g., PaO₂, SaO₂, CO₂, H₂O, P_c, T½).
+   - **MANDATORY:** Use proper LaTeX syntax wrapped in '$' delimiters for complex formulas (e.g., Reynolds number: $Re = \\frac{v \\cdot d \\cdot \\rho}{\\eta}$, Alveolar gas equation, etc.). Ensure backslashes for LaTeX commands are correctly included.
 
 5. **RIGOROUS REFERENCE VERIFICATION:** You MUST use the Google Search tool to verify that every PMID and DOI provided is real, accurate, and corresponds exactly to the cited medical article. Fake or "hallucinated" IDs are strictly prohibited.
 

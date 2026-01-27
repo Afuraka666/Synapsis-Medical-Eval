@@ -12,39 +12,34 @@ interface MarkdownRendererProps {
 
 /**
  * High-fidelity sanitization for medical text.
- * Converts LaTeX artifacts to Unicode and ensures proper word separation.
+ * Converts specific LaTeX artifacts to Unicode while preserving complex math syntax.
  */
 const sanitizeContent = (text: string): string => {
     if (!text) return '';
     
     let cleaned = text
-        // 1. Replace LaTeX commands with Unicode - USING STRICT WORD BOUNDARIES
-        .replace(/\\rightarrow|\brightarrow\b/gi, ' → ')
-        .replace(/\\leftarrow|\bleftarrow\b/gi, ' ← ')
-        .replace(/\\Delta|\bDelta\b/g, ' Δ ')
-        .replace(/\\alpha|\balpha\b/gi, ' α ')
-        .replace(/\\beta|\bbeta\b/gi, ' β ')
-        .replace(/\\gamma|\bgamma\b/gi, ' γ ')
-        // FIX: Only replace the explicit LaTeX command. Never target 'mu' as a word boundary
-        // to prevent corruption of words like 'muscle', 'mutation', etc.
-        .replace(/\\mu\b/gi, ' μ ')
-        .replace(/\\approx|\bapprox\b/gi, ' ≈ ')
-        .replace(/\\pm|\bpm\b/gi, ' ± ')
+        // 1. Replace specific common LaTeX commands with Unicode where they often appear in plain text
+        // We use lookaheads/lookbehinds to avoid clobbering math blocks if possible, 
+        // but primarily we want to fix the "escaped" look of text.
+        .replace(/\\rightarrow/gi, ' → ')
+        .replace(/\\leftarrow/gi, ' ← ')
+        .replace(/\\Delta/g, ' Δ ')
+        .replace(/\\alpha/gi, ' α ')
+        .replace(/\\beta/gi, ' β ')
+        .replace(/\\gamma/gi, ' γ ')
+        .replace(/\\approx/gi, ' ≈ ')
+        .replace(/\\pm/gi, ' ± ')
         
-        // 2. Clean up LaTeX escaping artifacts
-        .replace(/\\\$/g, '$')           
-        .replace(/\$\\/g, '')            
+        // 2. Clean up LaTeX escaping artifacts for characters that shouldn't be escaped in Markdown
         .replace(/\\_/g, '_')            
         .replace(/\\\^/g, '^')           
         .replace(/\\\[/g, '[')           
         .replace(/\\\]/g, ']')           
         
-        // 3. Normalize spacing and word separation
-        .replace(/([\.!\?])([A-Z])/g, '$1 $2')
+        // 3. Normalize spacing for medical units
         .replace(/(\d)(mg|mcg|mL|mmHg|bpm|mmol|meq)/gi, '$1 $2')
-        .replace(/([a-z])([A-Z])/g, '$1 $2')
         
-        // 4. Unicode for medical variables
+        // 4. Unicode for standard medical variables
         .replace(/\bPaO2\b/g, 'PaO₂')
         .replace(/\bSaO2\b/g, 'SaO₂')
         .replace(/\bPvO2\b/g, 'PvO₂')
@@ -53,8 +48,7 @@ const sanitizeContent = (text: string): string => {
         .replace(/\bH2O\b/g, 'H₂O')
         .replace(/\bt1\/2\b/gi, 'T½')
         
-        // 5. Final cleanup
-        .replace(/\\/g, '')
+        // 5. Final cleanup - CRITICAL: Removed .replace(/\\/g, '') which was breaking math
         .replace(/[ \t]+/g, ' ')
         .replace(/\n{3,}/g, '\n\n')
         
