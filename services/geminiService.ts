@@ -1,5 +1,5 @@
 
-import { GoogleGenAI, Type, GenerateContentResponse, Modality } from "@google/genai";
+import { GoogleGenAI, Type, GenerateContentResponse, Modality, ThinkingLevel } from "@google/genai";
 import type { PatientCase, KnowledgeMapData, KnowledgeNode, KnowledgeLink, TraceableEvidence, FurtherReading, DiagramData, EcgFindings } from '../types';
 
 const getAiClient = () => {
@@ -28,43 +28,25 @@ export async function retryWithBackoff<T>(
     throw lastError;
 }
 
-const FAST_MODEL = "gemini-3-flash-preview"; 
-const PRO_MODEL = "gemini-3-pro-preview";
+const FAST_MODEL = "gemini-3-flash-preview";
+const PRO_MODEL = "gemini-3.1-pro-preview";
+const VISION_MODEL = "gemini-2.5-flash-image";
 
 const SYNTHESIS_GUIDELINE = `
-**STRICT PROFESSIONAL MEDICAL SYNTHESIS RULES:**
+**STRICT MEDICAL SYNTHESIS RULES:**
+1. **DISCIPLINE RIGOR:** Management MUST be specific to the discipline (e.g., Anaesthesia, Nursing).
+2. **VISUALS:** Use triggers: \`[GRAPH: oxygen_dissociation]\`, \`[GRAPH: frank_starling]\`, \`[GRAPH: pressure_volume_loop]\`, \`[GRAPH: respiratory_flow_volume]\`.
+3. **LATEX:** Wrap ALL mathematical equations, formulas, and scientific notation in double dollar signs ($$ ... $$) for blocks or single dollar signs ($ ... $) for inline.
+4. **LATEX JSON ESCAPING:** When outputting LaTeX in JSON strings, you MUST double-escape backslashes (e.g., use "\\\\times" for \\times, "\\\\frac" for \\frac). Failure to do so will break rendering.
+5. **COMPLETENESS:** You MUST provide detailed, high-fidelity content for EVERY field in the schema. DO NOT TRUNCATE. DO NOT USE PLACEHOLDERS.
+`;
 
-1. **DISCIPLINE-SPECIFIC MANAGEMENT RIGOR (HIGH PRIORITY):** 
-   Management considerations MUST be hyper-pertinent to the selected discipline. Do NOT provide generic medical advice. 
-   - Use advanced clinical nuances (e.g., specialized ventilator modes for Anaesthesia, specific NANDA-I nursing diagnoses, detailed mobilization protocols for Physiotherapy).
-   - Reference field-specific assessment tools and scales (e.g., CAM-ICU, Norton Scale, Barthel Index).
-   - Detail precise interventions, monitoring parameters, and phase-specific goals (Pre/Intra/Postoperative).
-   - Ensure the language reflects senior-level specialist expertise in that specific professional scope.
-
-2. **VISUAL PREFERENCE & PHYSIOLOGICAL FIDELITY (CRITICAL):** 
-   Do NOT describe physiological graphs in text. You MUST use appropriate visual triggers. 
-   **STRICT MAPPING RULE:** Do not confuse cardiac loops with respiratory loops.
-   - \`[GRAPH: oxygen_dissociation]\` (Hb-O2 affinity, P50, Shifts)
-   - \`[GRAPH: frank_starling]\` (Stroke Volume vs EDV, Inotropy)
-   - \`[GRAPH: pressure_volume_loop]\` (CARDIAC ONLY: Ventricular pressure/volume, Valve mechanics)
-   - \`[GRAPH: respiratory_flow_volume]\` (RESPIRATORY ONLY: Flow vs Volume loops, Obstructive/Restrictive lung disease)
-   - \`[GRAPH: cerebral_pressure_volume]\` (ICP dynamics, Monro-Kellie)
-   - \`[GRAPH: cerebral_autoregulation]\` (MAP vs CBF relationship)
-   - \`[GRAPH: capnography]\` (EtCO2 waveforms, Ventilation kinetics)
-   - \`[GRAPH: spirometry]\` (Lung volumes over time, TV, FRC, VC)
-   - Embed these at the END of relevant technical descriptions.
-
-3. **DRUG REPORTING:** Do NOT include adverse effect tags or safety warnings in the main case text. Drug safety data is confined to the application's clinical tools.
-
-4. **Clean Formatting & Math:** 
-   - Remove unnecessary symbols. 
-   - Use Unicode for simple physiological variables (e.g., PaO₂, SaO₂, CO₂, H₂O, P_c, T½).
-   - **MANDATORY:** Use proper LaTeX syntax wrapped in '$' delimiters for complex formulas (e.g., Reynolds number: $Re = \\frac{v \\cdot d \\cdot \\rho}{\\eta}$, Alveolar gas equation, etc.). Ensure backslashes for LaTeX commands are correctly included.
-
-5. **RIGOROUS REFERENCE VERIFICATION:** You MUST use the Google Search tool to verify that every PMID and DOI provided is real, accurate, and corresponds exactly to the cited medical article. Fake or "hallucinated" IDs are strictly prohibited.
-
-6. **Quiz Quality:** Exactly 5 high-yield MCQs.
-7. **Narrative Integrity:** No citations/PMIDs in core case history sections.
+const EVIDENCE_GUIDELINE = `
+**VERIFICATION RULES:**
+1. **GOOGLE SEARCH:** Use Google Search to verify clinical trials, PMIDs, and latest guidelines. No hallucinations.
+2. **QUIZ:** Generate exactly 5 high-yield MCQs with explanations.
+3. **LATEX JSON ESCAPING:** When outputting LaTeX in JSON strings, you MUST double-escape backslashes (e.g., use "\\\\times" for \\times, "\\\\frac" for \\frac).
+4. **COMPLETENESS:** Ensure all 5 questions are fully generated.
 `;
 
 const diagramNodeSchema = {
@@ -156,9 +138,13 @@ const extendedDetailsSchema = {
               },
               required: ["aspect", "consideration"]
             }
+        },
+        educationalContent: {
+            type: Type.ARRAY,
+            items: educationalContentSchema
         }
     },
-    required: ["biochemicalPathway", "multidisciplinaryConnections", "disciplineSpecificConsiderations"]
+    required: ["biochemicalPathway", "multidisciplinaryConnections", "disciplineSpecificConsiderations", "educationalContent"]
 };
 
 const evidenceAndQuizSchema = {
@@ -186,9 +172,14 @@ const evidenceAndQuizSchema = {
                 required: ["topic", "reference"]
             }
         },
+        educationalContent: {
+            type: Type.ARRAY,
+            items: educationalContentSchema,
+            description: "3-5 high-yield educational items with diagrams and deep explanations."
+        },
         quiz: { type: Type.ARRAY, items: quizQuestionSchema }
     },
-    required: ["traceableEvidence", "furtherReadings", "quiz"]
+    required: ["traceableEvidence", "furtherReadings", "educationalContent", "quiz"]
 };
 
 const knowledgeMapSchema = {
@@ -223,87 +214,175 @@ const knowledgeMapSchema = {
     required: ["nodes", "links"]
 };
 
+const fullCaseSchema = {
+    type: Type.OBJECT,
+    properties: {
+        title: { 
+            type: Type.STRING,
+            description: "A professional, clinical title for the case."
+        },
+        patientProfile: { 
+            type: Type.STRING,
+            description: "Detailed patient demographics, age, gender, occupation, and relevant background (min 150 words)."
+        },
+        presentingComplaint: { 
+            type: Type.STRING,
+            description: "The primary reason for the visit, described in clinical terms (min 50 words)."
+        },
+        history: { 
+            type: Type.STRING,
+            description: "Comprehensive HPI, PMH, Medications, Social History, and Family History (min 250 words)."
+        },
+        biochemicalPathway: {
+            ...educationalContentSchema,
+            description: "A deep-dive into the pathophysiology and biochemistry. MUST include formulas, reactions, and detailed mechanisms."
+        },
+        multidisciplinaryConnections: {
+            type: Type.ARRAY,
+            items: {
+                type: Type.OBJECT,
+                properties: {
+                    discipline: { type: Type.STRING },
+                    connection: { type: Type.STRING }
+                },
+                required: ["discipline", "connection"]
+            },
+            description: "At least 3-5 connections to other medical specialties."
+        },
+        disciplineSpecificConsiderations: {
+            type: Type.ARRAY,
+            items: {
+                type: Type.OBJECT,
+                properties: {
+                    aspect: { type: Type.STRING },
+                    consideration: { type: Type.STRING }
+                },
+                required: ["aspect", "consideration"]
+            },
+            description: "Management and diagnostic considerations specific to the requested discipline."
+        },
+        knowledgeMap: {
+            ...knowledgeMapSchema,
+            description: "10-15 interconnected nodes showing the conceptual framework of the case."
+        }
+    },
+    required: ["title", "patientProfile", "presentingComplaint", "history", "biochemicalPathway", "multidisciplinaryConnections", "disciplineSpecificConsiderations", "knowledgeMap"]
+};
+
 const extractJson = (text: string) => {
+    // 1. Try to find the first '{' and last '}'
+    const start = text.indexOf('{');
+    const end = text.lastIndexOf('}');
+    
+    if (start !== -1 && end !== -1 && end > start) {
+        return text.substring(start, end + 1).trim();
+    }
+    
+    // 2. Fallback to code block regex if simple search fails
     const jsonMatch = text.match(/```json\n([\s\S]*?)\n```/) || text.match(/```\n([\s\S]*?)\n```/);
     if (jsonMatch) return jsonMatch[1].trim();
+    
     return text.trim();
 };
 
-export const generateCorePatientCase = async (condition: string, discipline: string, difficulty: string, language: string): Promise<PatientCase> => {
+export const generateFullCase = async (condition: string, discipline: string, difficulty: string, language: string): Promise<{ patientCase: PatientCase, knowledgeMap: KnowledgeMapData }> => {
     const ai = getAiClient();
-    const prompt = `Senior medical consultant: Create core clinical record for "${condition}". Discipline: ${discipline}. Difficulty: ${difficulty}. Language: ${language}. ${SYNTHESIS_GUIDELINE}`;
-    const response: GenerateContentResponse = await retryWithBackoff(() => ai.models.generateContent({
-        model: FAST_MODEL,
-        contents: prompt,
-        config: { 
-            responseMimeType: "application/json", 
-            responseSchema: corePatientCaseSchema,
-            thinkingConfig: { thinkingBudget: 0 }
-        },
-    }));
-    const data = JSON.parse(extractJson(response.text || "{}"));
-    return { ...data } as PatientCase;
+    const prompt = `Expert Medical Synthesis: Create a comprehensive, high-fidelity clinical case for "${condition}". 
+    Discipline: ${discipline}. Difficulty: ${difficulty}. Language: ${language}.
+    
+    CORE MISSION: Produce a detailed, professional-grade medical case study that covers all aspects from demographics to deep biochemistry.
+    
+    REQUIREMENTS:
+    1. PATIENT PROFILE: Elaborate on demographics, lifestyle, and background.
+    2. PRESENTING COMPLAINT: Use precise clinical language.
+    3. HISTORY: Include a full HPI, PMH (with specific dates/conditions), Medications (with dosages), and Social/Family History.
+    4. BIOCHEMICAL PATHWAY: Provide a rigorous explanation of the pathophysiology. Include specific enzymes, metabolites, and chemical reactions (use LaTeX for formulas).
+    5. MULTIDISCIPLINARY CONNECTIONS: Detail how at least 3 other specialties (e.g., Radiology, Pathology, Cardiology) intersect with this case.
+    6. MANAGEMENT: Provide specific, evidence-based management steps relevant to ${discipline}.
+    7. KNOWLEDGE MAP: Design a network of 10-15 nodes showing how symptoms, labs, and mechanisms are linked.
+    
+    ${SYNTHESIS_GUIDELINE}`;
+
+    const data = await retryWithBackoff(async () => {
+        const response: GenerateContentResponse = await ai.models.generateContent({
+            model: PRO_MODEL,
+            contents: prompt,
+            config: { 
+                responseMimeType: "application/json", 
+                responseSchema: fullCaseSchema,
+                maxOutputTokens: 16000,
+                tools: [{ googleSearch: {} }]
+            },
+        });
+
+        const text = response.text || "{}";
+        try {
+            return JSON.parse(extractJson(text));
+        } catch (e) {
+            console.error("JSON Parse Error in generateFullCase retry:", e, text);
+            throw new Error("Failed to parse AI response. Retrying...");
+        }
+    });
+
+    const { knowledgeMap, ...patientCase } = data;
+    
+    // Validate knowledge map links
+    const validNodeIds = new Set(knowledgeMap.nodes?.map((n: any) => n.id) || []);
+    knowledgeMap.links = (knowledgeMap.links || []).filter((l: any) => validNodeIds.has(l.source) && validNodeIds.has(l.target));
+
+    return { patientCase: patientCase as PatientCase, knowledgeMap: knowledgeMap as KnowledgeMapData };
 };
 
-export const generateExtendedDetails = async (coreCase: PatientCase, discipline: string, difficulty: string, language: string) => {
+export const generateEvidenceAndQuiz = async (condition: string, discipline: string, difficulty: string, language: string) => {
     const ai = getAiClient();
-    const prompt = `Provide extended clinical depth for "${coreCase.title}" specifically for the discipline of "${discipline}". 
+    const prompt = `Generate high-yield clinical evidence and a medical quiz for "${condition}".
+    Discipline: ${discipline}. Difficulty: ${difficulty}. Language: ${language}.
     
-    **MANAGEMENT DEPTH REQUIREMENTS:** 
-    For 'disciplineSpecificConsiderations', adopt an expert specialist persona for "${discipline}". Focus on pertinent and relevant professional interventions. Use technical terminology and protocols unique to this field. AVOID GENERALIZATIONS. Include phase-specific considerations (Initial/Peri/Post). Use triggers [GRAPH: type] where physiology/mechanics can be visually represented.
+    1. TRACEABLE EVIDENCE: Provide 3-5 verified clinical claims with sources (PMIDs or major guidelines).
+    2. FURTHER READINGS: Provide 2-3 relevant topics for deeper study.
+    3. EDUCATIONAL CONTENT: Create 3-5 high-yield teaching points. Each MUST have a detailed description and a diagram specification.
+    4. QUIZ: Generate exactly 5 high-yield multiple-choice questions (MCQs).
+       - Each question must have exactly 4 options.
+       - Include a clear explanation for the correct answer.
+       - Use medical terminology appropriate for ${difficulty} level.
+       - Ensure formulas and symbols are correctly formatted in LaTeX or Unicode.
     
-    Language: ${language}. ${SYNTHESIS_GUIDELINE}`;
-    const response: GenerateContentResponse = await retryWithBackoff(() => ai.models.generateContent({
-        model: FAST_MODEL,
-        contents: prompt,
-        config: { 
-            responseMimeType: "application/json", 
-            responseSchema: extendedDetailsSchema,
-            thinkingConfig: { thinkingBudget: 0 }
-        },
-    }));
-    return JSON.parse(extractJson(response.text || "{}"));
-};
+    ${EVIDENCE_GUIDELINE}`;
+    
+    try {
+        const result = await retryWithBackoff(async () => {
+            const response: GenerateContentResponse = await ai.models.generateContent({
+                model: PRO_MODEL,
+                contents: prompt,
+                config: { 
+                    responseMimeType: "application/json", 
+                    responseSchema: evidenceAndQuizSchema,
+                    maxOutputTokens: 16000,
+                    tools: [{ googleSearch: {} }]
+                },
+            });
+            const text = response.text || "{}";
+            try {
+                const data = JSON.parse(extractJson(text));
+                const sources = response.candidates?.[0]?.groundingMetadata?.groundingChunks || [];
+                return { data, sources };
+            } catch (e) {
+                console.error("JSON Parse Error in generateEvidenceAndQuiz retry:", e, text);
+                throw new Error("Failed to parse AI response. Retrying...");
+            }
+        });
 
-export const generateEvidenceAndQuiz = async (coreCase: PatientCase, discipline: string, difficulty: string, language: string) => {
-    const ai = getAiClient();
-    const prompt = `References & Quiz for "${coreCase.title}". 
-    
-    **CRITICAL REQUIREMENT:** You MUST use the Google Search tool to FIND and VERIFY every single clinical trial, meta-analysis, or guideline cited. 
-    For every reference in 'traceableEvidence' and 'furtherReadings', the PMID or DOI provided MUST be factually correct and lead directly to the referenced article.
-    Language: ${language}. ${SYNTHESIS_GUIDELINE}`;
-    
-    const response: GenerateContentResponse = await retryWithBackoff(() => ai.models.generateContent({
-        model: PRO_MODEL, 
-        contents: prompt,
-        config: { 
-            responseMimeType: "application/json", 
-            responseSchema: evidenceAndQuizSchema,
-            thinkingConfig: { thinkingBudget: 0 },
-            tools: [{ googleSearch: {} }]
-        },
-    }));
-    const data = JSON.parse(extractJson(response.text || "{}"));
-    const sources = response.candidates?.[0]?.groundingMetadata?.groundingChunks || [];
-    return { ...data, groundingSources: sources };
-};
-
-export const generateKnowledgeMap = async (coreCase: PatientCase, discipline: string, difficulty: string, language: string): Promise<KnowledgeMapData> => {
-    const ai = getAiClient();
-    const prompt = `Knowledge map (10 connected nodes) for "${coreCase.title}". Language: ${language}.`;
-    const response: GenerateContentResponse = await retryWithBackoff(() => ai.models.generateContent({
-        model: FAST_MODEL,
-        contents: prompt,
-        config: { 
-            responseMimeType: "application/json", 
-            responseSchema: knowledgeMapSchema,
-            thinkingConfig: { thinkingBudget: 0 }
-        },
-    }));
-    const data = JSON.parse(extractJson(response.text || "{}"));
-    const validNodeIds = new Set((data as any).nodes?.map((n: KnowledgeNode) => n.id) || []);
-    const validLinks = ((data as any).links || []).filter((l: KnowledgeLink) => validNodeIds.has(l.source) && validNodeIds.has(l.target));
-    return { nodes: (data as any).nodes || [], links: validLinks };
+        return { 
+            traceableEvidence: result.data.traceableEvidence || [], 
+            furtherReadings: result.data.furtherReadings || [],
+            educationalContent: result.data.educationalContent || [],
+            quiz: result.data.quiz || [],
+            groundingSources: result.sources 
+        };
+    } catch (err) {
+        console.error("Final error in generateEvidenceAndQuiz:", err);
+        return { traceableEvidence: [], furtherReadings: [], educationalContent: [], quiz: [], groundingSources: [] };
+    }
 };
 
 export const searchForSource = async (sourceQuery: string, language: string): Promise<{ summary: string; sources: any[] }> => {
@@ -312,7 +391,11 @@ export const searchForSource = async (sourceQuery: string, language: string): Pr
     const response: GenerateContentResponse = await retryWithBackoff(() => ai.models.generateContent({
         model: PRO_MODEL,
         contents: prompt,
-        config: { tools: [{ googleSearch: {} }], temperature: 0.1, thinkingConfig: { thinkingBudget: 0 } },
+        config: { 
+            tools: [{ googleSearch: {} }], 
+            temperature: 0.1, 
+            maxOutputTokens: 2048 
+        },
     }));
     return { summary: response.text || "", sources: response.candidates?.[0]?.groundingMetadata?.groundingChunks || [] };
 };
@@ -325,7 +408,7 @@ export const interpretEcg = async (findings: EcgFindings, imageBase64: string | 
     const response: GenerateContentResponse = await retryWithBackoff(() => ai.models.generateContent({
         model: FAST_MODEL,
         contents: { parts: contentParts },
-        config: { thinkingConfig: { thinkingBudget: 0 } }
+        config: { maxOutputTokens: 2048 }
     }));
     return response.text || "";
 };
@@ -348,7 +431,7 @@ export const checkDrugInteractions = async (drugNames: string[], language: strin
     const response: GenerateContentResponse = await retryWithBackoff(() => ai.models.generateContent({
         model: FAST_MODEL,
         contents: prompt,
-        config: { thinkingConfig: { thinkingBudget: 0 } }
+        config: { maxOutputTokens: 2048 }
     }));
     return response.text || "";
 };
@@ -374,7 +457,7 @@ export const getConceptAbstract = async (concept: string, caseContext: string, l
     const response: GenerateContentResponse = await retryWithBackoff(() => ai.models.generateContent({
         model: FAST_MODEL,
         contents: prompt,
-        config: { thinkingConfig: { thinkingBudget: 0 } }
+        config: { maxOutputTokens: 1024 }
     }));
     return response.text || "";
 };
@@ -385,7 +468,7 @@ export const getConceptConnectionExplanation = async (conceptA: string, conceptB
     const response: GenerateContentResponse = await retryWithBackoff(() => ai.models.generateContent({
         model: FAST_MODEL,
         contents: prompt,
-        config: { thinkingConfig: { thinkingBudget: 0 } }
+        config: { maxOutputTokens: 1024 }
     }));
     return response.text || "";
 };
@@ -398,7 +481,7 @@ export const generateDiagramForDiscussion = async (prompt: string, chatContext: 
         config: { 
             responseMimeType: "application/json", 
             responseSchema: diagramDataSchema,
-            thinkingConfig: { thinkingBudget: 0 }
+            maxOutputTokens: 2048
         },
     }));
     const rawData = JSON.parse(response.text || "{}");
@@ -414,9 +497,13 @@ export const enrichCaseWithWebSources = async (patientCase: PatientCase, languag
     Language: ${language}. JSON.`;
     
     const response: GenerateContentResponse = await retryWithBackoff(() => ai.models.generateContent({
-        model: PRO_MODEL,
+        model: FAST_MODEL, // Switched to FAST_MODEL for speed
         contents: prompt,
-        config: { tools: [{ googleSearch: {} }], temperature: 0.2, thinkingBudget: 0 },
+        config: { 
+            tools: [{ googleSearch: {} }], 
+            temperature: 0.2, 
+            maxOutputTokens: 4096 
+        },
     }));
     const text = extractJson(response.text || "{}");
     const parsedData = JSON.parse(text);

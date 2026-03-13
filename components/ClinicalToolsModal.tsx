@@ -2,6 +2,27 @@
 import React, { useState, useMemo } from 'react';
 import { checkDrugInteractions } from '../services/geminiService';
 import { EcgInterpreter } from './EcgInterpreter';
+import { 
+    X, 
+    Calculator, 
+    Activity, 
+    Stethoscope, 
+    Droplets, 
+    ClipboardList, 
+    Zap, 
+    AlertTriangle, 
+    Info, 
+    ChevronRight, 
+    Search, 
+    CheckCircle2, 
+    AlertCircle,
+    ArrowRight,
+    Pill,
+    Scale,
+    Clock,
+    ShieldAlert,
+    FileText
+} from 'lucide-react';
 
 interface ClinicalToolsModalProps {
     isOpen: boolean;
@@ -1163,89 +1184,150 @@ const DoseCalculator: React.FC<{
     };
 
     return (
-        <div className="space-y-6">
-            <div className="space-y-4">
-                <div className="p-4 bg-slate-100 rounded-lg border border-slate-200">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div>
-                            <label htmlFor="weight-input" className="block text-sm font-medium text-gray-700">{T.weightKgLabel}</label>
-                            <input type="number" id="weight-input" value={weight} onChange={(e) => setWeight(e.target.value ? parseFloat(e.target.value) : '')} min="0" step="0.1" className="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm text-black bg-white" />
-                        </div>
-                        <div>
-                            <label htmlFor="drug-select" className="block text-sm font-medium text-gray-700">{T.selectDrugLabel}</label>
-                            <select id="drug-select" onChange={(e) => setSelectedDrug(database.find(d => d.name === e.target.value) || null)} className="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm text-black bg-white">
-                                <option value="">-- Select --</option>
-                                {database.map(d => <option key={d.name} value={d.name}>{d.name}</option>)}
-                            </select>
-                        </div>
+        <div className="space-y-8">
+            <div className="medical-card p-5 space-y-6">
+                <div className="flex items-center gap-2 mb-2">
+                    <div className="p-2 bg-brand-blue/10 rounded-lg">
+                        <Pill className="w-5 h-5 text-brand-blue" />
+                    </div>
+                    <div>
+                        <h3 className="text-md font-bold text-slate-900 leading-tight">{T.drugDoseCalculatorTitle || 'Drug Dosage Calculator'}</h3>
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{T.drugDoseCalculatorSubtitle || 'Precision Dosing & Safety'}</p>
+                    </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                        <label htmlFor="weight-input" className="block text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-1.5">
+                            <Scale className="w-3 h-3" />
+                            {T.weightKgLabel}
+                        </label>
+                        <input 
+                            type="number" 
+                            id="weight-input" 
+                            value={weight} 
+                            onChange={(e) => setWeight(e.target.value ? parseFloat(e.target.value) : '')} 
+                            min="0" 
+                            step="0.1" 
+                            placeholder="e.g. 70"
+                            className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-900 focus:ring-2 focus:ring-brand-blue/20 focus:border-brand-blue transition-all outline-none" 
+                        />
+                    </div>
+                    <div className="space-y-1.5">
+                        <label htmlFor="drug-select" className="block text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-1.5">
+                            <Search className="w-3 h-3" />
+                            {T.selectDrugLabel}
+                        </label>
+                        <select 
+                            id="drug-select" 
+                            onChange={(e) => setSelectedDrug(database.find(d => d.name === e.target.value) || null)} 
+                            className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-900 focus:ring-2 focus:ring-brand-blue/20 focus:border-brand-blue transition-all outline-none appearance-none"
+                        >
+                            <option value="">-- Select Drug --</option>
+                            {database.map(d => <option key={d.name} value={d.name}>{d.name}</option>)}
+                        </select>
                     </div>
                 </div>
 
                 {selectedDrug && (bolusResult || infusionResult) && (
-                    <div className="mt-4 p-4 bg-white border border-slate-300 rounded-lg animate-fade-in space-y-4 shadow-sm">
-                        <h3 className="text-md font-bold text-brand-blue">{selectedDrug.name}</h3>
-                        <p className="text-xs text-gray-500 italic">Based on {selectedDrug.doseText} {selectedDrug.maxDose ? `(${selectedDrug.maxDose})` : ''}</p>
+                    <div className="mt-4 animate-fade-in space-y-4">
+                        <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+                            <div>
+                                <h3 className="text-xl font-black text-brand-blue tracking-tight">{selectedDrug.name}</h3>
+                                <div className="flex items-center gap-2 mt-1">
+                                    <span className="px-2 py-0.5 bg-slate-100 text-[10px] font-black text-slate-500 rounded uppercase tracking-widest">
+                                        {selectedDrug.doseText}
+                                    </span>
+                                </div>
+                            </div>
+                            {selectedDrug.maxDose && (
+                                <div className="px-3 py-1.5 bg-amber-50 rounded-xl border border-amber-100 flex items-center gap-1.5">
+                                    <AlertTriangle className="w-3 h-3 text-amber-600" />
+                                    <p className="text-[10px] font-black text-amber-700 uppercase tracking-widest">Max: {selectedDrug.maxDose}</p>
+                                </div>
+                            )}
+                        </div>
                         
-                        {bolusResult && (
-                             <div className="p-3 bg-blue-100 border border-blue-200 rounded-lg mt-4">
-                                <h4 className="text-sm font-semibold text-blue-900">Recommended Dose</h4>
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-2">
-                                    {bolusResult.dose !== undefined && bolusResult.dose > 0 ? (
-                                        <div>
-                                            <p className="text-sm font-medium text-gray-600">{T.calculatedDoseLabel}</p>
-                                            <p className="text-xl font-bold text-slate-900">{bolusResult.dose.toFixed(1)} {bolusResult.unit}</p>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            {bolusResult && (
+                                <div className="p-5 bg-brand-blue/5 border border-brand-blue/10 rounded-2xl space-y-4 relative overflow-hidden group">
+                                    <div className="absolute top-0 right-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity">
+                                        <Zap className="w-12 h-12 text-brand-blue" />
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <div className="w-6 h-6 rounded-full bg-brand-blue/10 flex items-center justify-center">
+                                            <Zap className="w-3 h-3 text-brand-blue" />
                                         </div>
-                                    ) : null}
-                                    {bolusResult.volume !== undefined && (
-                                        <div>
-                                            <p className="text-sm font-medium text-gray-600">{T.calculatedVolumeLabel} {selectedDrug.concentration && `(${selectedDrug.concentration})`}</p>
-                                            <p className="text-xl font-bold text-slate-900">{bolusResult.volume.toFixed(2)} {bolusResult.volumeUnit}</p>
+                                        <h4 className="text-[10px] font-black text-brand-blue uppercase tracking-widest">{T.calculatedDoseLabel || 'Bolus Dose'}</h4>
+                                    </div>
+                                    <div className="flex flex-wrap items-baseline gap-4">
+                                        {bolusResult.dose !== undefined && bolusResult.dose > 0 && (
+                                            <div>
+                                                <p className="text-3xl font-black text-slate-900 leading-none tracking-tight">
+                                                    {bolusResult.dose.toFixed(1)} 
+                                                    <span className="text-sm font-bold text-slate-400 ml-1">{bolusResult.unit}</span>
+                                                </p>
+                                            </div>
+                                        )}
+                                        {bolusResult.volume !== undefined && (
+                                            <div className="pl-4 border-l border-brand-blue/10">
+                                                <p className="text-3xl font-black text-slate-900 leading-none tracking-tight">
+                                                    {bolusResult.volume.toFixed(2)} 
+                                                    <span className="text-sm font-bold text-slate-400 ml-1">{bolusResult.volumeUnit}</span>
+                                                </p>
+                                                <p className="text-[10px] font-black text-slate-400 mt-1 uppercase tracking-widest">{selectedDrug.concentration}</p>
+                                            </div>
+                                        )}
+                                    </div>
+                                    {bolusResult.notes && (
+                                        <div className="pt-3 border-t border-brand-blue/10">
+                                            <p className="text-xs font-bold text-slate-600 flex items-start gap-2">
+                                                <Info className="w-3.5 h-3.5 text-brand-blue shrink-0 mt-0.5" />
+                                                {bolusResult.notes}
+                                            </p>
                                         </div>
                                     )}
                                 </div>
-                                {bolusResult.notes && (
-                                    <div className="mt-3">
-                                        <p className="text-sm font-medium text-gray-600">{T.drugNotesLabel}</p>
-                                        <p className="text-md font-semibold text-slate-900 whitespace-pre-wrap">{bolusResult.notes}</p>
-                                    </div>
-                                )}
-                            </div>
-                        )}
+                            )}
 
-                         {infusionResult && (
-                             <div className="p-3 bg-indigo-100 border border-indigo-200 rounded-lg mt-4">
-                                <h4 className="text-sm font-semibold text-indigo-900">Infusion</h4>
-                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-2">
+                            {infusionResult && (
+                                <div className="p-5 bg-indigo-50 border border-indigo-100 rounded-2xl space-y-4 relative overflow-hidden group">
+                                    <div className="absolute top-0 right-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity">
+                                        <Clock className="w-12 h-12 text-indigo-600" />
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <div className="w-6 h-6 rounded-full bg-indigo-100 flex items-center justify-center">
+                                            <Clock className="w-3 h-3 text-indigo-600" />
+                                        </div>
+                                        <h4 className="text-[10px] font-black text-indigo-600 uppercase tracking-widest">Infusion Rate</h4>
+                                    </div>
                                     <div>
-                                        <p className="text-sm font-medium text-gray-600">Rate</p>
-                                        <p className="text-xl font-bold text-slate-900">{infusionResult.rate}</p>
+                                        <p className="text-3xl font-black text-slate-900 leading-none tracking-tight">{infusionResult.rate}</p>
+                                        <p className="text-[10px] font-black text-slate-400 mt-2 uppercase tracking-widest bg-white/50 inline-block px-2 py-0.5 rounded">{infusionResult.preparation}</p>
                                     </div>
-                                     <div>
-                                        <p className="text-sm font-medium text-gray-600">Preparation</p>
-                                        <p className="text-md font-semibold text-slate-900">{infusionResult.preparation}</p>
+                                    <div className="pt-3 border-t border-indigo-100">
+                                        <p className="text-xs font-bold text-slate-600 flex items-start gap-2">
+                                            <Info className="w-3.5 h-3.5 text-indigo-500 shrink-0 mt-0.5" />
+                                            {infusionResult.notes}
+                                        </p>
                                     </div>
                                 </div>
-                                 <div className="mt-3">
-                                    <p className="text-sm font-medium text-gray-600">{T.drugNotesLabel}</p>
-                                    <p className="text-md font-semibold text-slate-900 whitespace-pre-wrap">{infusionResult.notes}</p>
-                                </div>
-                            </div>
-                        )}
+                            )}
+                        </div>
 
-                        {/* DRUG SAFETY SECTION FOR CALCULATORS */}
                         {selectedDrug.adverseEvents && selectedDrug.adverseEvents.length > 0 && (
-                            <div className="mt-4 p-4 bg-red-50 dark:bg-red-900/10 border-l-4 border-red-500 rounded-r-lg shadow-sm">
-                                <h4 className="text-xs font-black text-red-700 dark:text-red-400 uppercase tracking-widest mb-3 flex items-center gap-2">
-                                    <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
-                                        <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.21 3.03-1.742 3.03H4.42c-1.532 0-2.492-1.696-1.742-3.03l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                                    </svg>
-                                    Clinical Vigilance: Top 3 Adverse Effects
-                                </h4>
-                                <div className="space-y-2">
-                                    {selectedDrug.adverseEvents.slice(0, 3).map((effect, idx) => (
-                                        <div key={idx} className="flex items-start gap-2.5 text-sm text-gray-800 dark:text-slate-200 font-bold">
-                                            <span className="text-red-500 mt-0.5">•</span>
-                                            <span>{effect}</span>
+                            <div className="p-5 bg-red-50 border border-red-100 rounded-2xl">
+                                <div className="flex items-center gap-2 mb-4">
+                                    <div className="w-6 h-6 rounded-full bg-red-100 flex items-center justify-center">
+                                        <ShieldAlert className="w-3.5 h-3.5 text-red-600" />
+                                    </div>
+                                    <h4 className="text-[10px] font-black text-red-600 uppercase tracking-widest">Safety Watch: Adverse Effects</h4>
+                                </div>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                    {selectedDrug.adverseEvents.slice(0, 4).map((effect, idx) => (
+                                        <div key={idx} className="flex items-center gap-3 p-2 bg-white/40 rounded-xl border border-red-100/50 text-xs font-bold text-red-900/80">
+                                            <div className="w-1.5 h-1.5 rounded-full bg-red-400 shrink-0" />
+                                            {effect}
                                         </div>
                                     ))}
                                 </div>
@@ -1253,62 +1335,105 @@ const DoseCalculator: React.FC<{
                         )}
                     </div>
                 )}
+
             </div>
 
-            <hr className="my-6 border-gray-200" />
-
-            <div className="space-y-4">
-                <h3 className="text-md font-bold text-brand-blue">{T.drugInteractionCheckerTitle}</h3>
-                <div className="p-4 bg-slate-100 rounded-lg border border-slate-200">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">{T.selectDrugsPrompt}</label>
-                    <div className="max-h-32 overflow-y-auto border border-gray-300 rounded-md p-3 grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-2 bg-white">
-                        {database.map(drug => (
-                            <label key={drug.name} className="flex items-center space-x-2 text-sm cursor-pointer text-gray-800">
-                                <input
-                                    type="checkbox"
-                                    checked={selectedInteractionDrugs.includes(drug.name)}
-                                    onChange={() => handleDrugSelection(drug.name)}
-                                    className="h-4 w-4 rounded border-gray-300 text-brand-blue focus:ring-brand-blue-light"
-                                />
-                                <span>{drug.name}</span>
-                            </label>
-                        ))}
+            <div className="medical-card p-5 space-y-6">
+                <div className="flex items-center gap-2 mb-2">
+                    <div className="p-2 bg-indigo-100 rounded-lg">
+                        <ShieldAlert className="w-5 h-5 text-indigo-600" />
+                    </div>
+                    <div>
+                        <h3 className="text-md font-bold text-slate-900 leading-tight">{T.drugInteractionCheckerTitle}</h3>
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Multi-Drug Safety Analysis</p>
                     </div>
                 </div>
-                <button
-                    onClick={handleCheckInteractions}
-                    disabled={selectedInteractionDrugs.length < 2 || isCheckingInteractions}
-                    className="w-full flex items-center justify-center space-x-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-md transition duration-300 ease-in-out disabled:bg-gray-400 disabled:cursor-not-allowed"
-                >
-                    {isCheckingInteractions ? (
-                        <svg className="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                        </svg>
-                    ) : (
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.28 7.22a.75.75 0 00-1.06 1.06L8.94 10l-1.72 1.72a.75.75 0 101.06 1.06L10 11.06l1.72 1.72a.75.75 0 101.06-1.06L11.06 10l1.72-1.72a.75.75 0 00-1.06-1.06L10 8.94 8.28 7.22z" clipRule="evenodd" />
-                        </svg>
-                    )}
-                    <span>{isCheckingInteractions ? T.checkingInteractionsMessage : T.checkInteractionsButton}</span>
-                </button>
 
-                {(isCheckingInteractions || interactionResult || interactionError) && (
-                    <div className="mt-4 p-4 bg-slate-100 border border-slate-200 rounded-lg animate-fade-in">
-                        <h4 className="text-md font-bold text-gray-800">{T.interactionResultsTitle}</h4>
-                        {isCheckingInteractions && <p className="text-sm text-gray-500">{T.checkingInteractionsMessage}</p>}
-                        {interactionError && <p className="text-sm text-red-600">{interactionError}</p>}
-                        {interactionResult && (
-                            <div className="mt-2 text-sm text-gray-700 whitespace-pre-wrap prose prose-sm max-w-none">
-                                {interactionResult.includes('###') ? (
-                                    <div dangerouslySetInnerHTML={{__html: interactionResult.replace(/### (.*)/g, '<h3 class="text-base font-semibold text-brand-blue mt-3">$1</h3>').replace(/\*\*(.*?)\*\*/g, '<strong class="font-semibold text-gray-800">$1</strong>')}} />
-                                ) : (
-                                    <p>{interactionResult}</p>
-                                )}
-                            </div>
-                        )}
+                <div className="space-y-4">
+                    <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl">
+                        <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-3">{T.selectDrugsPrompt}</label>
+                        <div className="max-h-48 overflow-y-auto pr-2 custom-scrollbar grid grid-cols-1 sm:grid-cols-2 gap-2">
+                            {database.map(drug => (
+                                <label 
+                                    key={drug.name} 
+                                    className={`flex items-center p-2.5 rounded-xl border transition-all cursor-pointer ${
+                                        selectedInteractionDrugs.includes(drug.name)
+                                            ? 'bg-indigo-50 border-indigo-200 shadow-sm'
+                                            : 'bg-white border-slate-100 hover:border-indigo-100'
+                                    }`}
+                                >
+                                    <div className={`w-4 h-4 rounded border flex items-center justify-center transition-all ${
+                                        selectedInteractionDrugs.includes(drug.name)
+                                            ? 'bg-indigo-600 border-indigo-600 text-white'
+                                            : 'bg-slate-50 border-slate-200'
+                                    }`}>
+                                        {selectedInteractionDrugs.includes(drug.name) && <CheckCircle2 className="w-3 h-3" />}
+                                    </div>
+                                    <input
+                                        type="checkbox"
+                                        checked={selectedInteractionDrugs.includes(drug.name)}
+                                        onChange={() => handleDrugSelection(drug.name)}
+                                        className="hidden"
+                                    />
+                                    <span className={`ml-2.5 text-xs font-bold ${
+                                        selectedInteractionDrugs.includes(drug.name) ? 'text-indigo-900' : 'text-slate-600'
+                                    }`}>{drug.name}</span>
+                                </label>
+                            ))}
+                        </div>
                     </div>
-                )}
+
+                    <button
+                        onClick={handleCheckInteractions}
+                        disabled={selectedInteractionDrugs.length < 2 || isCheckingInteractions}
+                        className="w-full flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-black py-3 px-4 rounded-xl transition-all shadow-md disabled:bg-slate-200 disabled:text-slate-400 disabled:shadow-none uppercase tracking-widest text-xs"
+                    >
+                        {isCheckingInteractions ? (
+                            <Activity className="w-4 h-4 animate-pulse" />
+                        ) : (
+                            <Search className="w-4 h-4" />
+                        )}
+                        {isCheckingInteractions ? T.checkingInteractionsMessage : T.checkInteractionsButton}
+                    </button>
+
+                    {(isCheckingInteractions || interactionResult || interactionError) && (
+                        <div className="mt-4 p-5 bg-white border border-slate-200 rounded-2xl animate-fade-in shadow-sm">
+                            <div className="flex items-center gap-2 mb-4 border-b border-slate-100 pb-3">
+                                <FileText className="w-4 h-4 text-indigo-600" />
+                                <h4 className="text-[10px] font-black text-indigo-600 uppercase tracking-widest">{T.interactionResultsTitle}</h4>
+                            </div>
+                            
+                            {isCheckingInteractions && (
+                                <div className="flex flex-col items-center justify-center py-8 space-y-3">
+                                    <div className="w-8 h-8 border-4 border-indigo-100 border-t-indigo-600 rounded-full animate-spin" />
+                                    <p className="text-xs font-bold text-slate-500 animate-pulse">{T.checkingInteractionsMessage}</p>
+                                </div>
+                            )}
+                            
+                            {interactionError && (
+                                <div className="p-3 bg-red-50 border border-red-100 rounded-xl flex items-center gap-2">
+                                    <AlertCircle className="w-4 h-4 text-red-500" />
+                                    <p className="text-xs font-bold text-red-600">{interactionError}</p>
+                                </div>
+                            )}
+                            
+                            {interactionResult && (
+                                <div className="text-sm text-slate-700 whitespace-pre-wrap leading-relaxed">
+                                    <div 
+                                        className="prose prose-sm max-w-none prose-headings:text-indigo-900 prose-headings:font-black prose-headings:uppercase prose-headings:tracking-widest prose-headings:text-[10px] prose-headings:mb-2 prose-p:text-slate-600 prose-p:font-medium prose-strong:text-slate-900 prose-strong:font-bold prose-ul:list-disc prose-ul:pl-4 prose-li:mb-1"
+                                        dangerouslySetInnerHTML={{
+                                            __html: interactionResult
+                                                .replace(/### (.*)/g, '<h3 class="mt-4">$1</h3>')
+                                                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                                                .replace(/^- (.*)/gm, '<li>$1</li>')
+                                                .replace(/(<li>.*<\/li>)/s, '<ul>$1</ul>')
+                                        }} 
+                                    />
+                                </div>
+                            )}
+                        </div>
+                    )}
+                </div>
             </div>
         </div>
     );
@@ -1357,44 +1482,106 @@ const FluidManagementCalculator: React.FC<{ T: Record<string, any> }> = ({ T }) 
     }, [weight]);
 
     return (
-        <div className="space-y-6">
-            <div>
-                <h3 className="text-md font-bold text-brand-blue mb-2">{T.maintenanceFluidTitle}</h3>
-                <div className="p-4 bg-slate-100 rounded-lg border border-slate-200">
-                    <label htmlFor="fluid-weight-input" className="block text-sm font-medium text-gray-700">{T.weightKgLabel}</label>
-                    <input type="number" id="fluid-weight-input" value={weight} onChange={(e) => setWeight(e.target.value ? parseFloat(e.target.value) : '')} min="0" step="0.1" className="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm text-black bg-white" />
+        <div className="space-y-8">
+            <div className="medical-card p-5 space-y-6">
+                <div className="flex items-center gap-2 mb-2">
+                    <div className="p-2 bg-brand-blue/10 rounded-lg">
+                        <Droplets className="w-5 h-5 text-brand-blue" />
+                    </div>
+                    <div>
+                        <h3 className="text-md font-bold text-slate-900 leading-tight">{T.maintenanceFluidTitle}</h3>
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Holliday-Segar Method</p>
+                    </div>
                 </div>
-                 {maintenance && (
-                     <div className="mt-4 p-4 bg-green-100 border border-green-300 rounded-lg animate-fade-in">
-                        <h4 className="font-semibold text-green-900">{T.fluidResultsTitle}</h4>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-2">
-                             <div>
-                                <p className="text-sm font-medium text-gray-600">{T.dailyRequirementLabel}</p>
-                                <p className="text-xl font-bold text-slate-900">{maintenance.daily} mL/day</p>
+
+                <div className="space-y-1.5">
+                    <label htmlFor="fluid-weight-input" className="block text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-1.5">
+                        <Scale className="w-3 h-3" />
+                        {T.weightKgLabel}
+                    </label>
+                    <input 
+                        type="number" 
+                        id="fluid-weight-input" 
+                        value={weight} 
+                        onChange={(e) => setWeight(e.target.value ? parseFloat(e.target.value) : '')} 
+                        min="0" 
+                        step="0.1" 
+                        placeholder="e.g. 70"
+                        className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-900 focus:ring-2 focus:ring-brand-blue/20 focus:border-brand-blue transition-all outline-none" 
+                    />
+                </div>
+
+                {maintenance && (
+                    <div className="mt-4 animate-fade-in space-y-6">
+                        <div className="p-6 bg-emerald-50 border border-emerald-100 rounded-2xl relative overflow-hidden group">
+                            <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                                <Droplets className="w-16 h-16 text-emerald-600" />
                             </div>
-                            <div>
-                                <p className="text-sm font-medium text-gray-600">{T.hourlyRateLabel}</p>
-                                <p className="text-xl font-bold text-slate-900">{maintenance.hourly} mL/hr</p>
+                            <h4 className="text-[10px] font-black text-emerald-600 uppercase tracking-widest mb-4 flex items-center gap-2">
+                                <div className="w-5 h-5 rounded-full bg-emerald-100 flex items-center justify-center">
+                                    <Activity className="w-3 h-3 text-emerald-600" />
+                                </div>
+                                {T.fluidResultsTitle}
+                            </h4>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
+                                <div className="space-y-1">
+                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{T.dailyRequirementLabel}</p>
+                                    <p className="text-3xl font-black text-slate-900 leading-none tracking-tight">
+                                        {maintenance.daily} 
+                                        <span className="text-sm font-bold text-slate-400 ml-1.5">mL/day</span>
+                                    </p>
+                                </div>
+                                <div className="space-y-1 sm:pl-8 sm:border-l sm:border-emerald-100">
+                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{T.hourlyRateLabel}</p>
+                                    <p className="text-3xl font-black text-slate-900 leading-none tracking-tight">
+                                        {maintenance.hourly} 
+                                        <span className="text-sm font-bold text-slate-400 ml-1.5">mL/hr</span>
+                                    </p>
+                                </div>
+                            </div>
+                            
+                            <div className="mt-8 pt-6 border-t border-emerald-100 space-y-4">
+                                <p className="text-[10px] font-black text-emerald-700 uppercase tracking-widest flex items-center gap-2">
+                                    <ClipboardList className="w-3.5 h-3.5" />
+                                    {T.fluidBreakdownTitle}
+                                </p>
+                                <div className="grid grid-cols-1 gap-2">
+                                    {breakdown.map((step, i) => (
+                                        <div key={i} className="text-xs font-bold text-slate-600 flex items-center gap-3 bg-white/40 p-2.5 rounded-xl border border-emerald-100/50">
+                                            <div className="w-5 h-5 rounded-full bg-emerald-100 flex items-center justify-center shrink-0">
+                                                <span className="text-[10px] font-black text-emerald-600">{i + 1}</span>
+                                            </div>
+                                            {step}
+                                        </div>
+                                    ))}
+                                </div>
                             </div>
                         </div>
-                        <div className="mt-3 text-xs text-gray-500">
-                             <p className="font-semibold">{T.fluidBreakdownTitle}:</p>
-                             <ul className="list-disc list-inside">
-                                {breakdown.map((step, i) => <li key={i}>{step}</li>)}
-                             </ul>
-                             <p className="mt-1 italic">{T.hollidaySegarMethod}</p>
-                         </div>
-                     </div>
-                 )}
-            </div>
-            <div>
-                 <h3 className="text-md font-bold text-brand-blue mb-2">{T.bolusFluidTitle}</h3>
-                 {bolus && (
-                    <div className="p-4 bg-amber-100 border border-amber-300 rounded-lg">
-                        <p className="text-sm font-medium text-gray-600">{T.bolusVolumeLabel}</p>
-                        <p className="text-xl font-bold text-slate-900">{bolus} mL</p>
+
+                        <div className="p-6 bg-amber-50 border border-amber-100 rounded-2xl relative overflow-hidden group">
+                            <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                                <Zap className="w-16 h-16 text-amber-600" />
+                            </div>
+                            <div className="flex items-center gap-2 mb-4">
+                                <div className="w-6 h-6 rounded-full bg-amber-100 flex items-center justify-center">
+                                    <Zap className="w-3.5 h-3.5 text-amber-600" />
+                                </div>
+                                <h4 className="text-[10px] font-black text-amber-600 uppercase tracking-widest">{T.bolusFluidTitle}</h4>
+                            </div>
+                            <div className="flex items-baseline gap-2">
+                                <p className="text-3xl font-black text-slate-900 leading-none tracking-tight">{bolus}</p>
+                                <p className="text-sm font-bold text-slate-400 uppercase tracking-widest">mL (20 mL/kg)</p>
+                            </div>
+                            <div className="mt-4 p-3 bg-white/40 rounded-xl border border-amber-100/50">
+                                <p className="text-xs font-bold text-slate-600 flex items-start gap-2">
+                                    <Info className="w-3.5 h-3.5 text-amber-500 shrink-0 mt-0.5" />
+                                    Standard bolus for initial resuscitation. Adjust based on clinical status and response.
+                                </p>
+                            </div>
+                        </div>
                     </div>
-                 )}
+                )}
+
             </div>
         </div>
     );
@@ -1434,33 +1621,80 @@ const GcsCalculator: React.FC<{ T: Record<string, any> }> = ({ T }) => {
     };
 
     return (
-        <div>
-            <h3 className="text-md font-bold text-brand-blue mb-2">{T.gcsTitle}</h3>
-            <p className="text-xs text-gray-500 mb-4">{T.gcsSubtitle}</p>
-            <div className="p-4 bg-slate-100 rounded-lg border border-slate-200 space-y-4">
-                <div>
-                    <label className="block text-sm font-medium text-gray-700">{T.gcsEyeResponse}</label>
-                    <select name="eye" value={scores.eye} onChange={handleChange} className="mt-1 block w-full p-2 border border-gray-300 rounded-md text-black bg-white">
-                        {options.eye.map(opt => <option key={opt.value} value={opt.value}>{opt.value} - {opt.text}</option>)}
-                    </select>
+        <div className="medical-card p-5 space-y-6">
+            <div className="flex items-center gap-2 mb-2">
+                <div className="p-2 bg-brand-blue/10 rounded-lg">
+                    <Calculator className="w-5 h-5 text-brand-blue" />
                 </div>
                 <div>
-                    <label className="block text-sm font-medium text-gray-700">{T.gcsVerbalResponse}</label>
-                    <select name="verbal" value={scores.verbal} onChange={handleChange} className="mt-1 block w-full p-2 border border-gray-300 rounded-md text-black bg-white">
-                        {options.verbal.map(opt => <option key={opt.value} value={opt.value}>{opt.value} - {opt.text}</option>)}
-                    </select>
-                </div>
-                 <div>
-                    <label className="block text-sm font-medium text-gray-700">{T.gcsMotorResponse}</label>
-                    <select name="motor" value={scores.motor} onChange={handleChange} className="mt-1 block w-full p-2 border border-gray-300 rounded-md text-black bg-white">
-                        {options.motor.map(opt => <option key={opt.value} value={opt.value}>{opt.value} - {opt.text}</option>)}
-                    </select>
+                    <h3 className="text-md font-bold text-slate-900 leading-tight">{T.gcsTitle}</h3>
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{T.gcsSubtitle}</p>
                 </div>
             </div>
-             <div className="mt-4 p-4 bg-blue-100 border border-blue-300 rounded-lg">
-                <h4 className="font-semibold text-blue-900">{T.gcsResultTitle}</h4>
-                <p className="text-2xl font-bold text-slate-900">{totalScore} / 15</p>
-                <p className="text-md font-semibold text-slate-800 mt-1">{interpretation}</p>
+
+            <div className="space-y-4">
+                <div className="grid grid-cols-1 gap-4">
+                    <div className="space-y-1.5">
+                        <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-1.5">
+                            <Activity className="w-3 h-3" />
+                            {T.gcsEyeResponse}
+                        </label>
+                        <select 
+                            name="eye" 
+                            value={scores.eye} 
+                            onChange={handleChange} 
+                            className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-900 focus:ring-2 focus:ring-brand-blue/20 focus:border-brand-blue transition-all outline-none appearance-none"
+                        >
+                            {options.eye.map(opt => <option key={opt.value} value={opt.value}>{opt.value} - {opt.text}</option>)}
+                        </select>
+                    </div>
+                    <div className="space-y-1.5">
+                        <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-1.5">
+                            <Activity className="w-3 h-3" />
+                            {T.gcsVerbalResponse}
+                        </label>
+                        <select 
+                            name="verbal" 
+                            value={scores.verbal} 
+                            onChange={handleChange} 
+                            className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-900 focus:ring-2 focus:ring-brand-blue/20 focus:border-brand-blue transition-all outline-none appearance-none"
+                        >
+                            {options.verbal.map(opt => <option key={opt.value} value={opt.value}>{opt.value} - {opt.text}</option>)}
+                        </select>
+                    </div>
+                    <div className="space-y-1.5">
+                        <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-1.5">
+                            <Activity className="w-3 h-3" />
+                            {T.gcsMotorResponse}
+                        </label>
+                        <select 
+                            name="motor" 
+                            value={scores.motor} 
+                            onChange={handleChange} 
+                            className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-900 focus:ring-2 focus:ring-brand-blue/20 focus:border-brand-blue transition-all outline-none appearance-none"
+                        >
+                            {options.motor.map(opt => <option key={opt.value} value={opt.value}>{opt.value} - {opt.text}</option>)}
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <div className="mt-6 p-5 bg-brand-blue/5 border border-brand-blue/10 rounded-2xl flex items-center justify-between shadow-sm">
+                <div>
+                    <h4 className="text-[10px] font-black text-brand-blue uppercase tracking-widest mb-1">{T.gcsResultTitle}</h4>
+                    <p className="text-3xl font-black text-slate-900 leading-none">{totalScore} <span className="text-sm font-bold text-slate-400">/ 15</span></p>
+                    <p className="text-xs font-bold text-slate-600 mt-3 flex items-center gap-1.5">
+                        <Info className="w-3.5 h-3.5 text-brand-blue" />
+                        {interpretation}
+                    </p>
+                </div>
+                <div className={`w-14 h-14 rounded-2xl flex items-center justify-center font-black text-xl shadow-sm ${
+                    totalScore <= 8 ? 'bg-red-100 text-red-600 border border-red-200' : 
+                    totalScore <= 12 ? 'bg-amber-100 text-amber-600 border border-amber-200' : 
+                    'bg-emerald-100 text-emerald-600 border border-emerald-200'
+                }`}>
+                    {totalScore}
+                </div>
             </div>
         </div>
     );
@@ -1485,36 +1719,60 @@ const PonvCalculator: React.FC<{ T: Record<string, any> }> = ({ T }) => {
     ];
 
     return (
-        <div>
-            <h3 className="text-md font-bold text-brand-blue mb-2">{T.ponvTitle}</h3>
-            <p className="text-xs text-gray-500 mb-4">{T.ponvSubtitle}</p>
-            <div className="p-4 bg-slate-100 rounded-lg border border-slate-200">
-                <div className="space-y-3">
-                    {factors.map(({ key, text }) => (
-                        <label
-                            key={key}
-                            className={`flex items-center p-3 rounded-md border transition cursor-pointer ${
-                                riskFactors[key as keyof typeof riskFactors]
-                                    ? 'bg-blue-100 border-brand-blue shadow-sm'
-                                    : 'bg-white border-gray-200 hover:bg-gray-50'
-                            }`}
-                        >
-                            <input
-                                type="checkbox"
-                                name={key}
-                                checked={riskFactors[key as keyof typeof riskFactors]}
-                                onChange={handleCheckboxChange}
-                                className="h-4 w-4 rounded border-gray-300 text-brand-blue focus:ring-brand-blue-light"
-                            />
-                            <span className="ml-3 text-sm font-medium text-black">{text}</span>
-                        </label>
-                    ))}
+        <div className="medical-card p-5 space-y-6">
+            <div className="flex items-center gap-2 mb-2">
+                <div className="p-2 bg-brand-blue/10 rounded-lg">
+                    <Activity className="w-5 h-5 text-brand-blue" />
+                </div>
+                <div>
+                    <h3 className="text-md font-bold text-slate-900 leading-tight">{T.ponvTitle}</h3>
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{T.ponvSubtitle}</p>
                 </div>
             </div>
-            <div className="mt-4 p-4 bg-blue-100 border border-blue-300 rounded-lg">
-                <h4 className="font-semibold text-blue-900">{T.ponvResultTitle}</h4>
-                <p className="text-lg font-bold text-slate-900">{score} {T.ponvRiskFactors(score)}</p>
-                <p className="text-md font-semibold text-slate-800 mt-1">{T.ponvRiskPercentage(riskPercentage)}</p>
+
+            <div className="space-y-2">
+                {factors.map(({ key, text }) => (
+                    <label
+                        key={key}
+                        className={`flex items-center p-3.5 rounded-xl border transition-all cursor-pointer ${
+                            riskFactors[key as keyof typeof riskFactors]
+                                ? 'bg-brand-blue/5 border-brand-blue/30 shadow-sm'
+                                : 'bg-slate-50 border-slate-100 hover:border-brand-blue/20'
+                        }`}
+                    >
+                        <div className={`w-5 h-5 rounded border flex items-center justify-center transition-all ${
+                            riskFactors[key as keyof typeof riskFactors]
+                                ? 'bg-brand-blue border-brand-blue text-white shadow-sm'
+                                : 'bg-white border-slate-300'
+                        }`}>
+                            {riskFactors[key as keyof typeof riskFactors] && <CheckCircle2 className="w-3.5 h-3.5" />}
+                        </div>
+                        <input
+                            type="checkbox"
+                            name={key}
+                            checked={riskFactors[key as keyof typeof riskFactors]}
+                            onChange={handleCheckboxChange}
+                            className="hidden"
+                        />
+                        <span className={`ml-3.5 text-sm font-bold ${
+                            riskFactors[key as keyof typeof riskFactors] ? 'text-slate-900' : 'text-slate-600'
+                        }`}>{text}</span>
+                    </label>
+                ))}
+            </div>
+
+            <div className="mt-6 p-5 bg-brand-blue/5 border border-brand-blue/10 rounded-2xl shadow-sm">
+                <h4 className="text-[10px] font-black text-brand-blue uppercase tracking-widest mb-2">{T.ponvResultTitle}</h4>
+                <div className="flex items-baseline gap-2">
+                    <p className="text-3xl font-black text-slate-900 leading-none">{score}</p>
+                    <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">{T.ponvRiskFactors(score)}</p>
+                </div>
+                <div className="mt-4 pt-4 border-t border-brand-blue/10">
+                    <p className="text-sm font-bold text-slate-700 flex items-center gap-2">
+                        <Zap className="w-4 h-4 text-amber-500" />
+                        {T.ponvRiskPercentage(riskPercentage)}
+                    </p>
+                </div>
             </div>
         </div>
     );
@@ -1551,48 +1809,81 @@ const StopBangCalculator: React.FC<{ T: Record<string, any> }> = ({ T }) => {
     ];
 
     return (
-        <div>
-            <h3 className="text-md font-bold text-brand-blue mb-2">{T.stopBangTitle}</h3>
-            <p className="text-xs text-gray-500 mb-4">{T.stopBangSubtitle}</p>
-            <div className="p-4 bg-slate-100 rounded-lg border border-slate-200">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                     {questions.map(({ key, text }) => (
-                        <label
-                            key={key}
-                            className={`flex items-center p-3 rounded-md border transition cursor-pointer ${
-                                answers[key]
-                                    ? 'bg-blue-100 border-brand-blue shadow-sm'
-                                    : 'bg-white border-gray-200 hover:bg-gray-50'
-                            }`}
-                        >
-                            <input
-                                type="checkbox"
-                                name={key}
-                                checked={answers[key]}
-                                onChange={handleCheckboxChange}
-                                className="h-4 w-4 rounded border-gray-300 text-brand-blue focus:ring-brand-blue-light"
-                            />
-                            <span className="ml-3 text-sm font-medium text-black">{text}</span>
-                        </label>
-                    ))}
+        <div className="medical-card p-5 space-y-6">
+            <div className="flex items-center gap-2 mb-2">
+                <div className="p-2 bg-brand-blue/10 rounded-lg">
+                    <Stethoscope className="w-5 h-5 text-brand-blue" />
+                </div>
+                <div>
+                    <h3 className="text-md font-bold text-slate-900 leading-tight">{T.stopBangTitle}</h3>
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{T.stopBangSubtitle}</p>
                 </div>
             </div>
-            <div className={`mt-4 p-4 rounded-lg ${riskColorClass}`}>
-                <h4 className={`font-semibold ${riskTextColorClass}`}>{T.stopBangResultTitle}</h4>
-                <p className="text-lg font-bold text-slate-900">{T.stopBangScore}: {score}</p>
-                <p className={`text-md font-semibold ${riskTextColorClass} mt-1`}>{T.stopBangRiskLevel}: {risk}</p>
-                <p className="text-xs text-slate-700 mt-2">{recommendation}</p>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+                {questions.map(({ key, text }) => (
+                    <label
+                        key={key}
+                        className={`flex items-center p-3.5 rounded-xl border transition-all cursor-pointer ${
+                            answers[key]
+                                ? 'bg-brand-blue/5 border-brand-blue/30 shadow-sm'
+                                : 'bg-slate-50 border-slate-100 hover:border-brand-blue/20'
+                        }`}
+                    >
+                        <div className={`w-5 h-5 rounded border flex items-center justify-center transition-all ${
+                            answers[key]
+                                ? 'bg-brand-blue border-brand-blue text-white shadow-sm'
+                                : 'bg-white border-slate-300'
+                        }`}>
+                            {answers[key] && <CheckCircle2 className="w-3.5 h-3.5" />}
+                        </div>
+                        <input
+                            type="checkbox"
+                            name={key}
+                            checked={answers[key]}
+                            onChange={handleCheckboxChange}
+                            className="hidden"
+                        />
+                        <span className={`ml-3.5 text-sm font-bold ${
+                            answers[key] ? 'text-slate-900' : 'text-slate-600'
+                        }`}>{text}</span>
+                    </label>
+                ))}
+            </div>
+
+            <div className={`mt-6 p-5 rounded-2xl border shadow-sm ${
+                risk === T.stopBangHighRisk ? 'bg-red-50 border-red-100' : 
+                risk === T.stopBangIntermediateRisk ? 'bg-amber-50 border-amber-100' : 
+                'bg-emerald-50 border-emerald-100'
+            }`}>
+                <h4 className={`text-[10px] font-black uppercase tracking-widest mb-2 ${
+                    risk === T.stopBangHighRisk ? 'text-red-600' : 
+                    risk === T.stopBangIntermediateRisk ? 'text-amber-600' : 
+                    'text-emerald-600'
+                }`}>{T.stopBangResultTitle}</h4>
+                <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
+                    <p className="text-2xl font-black text-slate-900">{T.stopBangScore}: {score}</p>
+                    <p className={`text-xs font-black uppercase tracking-widest ${
+                        risk === T.stopBangHighRisk ? 'text-red-700' : 
+                        risk === T.stopBangIntermediateRisk ? 'text-amber-700' : 
+                        'text-emerald-700'
+                    }`}>{risk}</p>
+                </div>
+                <div className="mt-4 pt-4 border-t border-slate-200/50">
+                    <p className="text-xs font-bold text-slate-600 flex items-start gap-2 leading-relaxed">
+                        <Info className="w-4 h-4 text-slate-400 mt-0.5 shrink-0" />
+                        {recommendation}
+                    </p>
+                </div>
             </div>
         </div>
     );
 };
 
 const ScoringSystems: React.FC<{ T: Record<string, any> }> = ({ T }) => (
-    <div className="space-y-8">
+    <div className="space-y-6">
         <GcsCalculator T={T} />
-        <hr className="my-6 border-gray-200" />
         <StopBangCalculator T={T} />
-        <hr className="my-6 border-gray-200" />
         <PonvCalculator T={T} />
     </div>
 );
@@ -1615,30 +1906,69 @@ const AnionGapCalculator: React.FC<{ T: Record<string, any> }> = ({ T }) => {
     }, [sodium, chloride, bicarb, T]);
 
     return (
-        <div>
-            <h3 className="text-md font-bold text-brand-blue mb-2">{T.anionGapTitle}</h3>
-            <p className="text-xs text-gray-500 mb-4">{T.anionGapSubtitle}</p>
-            <div className="p-4 bg-slate-100 rounded-lg border border-slate-200">
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700">{T.sodiumLabel}</label>
-                        <input type="number" value={sodium} onChange={e => setSodium(e.target.valueAsNumber || (e.target.value === '0' ? 0 : ''))} className="mt-1 block w-full p-2 border border-gray-300 rounded-md text-black bg-white" />
-                    </div>
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700">{T.chlorideLabel}</label>
-                        <input type="number" value={chloride} onChange={e => setChloride(e.target.valueAsNumber || (e.target.value === '0' ? 0 : ''))} className="mt-1 block w-full p-2 border border-gray-300 rounded-md text-black bg-white" />
-                    </div>
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700">{T.bicarbonateLabel}</label>
-                        <input type="number" value={bicarb} onChange={e => setBicarb(e.target.valueAsNumber || (e.target.value === '0' ? 0 : ''))} className="mt-1 block w-full p-2 border border-gray-300 rounded-md text-black bg-white" />
-                    </div>
+        <div className="medical-card p-5 space-y-6">
+            <div className="flex items-center gap-2 mb-2">
+                <div className="p-2 bg-brand-blue/10 rounded-lg">
+                    <Calculator className="w-5 h-5 text-brand-blue" />
+                </div>
+                <div>
+                    <h3 className="text-md font-bold text-slate-900 leading-tight">{T.anionGapTitle}</h3>
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{T.anionGapSubtitle}</p>
                 </div>
             </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="space-y-1.5">
+                    <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-1.5">
+                        <Activity className="w-3 h-3" />
+                        {T.sodiumLabel}
+                    </label>
+                    <input 
+                        type="number" 
+                        value={sodium} 
+                        onChange={e => setSodium(e.target.valueAsNumber || (e.target.value === '0' ? 0 : ''))} 
+                        className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-900 focus:ring-2 focus:ring-brand-blue/20 focus:border-brand-blue transition-all outline-none" 
+                        placeholder="Na+"
+                    />
+                </div>
+                <div className="space-y-1.5">
+                    <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-1.5">
+                        <Activity className="w-3 h-3" />
+                        {T.chlorideLabel}
+                    </label>
+                    <input 
+                        type="number" 
+                        value={chloride} 
+                        onChange={e => setChloride(e.target.valueAsNumber || (e.target.value === '0' ? 0 : ''))} 
+                        className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-900 focus:ring-2 focus:ring-brand-blue/20 focus:border-brand-blue transition-all outline-none" 
+                        placeholder="Cl-"
+                    />
+                </div>
+                <div className="space-y-1.5">
+                    <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-1.5">
+                        <Activity className="w-3 h-3" />
+                        {T.bicarbonateLabel}
+                    </label>
+                    <input 
+                        type="number" 
+                        value={bicarb} 
+                        onChange={e => setBicarb(e.target.valueAsNumber || (e.target.value === '0' ? 0 : ''))} 
+                        className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-900 focus:ring-2 focus:ring-brand-blue/20 focus:border-brand-blue transition-all outline-none" 
+                        placeholder="HCO3-"
+                    />
+                </div>
+            </div>
+
             {result && (
-                <div className="mt-4 p-4 bg-green-100 border border-green-300 rounded-lg">
-                    <p className="text-sm font-medium text-gray-600">{T.anionGapResult}</p>
-                    <p className="text-xl font-bold text-slate-900">{result.value} mEq/L</p>
-                    <p className="text-xs text-gray-600 mt-1">{result.interpretation}</p>
+                <div className="mt-6 p-5 bg-emerald-50 border border-emerald-100 rounded-2xl shadow-sm">
+                    <h4 className="text-[10px] font-black text-emerald-600 uppercase tracking-widest mb-2">{T.anionGapResult}</h4>
+                    <p className="text-3xl font-black text-slate-900 leading-none">{result.value} <span className="text-sm font-bold text-slate-400">mEq/L</span></p>
+                    <div className="mt-4 pt-4 border-t border-emerald-100">
+                        <p className="text-sm font-bold text-slate-600 flex items-center gap-2">
+                            <Info className="w-4 h-4 text-emerald-500" />
+                            {result.interpretation}
+                        </p>
+                    </div>
                 </div>
             )}
         </div>
@@ -1665,32 +1995,68 @@ const CorrectedSodiumCalculator: React.FC<{ T: Record<string, any> }> = ({ T }) 
     }, [measuredNa, glucose, glucoseUnit]);
 
     return (
-        <div>
-            <h3 className="text-md font-bold text-brand-blue mb-2">{T.correctedSodiumTitle}</h3>
-            <p className="text-xs text-gray-500 mb-4">{T.correctedSodiumSubtitle}</p>
-             <div className="p-4 bg-slate-100 rounded-lg border border-slate-200">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700">{T.measuredSodiumLabel}</label>
-                        <input type="number" value={measuredNa} onChange={(e) => setMeasuredNa(e.target.valueAsNumber || (e.target.value === '0' ? 0 : ''))} className="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm text-black bg-white" />
-                    </div>
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700">{T.glucoseLabel}</label>
-                        <div className="flex">
-                            <input type="number" value={glucose} onChange={(e) => setGlucose(e.target.valueAsNumber || (e.target.value === '0' ? 0 : ''))} className="mt-1 block w-full p-2 border border-gray-300 rounded-l-md shadow-sm text-black bg-white" />
-                            <select value={glucoseUnit} onChange={(e) => setGlucoseUnit(e.target.value as 'mg/dL' | 'mmol/L')} className="mt-1 block p-2 border-t border-r border-b border-gray-300 rounded-r-md bg-gray-100 text-black text-sm">
-                                <option>mg/dL</option>
-                                <option>mmol/L</option>
-                            </select>
-                        </div>
+        <div className="medical-card p-5 space-y-6">
+            <div className="flex items-center gap-2 mb-2">
+                <div className="p-2 bg-brand-blue/10 rounded-lg">
+                    <Calculator className="w-5 h-5 text-brand-blue" />
+                </div>
+                <div>
+                    <h3 className="text-md font-bold text-slate-900 leading-tight">{T.correctedSodiumTitle}</h3>
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{T.correctedSodiumSubtitle}</p>
+                </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                    <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-1.5">
+                        <Activity className="w-3 h-3" />
+                        {T.measuredSodiumLabel}
+                    </label>
+                    <input 
+                        type="number" 
+                        value={measuredNa} 
+                        onChange={(e) => setMeasuredNa(e.target.valueAsNumber || (e.target.value === '0' ? 0 : ''))} 
+                        className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-900 focus:ring-2 focus:ring-brand-blue/20 focus:border-brand-blue transition-all outline-none" 
+                        placeholder="Na+ (mEq/L)"
+                    />
+                </div>
+                <div className="space-y-1.5">
+                    <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-1.5">
+                        <Droplets className="w-3 h-3" />
+                        {T.glucoseLabel}
+                    </label>
+                    <div className="flex">
+                        <input 
+                            type="number" 
+                            value={glucose} 
+                            onChange={(e) => setGlucose(e.target.valueAsNumber || (e.target.value === '0' ? 0 : ''))} 
+                            className="flex-grow p-3 bg-slate-50 border border-slate-200 rounded-l-xl text-sm font-bold text-slate-900 focus:ring-2 focus:ring-brand-blue/20 focus:border-brand-blue transition-all outline-none" 
+                            placeholder="Glucose"
+                        />
+                        <select 
+                            value={glucoseUnit} 
+                            onChange={(e) => setGlucoseUnit(e.target.value as 'mg/dL' | 'mmol/L')} 
+                            className="p-3 bg-slate-100 border-t border-r border-b border-slate-200 rounded-r-xl text-[10px] font-black uppercase tracking-widest text-slate-600 outline-none appearance-none"
+                        >
+                            <option>mg/dL</option>
+                            <option>mmol/L</option>
+                        </select>
                     </div>
                 </div>
             </div>
+
             {result && (
-                <div className="mt-4 p-4 bg-green-100 border border-green-300 rounded-lg">
-                    <p className="text-sm font-medium text-gray-600">{T.correctedSodiumResult}</p>
-                    <p className="text-xl font-bold text-slate-900">{result.value} mEq/L</p>
-                    {result.note && <p className="text-xs text-gray-500 mt-1">{result.note}</p>}
+                <div className="mt-6 p-5 bg-emerald-50 border border-emerald-100 rounded-2xl shadow-sm">
+                    <h4 className="text-[10px] font-black text-emerald-600 uppercase tracking-widest mb-2">{T.correctedSodiumResult}</h4>
+                    <p className="text-3xl font-black text-slate-900 leading-none">{result.value} <span className="text-sm font-bold text-slate-400">mEq/L</span></p>
+                    {result.note && (
+                        <div className="mt-4 pt-4 border-t border-emerald-100">
+                            <p className="text-sm font-bold text-slate-600 flex items-center gap-2">
+                                <Info className="w-4 h-4 text-emerald-500" />
+                                {result.note}
+                            </p>
+                        </div>
+                    )}
                 </div>
             )}
         </div>
@@ -1717,29 +2083,88 @@ const FreeWaterDeficitCalculator: React.FC<{ T: Record<string, any> }> = ({ T })
     }, [weight, currentNa, patientType]);
 
     return (
-        <div>
-            <h3 className="text-md font-bold text-brand-blue mb-2">{T.freeWaterDeficitTitle}</h3>
-            <p className="text-xs text-gray-500 mb-4">{T.freeWaterDeficitSubtitle}</p>
-            <div className="p-4 bg-slate-100 rounded-lg border border-slate-200">
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                    <div><label className="block text-sm font-medium text-gray-700">{T.weightKgLabel}</label><input type="number" value={weight} onChange={e => setWeight(e.target.valueAsNumber || (e.target.value === '0' ? 0 : ''))} className="mt-1 block w-full p-2 border border-gray-300 rounded-md text-black bg-white" /></div>
-                    <div><label className="block text-sm font-medium text-gray-700">{T.currentSodiumLabel}</label><input type="number" value={currentNa} onChange={e => setCurrentNa(e.target.valueAsNumber || (e.target.value === '0' ? 0 : ''))} className="mt-1 block w-full p-2 border border-gray-300 rounded-md text-black bg-white" /></div>
-                    <div><label className="block text-sm font-medium text-gray-700">{T.patientTypeLabel}</label><select value={patientType} onChange={e => setPatientType(e.target.value)} className="mt-1 block w-full p-2 border border-gray-300 rounded-md text-black bg-white"><option value="male">{T.patientTypeMale}</option><option value="female">{T.patientTypeFemale}</option><option value="child">{T.patientTypeChild}</option></select></div>
+        <div className="medical-card p-5 space-y-6">
+            <div className="flex items-center gap-2 mb-2">
+                <div className="p-2 bg-brand-blue/10 rounded-lg">
+                    <Droplets className="w-5 h-5 text-brand-blue" />
+                </div>
+                <div>
+                    <h3 className="text-md font-bold text-slate-900 leading-tight">{T.freeWaterDeficitTitle}</h3>
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{T.freeWaterDeficitSubtitle}</p>
                 </div>
             </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="space-y-1.5">
+                    <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-1.5">
+                        <Scale className="w-3 h-3" />
+                        {T.weightKgLabel}
+                    </label>
+                    <input 
+                        type="number" 
+                        value={weight} 
+                        onChange={e => setWeight(e.target.valueAsNumber || (e.target.value === '0' ? 0 : ''))} 
+                        className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-900 focus:ring-2 focus:ring-brand-blue/20 focus:border-brand-blue transition-all outline-none" 
+                        placeholder="kg"
+                    />
+                </div>
+                <div className="space-y-1.5">
+                    <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-1.5">
+                        <Activity className="w-3 h-3" />
+                        {T.currentSodiumLabel}
+                    </label>
+                    <input 
+                        type="number" 
+                        value={currentNa} 
+                        onChange={e => setCurrentNa(e.target.valueAsNumber || (e.target.value === '0' ? 0 : ''))} 
+                        className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-900 focus:ring-2 focus:ring-brand-blue/20 focus:border-brand-blue transition-all outline-none" 
+                        placeholder="Na+ (mEq/L)"
+                    />
+                </div>
+                <div className="space-y-1.5">
+                    <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-1.5">
+                        <ClipboardList className="w-3 h-3" />
+                        {T.patientTypeLabel}
+                    </label>
+                    <select 
+                        value={patientType} 
+                        onChange={e => setPatientType(e.target.value)} 
+                        className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-900 focus:ring-2 focus:ring-brand-blue/20 focus:border-brand-blue transition-all outline-none appearance-none"
+                    >
+                        <option value="male">{T.patientTypeMale}</option>
+                        <option value="female">{T.patientTypeFemale}</option>
+                        <option value="child">{T.patientTypeChild}</option>
+                    </select>
+                </div>
+            </div>
+
             {result && (
-                 <div className="mt-4 p-4 bg-green-100 border border-green-300 rounded-lg">
-                    <p className="text-sm font-medium text-gray-600">{T.freeWaterDeficitResult}</p>
-                    <p className="text-xl font-bold text-slate-900">{result.deficit} L</p>
+                <div className="mt-6 p-5 bg-emerald-50 border border-emerald-100 rounded-2xl shadow-sm">
+                    <h4 className="text-[10px] font-black text-emerald-600 uppercase tracking-widest mb-2">{T.freeWaterDeficitResult}</h4>
+                    <p className="text-3xl font-black text-slate-900 leading-none">{result.deficit} <span className="text-sm font-bold text-slate-400">L</span></p>
                     {!result.isNormal && (
-                        <div className="mt-3 text-xs text-gray-600 space-y-1">
-                            <p className="font-semibold">{T.correctionGuidance}</p>
-                            <p>• {T.correctionGuidance1(result.halfDeficit)}</p>
-                            <p>• {T.correctionGuidance2}</p>
-                            <p>• {T.correctionGuidance3(result.maxRate)}</p>
+                        <div className="mt-6 pt-4 border-t border-emerald-100 space-y-3">
+                            <p className="text-[10px] font-black text-emerald-700 uppercase tracking-widest flex items-center gap-1.5">
+                                <ClipboardList className="w-3 h-3" />
+                                {T.correctionGuidance}
+                            </p>
+                            <div className="space-y-2">
+                                <p className="text-xs font-bold text-slate-700 flex items-center gap-2">
+                                    <ArrowRight className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                                    {T.correctionGuidance1(result.halfDeficit)}
+                                </p>
+                                <p className="text-xs font-bold text-slate-700 flex items-center gap-2">
+                                    <ArrowRight className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                                    {T.correctionGuidance2}
+                                </p>
+                                <p className="text-xs font-bold text-slate-700 flex items-center gap-2">
+                                    <ArrowRight className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                                    {T.correctionGuidance3(result.maxRate)}
+                                </p>
+                            </div>
                         </div>
                     )}
-                 </div>
+                </div>
             )}
         </div>
     );
@@ -1753,21 +2178,56 @@ const PotassiumReplacementGuide: React.FC<{ T: Record<string, any> }> = ({ T }) 
         { level: '< 2.5 mEq/L', oral: T.potassiumOral4, iv: T.potassiumIV4 },
     ];
     return (
-        <div>
-            <h3 className="text-md font-bold text-brand-blue mb-2">{T.potassiumReplacementTitle}</h3>
-            <p className="text-xs text-gray-500 mb-4">{T.potassiumReplacementSubtitle}</p>
-            <div className="overflow-x-auto rounded-lg border border-slate-200">
-                <table className="w-full text-sm text-left text-gray-500">
-                    <thead className="text-xs text-slate-800 uppercase bg-slate-200 font-semibold"><tr><th scope="col" className="px-4 py-2">{T.potassiumLevel}</th><th scope="col" className="px-4 py-2">{T.potassiumOral}</th><th scope="col" className="px-4 py-2">{T.potassiumIV}</th></tr></thead>
-                    <tbody>
-                        {guidelines.map((g, i) => <tr key={g.level} className={`border-b border-slate-200 ${i % 2 === 0 ? 'bg-white' : 'bg-slate-50'}`}><th scope="row" className="px-4 py-2 font-medium text-slate-900 whitespace-nowrap">{g.level}</th><td className="px-4 py-2">{g.oral}</td><td className="px-4 py-2">{g.iv}</td></tr>)}
+        <div className="medical-card p-5 space-y-6">
+            <div className="flex items-center gap-2 mb-2">
+                <div className="p-2 bg-brand-blue/10 rounded-lg">
+                    <ClipboardList className="w-5 h-5 text-brand-blue" />
+                </div>
+                <div>
+                    <h3 className="text-md font-bold text-slate-900 leading-tight">{T.potassiumReplacementTitle}</h3>
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{T.potassiumReplacementSubtitle}</p>
+                </div>
+            </div>
+
+            <div className="overflow-x-auto rounded-2xl border border-slate-200 shadow-sm">
+                <table className="w-full text-sm text-left">
+                    <thead className="text-[10px] font-black uppercase tracking-widest text-slate-500 bg-slate-50">
+                        <tr>
+                            <th scope="col" className="px-5 py-4">{T.potassiumLevel}</th>
+                            <th scope="col" className="px-5 py-4">{T.potassiumOral}</th>
+                            <th scope="col" className="px-5 py-4">{T.potassiumIV}</th>
+                        </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                        {guidelines.map((g, i) => (
+                            <tr key={g.level} className="hover:bg-slate-50/50 transition-colors">
+                                <th scope="row" className="px-5 py-4 font-bold text-slate-900 whitespace-nowrap">{g.level}</th>
+                                <td className="px-5 py-4 font-medium text-slate-600 leading-relaxed">{g.oral}</td>
+                                <td className="px-5 py-4 font-medium text-slate-600 leading-relaxed">{g.iv}</td>
+                            </tr>
+                        ))}
                     </tbody>
                 </table>
             </div>
-            <div className="mt-4 bg-red-100 border-l-4 border-red-500 text-red-900 p-3 rounded-r-lg">
-                <h4 className="text-sm font-bold">{T.importantSafetyNotes}</h4>
-                <ul className="mt-1 list-disc list-inside text-xs">
-                    <li>{T.safetyNote1}</li><li>{T.safetyNote2}</li><li>{T.safetyNote3}</li>
+
+            <div className="mt-6 p-5 bg-red-50 border border-red-100 rounded-2xl shadow-sm">
+                <div className="flex items-center gap-2 mb-4">
+                    <AlertTriangle className="w-4 h-4 text-red-600" />
+                    <h4 className="text-[10px] font-black text-red-600 uppercase tracking-widest">{T.importantSafetyNotes}</h4>
+                </div>
+                <ul className="space-y-2.5">
+                    <li className="text-xs font-bold text-red-900/80 flex items-start gap-3 leading-relaxed">
+                        <div className="w-1.5 h-1.5 rounded-full bg-red-400 mt-1.5 shrink-0" />
+                        {T.safetyNote1}
+                    </li>
+                    <li className="text-xs font-bold text-red-900/80 flex items-start gap-3 leading-relaxed">
+                        <div className="w-1.5 h-1.5 rounded-full bg-red-400 mt-1.5 shrink-0" />
+                        {T.safetyNote2}
+                    </li>
+                    <li className="text-xs font-bold text-red-900/80 flex items-start gap-3 leading-relaxed">
+                        <div className="w-1.5 h-1.5 rounded-full bg-red-400 mt-1.5 shrink-0" />
+                        {T.safetyNote3}
+                    </li>
                 </ul>
             </div>
         </div>
@@ -1775,13 +2235,10 @@ const PotassiumReplacementGuide: React.FC<{ T: Record<string, any> }> = ({ T }) 
 };
 
 const ElectrolyteCalculators: React.FC<{ T: Record<string, any> }> = ({ T }) => (
-    <div className="space-y-8">
+    <div className="space-y-6">
         <AnionGapCalculator T={T} />
-        <hr className="my-6 border-gray-200" />
         <FreeWaterDeficitCalculator T={T} />
-        <hr className="my-6 border-gray-200" />
         <CorrectedSodiumCalculator T={T} />
-        <hr className="my-6 border-gray-200" />
         <PotassiumReplacementGuide T={T} />
     </div>
 );
@@ -1794,57 +2251,84 @@ export const ClinicalToolsModal: React.FC<ClinicalToolsModalProps> = ({ isOpen, 
 
     if (!isOpen) return null;
 
+    const tabs: { id: ActiveTab; label: string; icon: React.ReactNode }[] = [
+        { id: 'adultDrug', label: T.adultDrugDoseTab, icon: <Pill className="w-4 h-4" /> },
+        { id: 'paediatricDrug', label: T.paediatricDrugDoseTab, icon: <Activity className="w-4 h-4" /> },
+        { id: 'fluid', label: T.fluidManagementTab, icon: <Droplets className="w-4 h-4" /> },
+        { id: 'scoring', label: T.scoringSystemsTab, icon: <ClipboardList className="w-4 h-4" /> },
+        { id: 'electrolytes', label: T.electrolytesTab, icon: <Zap className="w-4 h-4" /> },
+        { id: 'ecg', label: T.ecgInterpretationTab, icon: <Activity className="w-4 h-4" /> },
+    ];
+
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4 animate-fade-in" aria-modal="true" role="dialog">
-            <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[95vh] sm:max-h-[90vh] flex flex-col">
-                <header className="p-4 border-b border-gray-200 flex justify-between items-center">
-                    <h2 className="text-lg font-bold text-gray-800">{T.clinicalToolsTitle}</h2>
-                    <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition" aria-label="Close">
-                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fade-in" aria-modal="true" role="dialog">
+            <div className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl max-h-[95vh] sm:max-h-[90vh] flex flex-col overflow-hidden border border-white/20">
+                <header className="p-6 border-b border-slate-100 flex justify-between items-center bg-white">
+                    <div className="flex items-center gap-3">
+                        <div className="p-2.5 bg-brand-blue rounded-xl shadow-lg shadow-brand-blue/20">
+                            <Stethoscope className="w-6 h-6 text-white" />
+                        </div>
+                        <div>
+                            <h2 className="text-xl font-black text-slate-900 leading-tight">{T.clinicalToolsTitle}</h2>
+                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Clinical Decision Support</p>
+                        </div>
+                    </div>
+                    <button 
+                        onClick={onClose} 
+                        className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-xl transition-all" 
+                        aria-label="Close"
+                    >
+                        <X className="w-6 h-6" />
                     </button>
                 </header>
                 
-                 <div className="border-b border-gray-200">
-                    <nav className="-mb-px flex space-x-4 px-4 overflow-x-auto" aria-label="Tabs">
-                        <button onClick={() => setActiveTab('adultDrug')} className={`${activeTab === 'adultDrug' ? 'border-brand-blue text-brand-blue' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'} whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm transition-all`}>
-                           {T.adultDrugDoseTab}
-                        </button>
-                        <button onClick={() => setActiveTab('paediatricDrug')} className={`${activeTab === 'paediatricDrug' ? 'border-brand-blue text-brand-blue' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'} whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm transition-all`}>
-                           {T.paediatricDrugDoseTab}
-                        </button>
-                        <button onClick={() => setActiveTab('fluid')} className={`${activeTab === 'fluid' ? 'border-brand-blue text-brand-blue' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'} whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm transition-all`}>
-                           {T.fluidManagementTab}
-                        </button>
-                         <button onClick={() => setActiveTab('scoring')} className={`${activeTab === 'scoring' ? 'border-brand-blue text-brand-blue' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'} whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm transition-all`}>
-                           {T.scoringSystemsTab}
-                        </button>
-                        <button onClick={() => setActiveTab('electrolytes')} className={`${activeTab === 'electrolytes' ? 'border-brand-blue text-brand-blue' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'} whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm transition-all`}>
-                           {T.electrolytesTab}
-                        </button>
-                         <button onClick={() => setActiveTab('ecg')} className={`${activeTab === 'ecg' ? 'border-brand-blue text-brand-blue' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'} whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm transition-all`}>
-                           {T.ecgInterpretationTab}
-                        </button>
+                <div className="bg-white border-b border-slate-100 px-4">
+                    <nav className="flex space-x-1 overflow-x-auto no-scrollbar py-2" aria-label="Tabs">
+                        {tabs.map((tab) => (
+                            <button
+                                key={tab.id}
+                                onClick={() => setActiveTab(tab.id)}
+                                className={`flex items-center gap-2 whitespace-nowrap py-2.5 px-4 rounded-xl font-bold text-xs transition-all ${
+                                    activeTab === tab.id
+                                        ? 'bg-brand-blue text-white shadow-md shadow-brand-blue/20'
+                                        : 'text-slate-500 hover:text-slate-700 hover:bg-slate-50'
+                                }`}
+                            >
+                                {tab.icon}
+                                {tab.label}
+                            </button>
+                        ))}
                     </nav>
                 </div>
 
-                <main className="p-6 overflow-y-auto flex-grow bg-slate-50">
-                    <div className="bg-amber-50 border border-amber-300 text-amber-900 p-3 text-xs mb-6 rounded-lg flex items-start space-x-3">
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 flex-shrink-0 mt-0.5" viewBox="0 0 20 20" fill="currentColor">
-                           <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.21 3.03-1.742 3.03H4.42c-1.532 0-2.492-1.696-1.742-3.03l5.58-9.92zM10 13a1 1 0 110-2 1 1 0 010 2zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                        </svg>
+                <main className="p-6 overflow-y-auto flex-grow bg-slate-50/50 custom-scrollbar">
+                    <div className="p-4 bg-amber-50 border border-amber-100 rounded-2xl mb-8 flex items-start gap-4 shadow-sm">
+                        <div className="p-2 bg-amber-100 rounded-lg">
+                            <AlertTriangle className="w-5 h-5 text-amber-600" />
+                        </div>
                         <div>
-                            <strong className="font-semibold">Disclaimer:</strong> {T.calculatorDisclaimer}
+                            <h4 className="text-[10px] font-black text-amber-700 uppercase tracking-widest mb-1">Medical Disclaimer</h4>
+                            <p className="text-xs font-bold text-amber-900/70 leading-relaxed">
+                                {T.calculatorDisclaimer}
+                            </p>
                         </div>
                     </div>
-                    {activeTab === 'paediatricDrug' && <DoseCalculator T={T} language={language} database={paediatricDrugDatabase} />}
-                    {activeTab === 'adultDrug' && <DoseCalculator T={T} language={language} database={adultDrugDatabase} />}
-                    {activeTab === 'fluid' && <FluidManagementCalculator T={T} />}
-                    {activeTab === 'scoring' && <ScoringSystems T={T} />}
-                    {activeTab === 'electrolytes' && <ElectrolyteCalculators T={T} />}
-                    {activeTab === 'ecg' && <EcgInterpreter T={T} language={language} />}
+
+                    <div className="animate-fade-in">
+                        {activeTab === 'paediatricDrug' && <DoseCalculator T={T} language={language} database={paediatricDrugDatabase} />}
+                        {activeTab === 'adultDrug' && <DoseCalculator T={T} language={language} database={adultDrugDatabase} />}
+                        {activeTab === 'fluid' && <FluidManagementCalculator T={T} />}
+                        {activeTab === 'scoring' && <ScoringSystems T={T} />}
+                        {activeTab === 'electrolytes' && <ElectrolyteCalculators T={T} />}
+                        {activeTab === 'ecg' && <EcgInterpreter T={T} language={language} />}
+                    </div>
                 </main>
-                 <footer className="p-3 border-t border-gray-200 text-right bg-gray-50">
-                    <button onClick={onClose} className="bg-brand-blue hover:bg-blue-800 text-white font-black py-2.5 px-8 rounded-xl transition duration-300 shadow-md uppercase tracking-widest text-xs">
+
+                <footer className="p-6 border-t border-slate-100 bg-white flex justify-end">
+                    <button 
+                        onClick={onClose} 
+                        className="bg-slate-900 hover:bg-slate-800 text-white font-black py-3 px-10 rounded-2xl transition-all shadow-lg shadow-slate-900/10 uppercase tracking-widest text-xs"
+                    >
                         {T.closeButton}
                     </button>
                 </footer>

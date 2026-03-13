@@ -1,5 +1,6 @@
 
 import React from 'react';
+import { Network, Library, Calculator, Sparkles, ArrowRight } from 'lucide-react';
 
 interface WelcomeScreenProps {
   T: Record<string, any>;
@@ -9,46 +10,56 @@ interface WelcomeScreenProps {
 
 export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ T, onOpenSavedWork, onOpenClinicalTools }) => {
   return (
-    <div className="w-full h-full flex items-center justify-center bg-white rounded-lg shadow-lg border border-gray-200 p-8 text-center overflow-y-auto">
-      <div className="max-w-2xl mx-auto">
-        <div className="relative mb-6">
-            <div className="absolute inset-0 bg-brand-blue/5 rounded-full blur-3xl transform -translate-y-4"></div>
-            <svg className="relative mx-auto h-20 w-20 text-brand-blue" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 21a9.004 9.004 0 008.716-6.747M12 21a9.004 9.004 0 01-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 017.843 4.582M12 3a8.997 8.997 0 00-7.843 4.582m15.686 0A11.953 11.953 0 0112 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0121 12c0 .778-.099 1.533-.284 2.253m0 0A17.919 17.919 0 0112 16.5c-3.162 0-6.133-.815-8.716-2.247m0 0A9.015 9.015 0 013 12c0-1.605.42-3.113 1.157-4.418" />
-            </svg>
+    <div className="w-full h-full flex items-center justify-center bg-transparent p-4 sm:p-8 text-center overflow-y-auto">
+      <div className="max-w-2xl mx-auto animate-fade-in">
+        <div className="relative mb-8">
+            <div className="absolute inset-0 bg-brand-blue/10 rounded-full blur-3xl transform -translate-y-4 animate-pulse"></div>
+            <div className="relative mx-auto h-24 w-24 bg-white dark:bg-slate-800 rounded-3xl shadow-xl flex items-center justify-center border border-gray-100 dark:border-dark-border rotate-3 hover:rotate-0 transition-transform duration-500">
+                <Network className="h-12 w-12 text-brand-blue" />
+            </div>
         </div>
         
-        <h2 className="text-3xl font-extrabold text-gray-900 tracking-tight">{T.welcomeTitle}</h2>
-        <p className="mt-4 text-lg text-gray-600 leading-relaxed">
+        <h2 className="text-4xl font-black text-gray-900 dark:text-white tracking-tighter mb-4">
+            {T.welcomeTitle}
+            <span className="text-brand-blue">.</span>
+        </h2>
+        <p className="text-lg text-gray-500 dark:text-gray-400 leading-relaxed font-medium">
           {T.welcomeMessage}
         </p>
 
-        <div className="mt-10 grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="mt-12 grid grid-cols-1 sm:grid-cols-2 gap-6">
             <button 
                 onClick={onOpenSavedWork}
-                className="group flex flex-col items-center p-6 bg-slate-50 border border-slate-200 rounded-2xl hover:bg-white hover:border-brand-blue hover:shadow-xl transition-all duration-300"
+                className="medical-card group flex flex-col items-center p-8 hover:border-brand-blue hover:shadow-2xl hover:shadow-brand-blue/10 transition-all duration-500 hover:-translate-y-1"
             >
-                <div className="w-12 h-12 bg-blue-100 text-brand-blue rounded-xl flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" viewBox="0 0 20 20" fill="currentColor">
-                        <path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" />
-                    </svg>
+                <div className="w-14 h-14 bg-blue-50 dark:bg-blue-900/20 text-brand-blue rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-500">
+                    <Library className="h-7 w-7" />
                 </div>
-                <h3 className="font-bold text-gray-800">{T.savedWorkButton}</h3>
-                <p className="text-sm text-gray-500 mt-1">{T.viewSavedWorkButton}</p>
+                <h3 className="font-black text-gray-800 dark:text-white uppercase tracking-widest text-xs mb-2">{T.savedWorkButton}</h3>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">{T.viewSavedWorkButton}</p>
+                <div className="flex items-center text-brand-blue text-xs font-black uppercase tracking-tighter opacity-0 group-hover:opacity-100 transition-opacity">
+                    Open Collection <ArrowRight className="ml-1 w-3 h-3" />
+                </div>
             </button>
 
             <button 
                 onClick={onOpenClinicalTools}
-                className="group flex flex-col items-center p-6 bg-slate-50 border border-slate-200 rounded-2xl hover:bg-white hover:border-indigo-600 hover:shadow-xl transition-all duration-300"
+                className="medical-card group flex flex-col items-center p-8 hover:border-indigo-500 hover:shadow-2xl hover:shadow-indigo-500/10 transition-all duration-500 hover:-translate-y-1"
             >
-                <div className="w-12 h-12 bg-indigo-100 text-indigo-600 rounded-xl flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" viewBox="0 0 20 20" fill="currentColor">
-                        <path fillRule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.532 1.532 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.532 1.532 0 01-.947-2.287c1.561-.379-1.561-2.6 0-2.978a1.532 1.532 0 01.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clipRule="evenodd" />
-                    </svg>
+                <div className="w-14 h-14 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-500">
+                    <Calculator className="h-7 w-7" />
                 </div>
-                <h3 className="font-bold text-gray-800">{T.clinicalToolsButton}</h3>
-                <p className="text-sm text-gray-500 mt-1">{T.clinicalToolsTitle}</p>
+                <h3 className="font-black text-gray-800 dark:text-white uppercase tracking-widest text-xs mb-2">{T.clinicalToolsButton}</h3>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">{T.clinicalToolsTitle}</p>
+                <div className="flex items-center text-indigo-600 dark:text-indigo-400 text-xs font-black uppercase tracking-tighter opacity-0 group-hover:opacity-100 transition-opacity">
+                    Open Tools <ArrowRight className="ml-1 w-3 h-3" />
+                </div>
             </button>
+        </div>
+
+        <div className="mt-12 flex items-center justify-center gap-2 text-gray-400 dark:text-gray-500 text-xs font-black uppercase tracking-widest">
+            <Sparkles className="w-4 h-4" />
+            Powered by Advanced Clinical AI
         </div>
       </div>
     </div>

@@ -1,5 +1,36 @@
 
 import React, { useState, useEffect, useCallback, useReducer, useRef } from 'react';
+import { 
+    Copy, 
+    Bookmark, 
+    Check, 
+    MessageSquare, 
+    Search, 
+    Download, 
+    Share2, 
+    Edit3, 
+    RotateCcw, 
+    RotateCw,
+    User,
+    Stethoscope,
+    Activity,
+    FlaskConical,
+    Network,
+    ClipboardList,
+    GraduationCap,
+    BookOpen,
+    HelpCircle,
+    ChevronDown,
+    ChevronUp,
+    FileText,
+    History,
+    Microscope,
+    Layers,
+    Lightbulb,
+    FileSearch,
+    BrainCircuit,
+    FileType
+} from 'lucide-react';
 import { EducationalContentType, Discipline } from '../types';
 import type { PatientCase, EducationalContent, QuizQuestion, DisciplineSpecificConsideration, MultidisciplinaryConnection, TraceableEvidence, FurtherReading, ProcedureDetails, PatientOutcome, KnowledgeMapData, Snippet, ChatMessage } from '../types';
 import { DisciplineColors } from './KnowledgeMap';
@@ -17,6 +48,107 @@ import { AudioVisualizer } from './AudioVisualizer';
 
 const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
 const isSpeechRecognitionSupported = !!SpeechRecognition;
+
+const captureSvgAsBase64 = async (svgElement: SVGSVGElement): Promise<string> => {
+    return new Promise((resolve) => {
+        const xml = new XMLSerializer().serializeToString(svgElement);
+        const svg64 = btoa(unescape(encodeURIComponent(xml)));
+        const b64Start = 'data:image/svg+xml;base64,';
+        const image64 = b64Start + svg64;
+        
+        const img = new Image();
+        img.onload = () => {
+            const canvas = document.createElement('canvas');
+            const scale = 2; 
+            canvas.width = svgElement.clientWidth * scale;
+            canvas.height = svgElement.clientHeight * scale;
+            const ctx = canvas.getContext('2d');
+            if (ctx) {
+                ctx.scale(scale, scale);
+                ctx.fillStyle = "white";
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.drawImage(img, 0, 0);
+                resolve(canvas.toDataURL('image/png', 1.0));
+            } else resolve('');
+        };
+        img.src = image64;
+    });
+};
+
+const cleanTextForDownload = (text: string): string => {
+    return text
+        .replace(/\[ILLUSTRATE:.*?\]/g, '')
+        .replace(/\[DIAGRAM:.*?\]/g, '')
+        .replace(/\[GRAPH:.*?\]/g, '')
+        .replace(/\\\$/g, '$')
+        .replace(/\$\\/g, '')
+        .replace(/\\/g, '') 
+        .replace(/\bPaO2\b/g, 'PaO₂')
+        .replace(/\bSaO2\b/g, 'SaO₂')
+        .replace(/\bPvO2\b/g, 'PvO₂')
+        .replace(/\bCO2\b/g, 'CO₂')
+        .replace(/\bO2\b/g, 'O₂')
+        .replace(/\bH2O\b/g, 'H₂O')
+        .replace(/\bt1\/2\b/gi, 'T½')
+        .replace(/\*/g, '')
+        .replace(/__/g, '')
+        .replace(/#/g, '')
+        .trim();
+};
+
+function parseMarkdownTable(text: string) {
+    const lines = text.trim().split('\n');
+    if (lines.length < 3) return null;
+    const rows = lines
+        .filter(line => line.trim().startsWith('|'))
+        .map(line => line.split('|').filter(cell => cell.trim() !== '').map(cell => cell.trim()));
+    if (rows.length < 2) return null;
+    const header = rows[0];
+    const data = rows.slice(2);
+    if (header.length === 0) return null;
+    return { header, data };
+}
+
+function splitMessageContent(text: string) {
+    const parts: {type: 'text' | 'table', content?: string, table?: {header: string[], data: string[][]}}[] = [];
+    const lines = text.split('\n');
+    let currentText = '';
+    let inTable = false;
+    let tableLines: string[] = [];
+
+    for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+        const isTableRow = line.trim().startsWith('|');
+
+        if (isTableRow) {
+            if (!inTable) {
+                if (currentText.trim()) parts.push({type: 'text', content: currentText.trim()});
+                currentText = '';
+                inTable = true;
+                tableLines = [line];
+            } else {
+                tableLines.push(line);
+            }
+        } else {
+            if (inTable) {
+                const table = parseMarkdownTable(tableLines.join('\n'));
+                if (table) parts.push({type: 'table', table});
+                else currentText += (currentText ? '\n' : '') + tableLines.join('\n');
+                inTable = false;
+                tableLines = [];
+            }
+            currentText += (currentText ? '\n' : '') + line;
+        }
+    }
+    if (inTable) {
+        const table = parseMarkdownTable(tableLines.join('\n'));
+        if (table) parts.push({type: 'table', table});
+        else currentText += (currentText ? '\n' : '') + tableLines.join('\n');
+    } else if (currentText.trim()) {
+        parts.push({type: 'text', content: currentText.trim()});
+    }
+    return parts;
+}
 
 const getBCP47Language = (lang: string): string => {
     const map: Record<string, string> = {
@@ -72,6 +204,7 @@ function useHistoryState<T>(initialState: T) {
 
 const Section: React.FC<{
   title: string;
+  icon: React.ReactNode;
   onCopy: () => void;
   onSaveSnippet: () => void;
   T: Record<string, any>;
@@ -79,35 +212,57 @@ const Section: React.FC<{
   isEnriching?: boolean;
   groundingSources?: any[];
   children: React.ReactNode;
-}> = ({ title, onCopy, onSaveSnippet, onEnrich, isEnriching, groundingSources, children, T }) => {
+}> = ({ title, icon, onCopy, onSaveSnippet, onEnrich, isEnriching, groundingSources, children, T }) => {
   const [isCopied, setIsCopied] = useState(false);
   const [isSnippetSaved, setIsSnippetSaved] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(true);
+
   const handleCopy = () => { onCopy(); setIsCopied(true); setTimeout(() => setIsCopied(false), 2000); };
   const handleSaveSnippet = () => { onSaveSnippet(); setIsSnippetSaved(true); setTimeout(() => setIsSnippetSaved(false), 2000); };
+  
   return (
-    <section className="mt-2 sm:mt-4 first:mt-0">
-      <div className="flex items-center justify-between mb-1 pb-1 border-b border-brand-blue/20 dark:border-brand-blue-light/10">
-        <h3 className="text-sm sm:text-base font-black text-brand-blue dark:text-brand-blue-light uppercase tracking-tight">{title}</h3>
+    <section className="mt-4 first:mt-0 medical-card overflow-hidden">
+      <div className="flex items-center justify-between p-3 sm:p-4 bg-slate-50/50 dark:bg-slate-800/30 border-b border-gray-100 dark:border-dark-border">
+        <div className="flex items-center space-x-2.5">
+          <div className="text-brand-blue dark:text-brand-blue-light">
+            {icon}
+          </div>
+          <h3 className="text-sm sm:text-base font-black text-gray-900 dark:text-slate-100 uppercase tracking-tight">{title}</h3>
+        </div>
         <div className="flex items-center space-x-1">
             {onEnrich && (
-                <button onClick={onEnrich} disabled={isEnriching} title="Find current sources" className="p-1 rounded-full text-gray-400 hover:bg-gray-100 dark:hover:bg-slate-800 hover:text-brand-blue transition">
-                    {isEnriching ? <svg className="animate-spin h-3.5 w-3.5" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> : <svg className="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor"><path d="M10 3.5a1.5 1.5 0 011.5 1.5v2.086l2.723-2.723a.75.75 0 111.06 1.06L12.564 8.15l2.724 2.724a.75.75 0 11-1.06 1.06L11.5 9.22v2.085a1.5 1.5 0 01-3 0V9.22l-2.724 2.724a.75.75 0 11-1.06-1.06L7.436 8.15 4.712 5.426a.75.75 0 111.06-1.06L8.5 7.085V5A1.5 1.5 0 0110 3.5z" /></svg>}
+                <button onClick={onEnrich} disabled={isEnriching} title={T.enrichButton} className="p-1.5 rounded-lg text-gray-400 hover:bg-white dark:hover:bg-slate-700 hover:text-brand-blue transition-all shadow-sm border border-transparent hover:border-gray-200 dark:hover:border-slate-600">
+                    {isEnriching ? <Activity className="animate-spin h-4 w-4" /> : <Search className="h-4 w-4" />}
                 </button>
             )}
-           <button onClick={handleSaveSnippet} title="Save Snippet" className="p-1 rounded-full text-gray-400 hover:bg-gray-100 dark:hover:bg-slate-800 hover:text-brand-blue transition">
-              {isSnippetSaved ? <svg className="h-3.5 w-3.5 text-green-500" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" /></svg> : <svg className="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor"><path d="M5 4a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" /></svg>}
+           <button onClick={handleSaveSnippet} title={T.saveSnippetButton} className="p-1.5 rounded-lg text-gray-400 hover:bg-white dark:hover:bg-slate-700 hover:text-brand-blue transition-all shadow-sm border border-transparent hover:border-gray-200 dark:hover:border-slate-600">
+              {isSnippetSaved ? <Check className="h-4 w-4 text-green-500" /> : <Bookmark className="h-4 w-4" />}
             </button>
-          <button onClick={handleCopy} title="Copy Section" className="p-1 rounded-full text-gray-400 hover:bg-gray-100 dark:hover:bg-slate-800 hover:text-brand-blue transition">
-            {isCopied ? <svg className="h-3.5 w-3.5 text-green-500" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" /></svg> : <svg className="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor"><path d="M7 9a2 2 0 012-2h6a2 2 0 012 2v6a2 2 0 01-2 2H9a2 2 0 01-2-2V9z" /><path d="M5 3a2 2 0 00-2 2v6a2 2 0 002 2V5h8a2 2 0 00-2-2H5z" /></svg>}
+          <button onClick={handleCopy} title={T.copySectionButton} className="p-1.5 rounded-lg text-gray-400 hover:bg-white dark:hover:bg-slate-700 hover:text-brand-blue transition-all shadow-sm border border-transparent hover:border-gray-200 dark:hover:border-slate-600">
+            {isCopied ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
+          </button>
+          <button onClick={() => setIsExpanded(!isExpanded)} className="p-1.5 rounded-lg text-gray-400 hover:bg-white dark:hover:bg-slate-700 transition-all">
+            {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
           </button>
         </div>
       </div>
-      <div className="text-xs sm:text-sm text-brand-text dark:text-dark-text leading-relaxed">{children}</div>
+      {isExpanded && (
+        <div className="p-4 sm:p-6 animate-fade-in">
+          <div className="text-sm sm:text-base text-gray-800 dark:text-slate-200 leading-relaxed font-serif">{children}</div>
+          {groundingSources && groundingSources.length > 0 && (
+            <div className="mt-6 pt-4 border-t border-gray-100 dark:border-dark-border">
+              <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3">{T.groundingSourcesTitle}</h4>
+              <SourceRenderer text={JSON.stringify(groundingSources)} />
+            </div>
+          )}
+        </div>
+      )}
     </section>
   );
 };
 
-const SmartContent: React.FC<{ content: string; language: string; T: Record<string, any>; onTriggerIllustration: (desc: string) => void; allowVisuals?: boolean }> = ({ content, language, T, onTriggerIllustration, allowVisuals = false }) => {
+const SmartContent: React.FC<{ content: string | undefined; language: string; T: Record<string, any>; onTriggerIllustration: (desc: string) => void; allowVisuals?: boolean }> = ({ content, language, T, onTriggerIllustration, allowVisuals = false }) => {
+    if (!content) return null;
     const graphMatches = allowVisuals ? [...content.matchAll(/\[GRAPH:\s*(.*?)\s*\]/g)] : [];
     const illustrateMatches = allowVisuals ? [...content.matchAll(/\[ILLUSTRATE:\s*(.*?)\s*\]/g)] : [];
     
@@ -129,7 +284,7 @@ const SmartContent: React.FC<{ content: string; language: string; T: Record<stri
                     {illustrateMatches.map((m, i) => (
                         <button key={i} onClick={() => onTriggerIllustration(m[1].trim())} title="Generate Clinical Illustration" className="group flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 dark:bg-blue-900/30 text-brand-blue dark:text-blue-300 border border-blue-200 dark:border-blue-800 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-all text-[9px] font-black shadow-xs">
                             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h14a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
-                            VISUAL VERIFICATION
+                            {T.visualVerificationButton}
                         </button>
                     ))}
                 </div>
@@ -197,6 +352,104 @@ export const PatientCaseView: React.FC<PatientCaseViewProps> = ({ patientCase: i
     setActiveImageGenerator({ content: { title: 'Clinical Visualization', description: desc, type: EducationalContentType.IMAGE, reference: 'AI-Synthesized Evidence' }, index: sourceIndex }); 
   };
 
+  const handleDownloadPdf = async () => {
+    const { jsPDF } = (window as any).jspdf;
+    const doc = new jsPDF();
+    const margin = 20;
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const brandColor = '#1e3a8a';
+    
+    // Header
+    doc.setFont('helvetica', 'bold').setFontSize(24).setTextColor(brandColor).text('Ungana Medical', margin, 20);
+    doc.setDrawColor(brandColor).setLineWidth(0.5).line(margin, 23, pageWidth - margin, 23);
+    doc.setFontSize(14).setTextColor('#111827').text(patientCase.title.toUpperCase(), margin, 35);
+    doc.setFontSize(10).setTextColor('#4b5563').text(`Generated on: ${new Date().toLocaleDateString()}`, margin, 42);
+    
+    let y = 52;
+
+    const addSection = async (title: string, content: string, icon?: string) => {
+        if (y > 250) { doc.addPage(); y = 20; }
+        doc.setFont('helvetica', 'bold').setFontSize(12).setTextColor(brandColor);
+        doc.text(title.toUpperCase(), margin, y);
+        y += 8;
+
+        const blocks = splitMessageContent(content);
+        for (const block of blocks) {
+            if (block.type === 'text') {
+                doc.setFont('helvetica', 'normal').setFontSize(11).setTextColor('#111827');
+                const cleaned = cleanTextForDownload(block.content || '');
+                const lines = doc.splitTextToSize(cleaned, pageWidth - 2 * margin);
+                if (y + (lines.length * 6) > 275) { doc.addPage(); y = 20; }
+                doc.text(lines, margin, y);
+                y += (lines.length * 6) + 4;
+            } else if (block.type === 'table' && block.table) {
+                if (y > 240) { doc.addPage(); y = 20; }
+                (doc as any).autoTable({
+                    startY: y,
+                    head: [block.table.header],
+                    body: block.table.data,
+                    margin: { left: margin },
+                    styles: { fontSize: 9, font: 'helvetica' },
+                    headStyles: { fillColor: brandColor, textColor: 255 },
+                    theme: 'grid'
+                });
+                y = (doc as any).lastAutoTable.finalY + 10;
+            }
+        }
+        y += 5;
+    };
+
+    await addSection(T.patientProfile, patientCase.patientProfile);
+    await addSection(T.presentingComplaint, patientCase.presentingComplaint);
+    await addSection(T.history, patientCase.history);
+
+    if (patientCase.biochemicalPathway) {
+        await addSection(patientCase.biochemicalPathway.title, patientCase.biochemicalPathway.description);
+    }
+
+    if (patientCase.multidisciplinaryConnections) {
+        let connText = patientCase.multidisciplinaryConnections.map(c => `* ${c.discipline}: ${c.connection}`).join('\n\n');
+        await addSection(T.multidisciplinaryConnections, connText);
+    }
+
+    if (patientCase.disciplineSpecificConsiderations) {
+        let consText = patientCase.disciplineSpecificConsiderations.map(c => `* ${c.aspect}: ${c.consideration}`).join('\n\n');
+        await addSection(T.managementConsiderations, consText);
+    }
+
+    if (patientCase.educationalContent) {
+        for (const edu of patientCase.educationalContent) {
+            await addSection(edu.title, edu.description);
+            if (edu.imageData) {
+                // We'd need to convert base64 if it's not already
+                if (y > 200) { doc.addPage(); y = 20; }
+                const imgW = 140; 
+                const imgH = 105;
+                doc.addImage(edu.imageData, 'PNG', (pageWidth - imgW) / 2, y, imgW, imgH);
+                y += imgH + 10;
+            }
+        }
+    }
+
+    // Capture SVGs if any are visible in the container
+    if (containerRef.current) {
+        const svgs = containerRef.current.querySelectorAll('svg');
+        for (const svg of Array.from(svgs) as SVGSVGElement[]) {
+            // Only capture relevant SVGs (diagrams, graphs)
+            if (svg.closest('.interactive-diagram') || svg.closest('.scientific-graph')) {
+                const imgData = await captureSvgAsBase64(svg);
+                if (y > 180) { doc.addPage(); y = 20; }
+                const imgW = pageWidth - (margin * 2);
+                const imgH = (imgW * svg.clientHeight) / svg.clientWidth;
+                doc.addImage(imgData, 'PNG', margin, y, imgW, imgH);
+                y += imgH + 10;
+            }
+        }
+    }
+    
+    doc.save(`${patientCase.title.replace(/\s+/g, '_')}_Case.pdf`);
+  };
+
   const handleImageGenerated = useCallback((idx: number, img: string) => { 
     setPatientCase(prev => { 
         const edu = [...(prev.educationalContent || [])]; 
@@ -234,9 +487,20 @@ export const PatientCaseView: React.FC<PatientCaseViewProps> = ({ patientCase: i
   };
 
   const archivedDiscussions = (Object.entries(patientCase.discussions || {}) as [string, ChatMessage[]][]).filter(([_, msgs]) => msgs.length > 1);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const bottomRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (patientCase.quiz && patientCase.quiz.length > 0 && !isGeneratingDetails) {
+        // Auto-scroll to quiz when it arrives
+        setTimeout(() => {
+            bottomRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
+        }, 800);
+    }
+  }, [!!patientCase.quiz, isGeneratingDetails]);
 
   return (
-    <div className="p-3 sm:p-5 relative bg-white dark:bg-dark-surface transition-colors duration-300">
+    <div ref={containerRef} className="p-3 sm:p-5 pb-32 relative bg-white dark:bg-dark-surface transition-colors duration-300">
       <header className="sticky top-0 -mx-3 sm:-mx-5 -mt-3 sm:-mt-5 p-2 sm:p-3 bg-white/95 dark:bg-dark-surface/95 backdrop-blur-md border-b border-gray-100 dark:border-dark-border z-20 shadow-sm mb-4">
         <div className="flex justify-between items-center max-w-5xl mx-auto">
           <h2 className="text-lg sm:text-xl font-black text-brand-text dark:text-dark-text truncate tracking-tight pr-4">{patientCase.title}</h2>
@@ -244,25 +508,26 @@ export const PatientCaseView: React.FC<PatientCaseViewProps> = ({ patientCase: i
             {isEditing ? (
               <div className="flex items-center gap-1">
                 <button onClick={undo} disabled={!canUndo} title="Undo" className="p-1 text-gray-400 hover:text-brand-blue disabled:opacity-20 transition-colors"><svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M7.707 3.293a1 1 0 010 1.414L5.414 7H11a7 7 0 017 7v2a1 1 0 11-2 0v-2a5 5 0 00-5-5H5.414l2.293 2.293a1 1 0 11-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clipRule="evenodd" /></svg></button>
-                <button onClick={handleSave} className="bg-green-600 hover:bg-green-700 text-white font-black py-1 px-2.5 rounded-md text-[10px] shadow-sm transition-all">SAVE</button>
-                <button onClick={handleCancel} className="bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 font-black py-1 px-2.5 rounded-md text-[10px] transition-all">CANCEL</button>
+                <button onClick={handleSave} className="bg-green-600 hover:bg-green-700 text-white font-black py-1 px-2.5 rounded-md text-[10px] shadow-sm transition-all">{T.saveButton}</button>
+                <button onClick={handleCancel} className="bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 font-black py-1 px-2.5 rounded-md text-[10px] transition-all">{T.cancelButton}</button>
               </div>
             ) : (
               <>
-                <button onClick={onOpenShare} title="Share Case" className="p-1.5 text-gray-500 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-full transition-all"><svg className="h-3.5 w-3.5" fill="currentColor" viewBox="0 0 20 20"><path d="M15 8a3 3 0 10-2.977-2.63l-4.94 2.47a3 3 0 100 4.319l4.94 2.47a3 3 0 10.895-1.789l-4.94-2.47a3.027 3.027 0 000-.74l4.94-2.47C13.456 7.68 14.19 8 15 8z" /></svg></button>
-                <button onClick={() => setIsEditing(true)} title="Edit Text" className="p-1.5 text-gray-500 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-full transition-all"><svg className="h-3.5 w-3.5" fill="currentColor" viewBox="0 0 20 20"><path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828z" /><path d="M2 6a2 2 0 012-2h4a1 1 0 010 2H4v10h10v-4a1 1 0 112 0v4a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" /></svg></button>
+                <button onClick={handleDownloadPdf} title={T.downloadPdfButton} className="p-1.5 text-gray-500 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-full transition-all"><FileType className="h-3.5 w-3.5" /></button>
+                <button onClick={onOpenShare} title={T.shareCaseTitle} className="p-1.5 text-gray-500 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-full transition-all"><svg className="h-3.5 w-3.5" fill="currentColor" viewBox="0 0 20 20"><path d="M15 8a3 3 0 10-2.977-2.63l-4.94 2.47a3 3 0 100 4.319l4.94 2.47a3 3 0 10.895-1.789l-4.94-2.47a3.027 3.027 0 000-.74l4.94-2.47C13.456 7.68 14.19 8 15 8z" /></svg></button>
+                <button onClick={() => setIsEditing(true)} title={T.editTextTitle} className="p-1.5 text-gray-500 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-full transition-all"><svg className="h-3.5 w-3.5" fill="currentColor" viewBox="0 0 20 20"><path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828z" /><path d="M2 6a2 2 0 012-2h4a1 1 0 010 2H4v10h10v-4a1 1 0 112 0v4a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" /></svg></button>
               </>
             )}
           </div>
         </div>
       </header>
       <div className="space-y-3 max-w-5xl mx-auto">
-        <Section title={T.patientProfile} onCopy={() => {}} onSaveSnippet={() => onSaveSnippet(T.patientProfile, patientCase.patientProfile)} T={T}><EditableField value={patientCase.patientProfile} fieldKey="patientProfile" isEditing={isEditing} /></Section>
-        <Section title={T.presentingComplaint} onCopy={() => {}} onSaveSnippet={() => onSaveSnippet(T.presentingComplaint, patientCase.presentingComplaint)} T={T}><EditableField value={patientCase.presentingComplaint} fieldKey="presentingComplaint" isEditing={isEditing} /></Section>
-        <Section title={T.history} onCopy={() => {}} onSaveSnippet={() => onSaveSnippet(T.history, patientCase.history)} T={T}><EditableField value={patientCase.history} fieldKey="history" isEditing={isEditing} /></Section>
+        <Section icon={<User className="w-4 h-4" />} title={T.patientProfile} onCopy={() => {}} onSaveSnippet={() => onSaveSnippet(T.patientProfile, patientCase.patientProfile)} T={T}><EditableField value={patientCase.patientProfile} fieldKey="patientProfile" isEditing={isEditing} /></Section>
+        <Section icon={<Stethoscope className="w-4 h-4" />} title={T.presentingComplaint} onCopy={() => {}} onSaveSnippet={() => onSaveSnippet(T.presentingComplaint, patientCase.presentingComplaint)} T={T}><EditableField value={patientCase.presentingComplaint} fieldKey="presentingComplaint" isEditing={isEditing} /></Section>
+        <Section icon={<History className="w-4 h-4" />} title={T.history} onCopy={() => {}} onSaveSnippet={() => onSaveSnippet(T.history, patientCase.history)} T={T}><EditableField value={patientCase.history} fieldKey="history" isEditing={isEditing} /></Section>
         
         { patientCase.biochemicalPathway ? (
-            <Section title={T.biochemicalPathwaySection} onCopy={() => {}} onSaveSnippet={() => onSaveSnippet(patientCase.biochemicalPathway!.title, patientCase.biochemicalPathway!.description, { diagramData: patientCase.biochemicalPathway!.diagramData })} T={T} groundingSources={patientCase.groundingSources}>
+            <Section icon={<FlaskConical className="w-4 h-4" />} title={T.biochemicalPathwaySection} onCopy={() => {}} onSaveSnippet={() => onSaveSnippet(patientCase.biochemicalPathway!.title, patientCase.biochemicalPathway!.description, { diagramData: patientCase.biochemicalPathway!.diagramData })} T={T} groundingSources={patientCase.groundingSources}>
                 <div className="flex items-center justify-between mb-1">
                     <div className="flex items-center gap-2"><h4 className="text-sm font-black text-gray-900 dark:text-slate-100 uppercase tracking-tighter">{patientCase.biochemicalPathway.title}</h4><TextToSpeechPlayer textToRead={`${patientCase.biochemicalPathway.title}. ${patientCase.biochemicalPathway.description}`} language={language} /></div>
                     <div className="flex items-center gap-2">
@@ -274,10 +539,10 @@ export const PatientCaseView: React.FC<PatientCaseViewProps> = ({ patientCase: i
                 <SmartContent content={patientCase.biochemicalPathway.description} language={language} T={T} onTriggerIllustration={(d) => handleTriggerIllustration(d, -1)} allowVisuals={true} />
                 {patientCase.biochemicalPathway.diagramData && <div className="mt-2 h-[280px] rounded-xl border border-gray-100 dark:border-dark-border shadow-xs overflow-hidden"><InteractiveDiagram id="diagram-biochem" data={patientCase.biochemicalPathway.diagramData} /></div>}
             </Section>
-        ) : isGeneratingDetails ? <Section title={T.biochemicalPathwaySection} onCopy={() => {}} onSaveSnippet={() => {}} T={T}><SkeletonLoader /></Section> : null }
+        ) : isGeneratingDetails ? <Section icon={<FlaskConical className="w-4 h-4" />} title={T.biochemicalPathwaySection} onCopy={() => {}} onSaveSnippet={() => {}} T={T}><SkeletonLoader /></Section> : null }
 
         { Array.isArray(patientCase.multidisciplinaryConnections) && patientCase.multidisciplinaryConnections.length > 0 ? (
-            <Section title={T.multidisciplinaryConnections} onCopy={() => {}} onSaveSnippet={() => onSaveSnippet(T.multidisciplinaryConnections, patientCase.multidisciplinaryConnections!.map(c => `${c.discipline}: ${c.connection}`).join('\n'))} T={T}>
+            <Section icon={<Network className="w-4 h-4" />} title={T.multidisciplinaryConnections} onCopy={() => {}} onSaveSnippet={() => onSaveSnippet(T.multidisciplinaryConnections, patientCase.multidisciplinaryConnections!.map(c => `${c.discipline}: ${c.connection}`).join('\n'))} T={T}>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-1">
                     {patientCase.multidisciplinaryConnections.map((conn, idx) => (
                         <div key={idx} className="bg-slate-50 dark:bg-slate-800/40 border border-gray-100 dark:border-dark-border rounded-xl p-3 transition-all hover:shadow-sm flex flex-col justify-between h-full border-l-4" style={{ borderLeftColor: DisciplineColors[conn.discipline] }}>
@@ -290,16 +555,16 @@ export const PatientCaseView: React.FC<PatientCaseViewProps> = ({ patientCase: i
                             </div>
                             <div className="flex items-center gap-2 self-end">
                                 <DiscussionBadge messages={patientCase.discussions?.[conn.discipline]} />
-                                <button onClick={() => onOpenDiscussion({ aspect: conn.discipline, consideration: conn.connection })} className="flex items-center gap-1 text-[8px] bg-white dark:bg-slate-700 border border-blue-100 dark:border-blue-900 text-brand-blue dark:text-blue-300 hover:bg-brand-blue hover:text-white font-black py-1 px-2.5 rounded-full transition-all shadow-xs uppercase tracking-widest">Consult</button>
+                                <button onClick={() => onOpenDiscussion({ aspect: conn.discipline, consideration: conn.connection })} className="flex items-center gap-1 text-[8px] bg-white dark:bg-slate-700 border border-blue-100 dark:border-blue-900 text-brand-blue dark:text-blue-300 hover:bg-brand-blue hover:text-white font-black py-1 px-2.5 rounded-full transition-all shadow-xs uppercase tracking-widest">{T.consultButton}</button>
                             </div>
                         </div>
                     ))}
                 </div>
             </Section>
-        ) : isGeneratingDetails ? <Section title={T.multidisciplinaryConnections} onCopy={() => {}} onSaveSnippet={() => {}} T={T}><SkeletonLoader /></Section> : null }
+        ) : isGeneratingDetails ? <Section icon={<Network className="w-4 h-4" />} title={T.multidisciplinaryConnections} onCopy={() => {}} onSaveSnippet={() => {}} T={T}><SkeletonLoader /></Section> : null }
 
         { Array.isArray(patientCase.disciplineSpecificConsiderations) && patientCase.disciplineSpecificConsiderations.length > 0 ? (
-            <Section title={T.managementConsiderations} onCopy={() => {}} onSaveSnippet={() => onSaveSnippet(T.managementConsiderations, patientCase.disciplineSpecificConsiderations!.map(c => `${c.aspect}: ${c.consideration}`).join('\n'))} T={T}>
+            <Section icon={<ClipboardList className="w-4 h-4" />} title={T.managementConsiderations} onCopy={() => {}} onSaveSnippet={() => onSaveSnippet(T.managementConsiderations, patientCase.disciplineSpecificConsiderations!.map(c => `${c.aspect}: ${c.consideration}`).join('\n'))} T={T}>
                 <div className="space-y-4">
                     {patientCase.disciplineSpecificConsiderations.map((item, idx) => {
                         const isPhased = ["Preoperative", "Intraoperative", "Postoperative"].includes(item.aspect);
@@ -321,10 +586,51 @@ export const PatientCaseView: React.FC<PatientCaseViewProps> = ({ patientCase: i
                     })}
                 </div>
             </Section>
-        ) : isGeneratingDetails ? <Section title={T.managementConsiderations} onCopy={() => {}} onSaveSnippet={() => {}} T={T}><SkeletonLoader /></Section> : null }
+        ) : isGeneratingDetails ? <Section icon={<ClipboardList className="w-4 h-4" />} title={T.managementConsiderations} onCopy={() => {}} onSaveSnippet={() => {}} T={T}><SkeletonLoader /></Section> : null }
+
+        { (isGeneratingDetails || (Array.isArray(patientCase.educationalContent) && patientCase.educationalContent.length > 0)) ? (
+            <Section icon={<GraduationCap className="w-4 h-4" />} title={T.educationalContent} onCopy={() => {}} onSaveSnippet={() => {}} T={T}>
+                {isGeneratingDetails && !patientCase.educationalContent?.length ? <SkeletonLoader /> : (
+                    Array.isArray(patientCase.educationalContent) && patientCase.educationalContent.length > 0 ? (
+                        <div className="space-y-6">
+                            {patientCase.educationalContent.map((content, idx) => (
+                                <div key={idx} className="bg-white dark:bg-dark-surface p-4 rounded-xl border border-gray-100 dark:border-dark-border shadow-sm">
+                                    <div className="flex items-center justify-between mb-3">
+                                        <div className="flex items-center gap-2">
+                                            <h4 className="text-sm font-black text-gray-900 dark:text-slate-100 uppercase tracking-tight">{content.title}</h4>
+                                            <TextToSpeechPlayer textToRead={`${content.title}. ${content.description}`} language={language} />
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <DiscussionBadge messages={patientCase.discussions?.[content.title]} />
+                                            <button onClick={() => onOpenDiscussion({ aspect: content.title, consideration: content.description })} className="text-[8px] bg-brand-blue dark:bg-brand-blue-light text-white font-black py-1 px-2.5 rounded-full shadow-xs transition-transform hover:scale-105 uppercase tracking-widest">{T.discussButton}</button>
+                                        </div>
+                                    </div>
+                                    <p className="text-[8px] text-gray-400 font-mono mb-2 uppercase tracking-tighter">{content.reference}</p>
+                                    <SmartContent content={content.description} language={language} T={T} onTriggerIllustration={(d) => handleTriggerIllustration(d, idx)} allowVisuals={true} />
+                                    
+                                    {content.imageData ? (
+                                        <div className="mt-4 rounded-xl overflow-hidden border border-gray-100 dark:border-dark-border shadow-md">
+                                            <img src={content.imageData} alt={content.title} className="w-full h-auto object-cover" referrerPolicy="no-referrer" />
+                                        </div>
+                                    ) : content.diagramData ? (
+                                        <div className="mt-4 h-[300px] rounded-xl border border-gray-100 dark:border-dark-border shadow-xs overflow-hidden">
+                                            <InteractiveDiagram id={`diagram-${idx}`} data={content.diagramData} />
+                                        </div>
+                                    ) : null}
+                                </div>
+                            ))}
+                        </div>
+                    ) : (
+                        <div className="p-4 text-center text-gray-500 dark:text-slate-400 text-sm italic">
+                            {T.noEducationalContentAvailable}
+                        </div>
+                    )
+                )}
+            </Section>
+        ) : null }
 
         { archivedDiscussions.length > 0 && (
-            <Section title="Session Discussions Archive" onCopy={() => {}} onSaveSnippet={() => {}} T={T}>
+            <Section icon={<MessageSquare className="w-4 h-4" />} title={T.sessionDiscussionsArchive} onCopy={() => {}} onSaveSnippet={() => {}} T={T}>
                 <div className="grid grid-cols-1 gap-2 mt-2">
                     {archivedDiscussions.map(([topicId, msgs]) => (
                         <div key={topicId} className="bg-slate-50 dark:bg-slate-800/20 rounded-lg p-3 border border-gray-100 dark:border-dark-border flex items-center justify-between gap-4">
@@ -332,22 +638,80 @@ export const PatientCaseView: React.FC<PatientCaseViewProps> = ({ patientCase: i
                                 <h5 className="font-bold text-gray-900 dark:text-slate-100 text-xs truncate">{topicId}</h5>
                                 <p className="text-[10px] text-gray-500 dark:text-gray-400 italic truncate mt-0.5">Last: "{msgs[msgs.length - 1].text.substring(0, 60)}..."</p>
                             </div>
-                            <button onClick={() => onOpenDiscussion({ aspect: topicId, consideration: '' })} className="flex-shrink-0 bg-white dark:bg-slate-700 px-3 py-1.5 rounded-lg border border-blue-100 dark:border-blue-900 text-brand-blue dark:text-blue-300 font-black text-[9px] uppercase tracking-widest shadow-xs hover:bg-brand-blue hover:text-white transition-all">Reopen History</button>
+                            <button onClick={() => onOpenDiscussion({ aspect: topicId, consideration: '' })} className="flex-shrink-0 bg-white dark:bg-slate-700 px-3 py-1.5 rounded-lg border border-blue-100 dark:border-blue-900 text-brand-blue dark:text-blue-300 font-black text-[9px] uppercase tracking-widest shadow-xs hover:bg-brand-blue hover:text-white transition-all">{T.reopenHistoryButton}</button>
                         </div>
                     ))}
                 </div>
             </Section>
         )}
 
-        { (Array.isArray(patientCase.traceableEvidence) && patientCase.traceableEvidence.length > 0) || (Array.isArray(patientCase.furtherReadings) && patientCase.furtherReadings.length > 0) ? (
-            <Section title={T.evidenceAndReading} onCopy={() => {}} onSaveSnippet={() => {}} T={T} onEnrich={handleEnrichSources} isEnriching={isEnrichingEvidence} groundingSources={groundingSources}>
-                {Array.isArray(patientCase.traceableEvidence) && patientCase.traceableEvidence.length > 0 && (
-                    <div className="mb-2"><h4 className="font-black text-xs text-gray-900 dark:text-slate-100 mb-1 flex items-center gap-1.5"><svg className="w-3.5 h-3.5 text-green-500" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M2.166 4.9L9.03 9.069a2.25 2.25 0 002.248 0l6.863-4.17A2.25 2.25 0 0015.83 2H4.477a2.25 2.25 0 00-2.311 2.9z" /><path d="M11 11.235V20l7-4.24V8.765l-7 2.47z" /><path d="M9 11.235V20L2 15.76V8.765l7 2.47z" /></svg>{T.traceableEvidence}</h4><ul className="space-y-1">{patientCase.traceableEvidence.map((e, i) => <li key={i} className="bg-slate-50 dark:bg-slate-800/20 p-2 rounded-lg border-l-4 border-green-500"><span className="font-bold block text-[10px] text-gray-800 dark:text-slate-100 mb-0.5">"{e.claim}"</span> <span className="block text-[9px]"><SourceRenderer text={e.source} onSearchClick={() => setActiveSourceSearch(e.source)} /></span></li>)}</ul></div>
+        { (isGeneratingDetails || (Array.isArray(patientCase.traceableEvidence) && patientCase.traceableEvidence.length > 0) || (Array.isArray(patientCase.furtherReadings) && patientCase.furtherReadings.length > 0)) ? (
+            <Section icon={<BookOpen className="w-4 h-4" />} title={T.evidenceAndReading} onCopy={() => {}} onSaveSnippet={() => {}} T={T} onEnrich={handleEnrichSources} isEnriching={isEnrichingEvidence} groundingSources={groundingSources}>
+                {isGeneratingDetails && !patientCase.traceableEvidence?.length ? <SkeletonLoader /> : (
+                    <>
+                        {Array.isArray(patientCase.traceableEvidence) && patientCase.traceableEvidence.length > 0 ? (
+                            <div className="mb-4">
+                                <h4 className="font-black text-[10px] text-gray-900 dark:text-slate-100 mb-2 flex items-center gap-1.5 uppercase tracking-widest">
+                                    <svg className="w-3 h-3 text-green-500" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M2.166 4.9L9.03 9.069a2.25 2.25 0 002.248 0l6.863-4.17A2.25 2.25 0 0015.83 2H4.477a2.25 2.25 0 00-2.311 2.9z" /><path d="M11 11.235V20l7-4.24V8.765l-7 2.47z" /><path d="M9 11.235V20L2 15.76V8.765l7 2.47z" /></svg>
+                                    {T.traceableEvidence}
+                                </h4>
+                                <ul className="space-y-2">
+                                    {patientCase.traceableEvidence.map((e, i) => (
+                                        <li key={i} className="bg-slate-50 dark:bg-slate-800/20 p-3 rounded-xl border-l-4 border-green-500 shadow-xs">
+                                            <span className="font-bold block text-[11px] text-gray-800 dark:text-slate-100 mb-1 leading-tight">"{e.claim}"</span>
+                                            <span className="block text-[10px] text-gray-500 dark:text-gray-400"><SourceRenderer text={e.source} onSearchClick={() => setActiveSourceSearch(e.source)} /></span>
+                                        </li>
+                                    ))}
+                                </ul>
+                            </div>
+                        ) : !isGeneratingDetails && (
+                            <div className="text-center text-gray-500 dark:text-slate-400 text-xs italic py-2">
+                                {T.noTraceableEvidenceAvailable}
+                            </div>
+                        )}
+                        {Array.isArray(patientCase.furtherReadings) && patientCase.furtherReadings.length > 0 ? (
+                            <div className="mt-4">
+                                <h4 className="font-black text-[10px] text-gray-900 dark:text-slate-100 mb-2 flex items-center gap-1.5 uppercase tracking-widest">
+                                    <svg className="w-3 h-3 text-blue-500" fill="currentColor" viewBox="0 0 20 20"><path d="M9 4.804A7.993 7.993 0 0113.196 4c1.63 0 3.133.488 4.39 1.324a.75.75 0 01.143 1.183L15.035 9.202a.75.75 0 01-1.06 0L12.31 7.537a.75.75 0 00-1.06 0l-2.25 2.25a.75.75 0 01-1.06 0L6.275 8.122a.75.75 0 00-1.06 0L2.27 11.067a.75.75 0 01-1.183-.143A7.995 7.995 0 014.804 9 7.993 7.993 0 019 4.804z" /><path d="M13.196 16c1.63 0 3.133-.488 4.39-1.324a.75.75 0 00.143-1.183L15.035 10.798a.75.75 0 00-1.06 0l-1.665 1.665a.75.75 0 01-1.06 0l-2.25-2.25a.75.75 0 00-1.06 0L6.275 11.878a.75.75 0 01-1.06 0L2.27 8.933a.75.75 0 00-1.183.143A7.995 7.995 0 004.804 11 7.993 7.993 0 009 15.196z" /></svg>
+                                    {T.furtherReading}
+                                </h4>
+                                <ul className="space-y-2">
+                                    {patientCase.furtherReadings.map((r, i) => (
+                                        <li key={i} className="bg-blue-50/50 dark:bg-blue-900/10 p-3 rounded-xl border border-blue-100 dark:border-blue-900/30">
+                                            <span className="font-bold text-[11px] text-brand-blue dark:text-blue-300 block mb-1">{r.topic}</span>
+                                            <p className="text-[10px] text-gray-600 dark:text-gray-400 leading-snug italic">{r.reference}</p>
+                                        </li>
+                                    ))}
+                                </ul>
+                            </div>
+                        ) : !isGeneratingDetails && (
+                            <div className="text-center text-gray-500 dark:text-slate-400 text-xs italic py-2">
+                                {T.noReadingsAvailable}
+                            </div>
+                        )}
+                    </>
                 )}
             </Section>
-        ) : isGeneratingDetails ? <Section title={T.evidenceAndReading} onCopy={() => {}} onSaveSnippet={() => {}} T={T}><SkeletonLoader /></Section> : null }
+        ) : null }
         
-        { patientCase.quiz ? <QuizView quiz={patientCase.quiz} T={T} /> : isGeneratingDetails ? <Section title={T.quizTitle} onCopy={() => {}} onSaveSnippet={() => {}} T={T}><SkeletonLoader /></Section> : null }
+        { (isGeneratingDetails || patientCase.quiz) ? (
+            <div className="mt-4">
+                {isGeneratingDetails && !patientCase.quiz?.length ? (
+                    <Section icon={<HelpCircle className="w-4 h-4" />} title={T.quizTitle} onCopy={() => {}} onSaveSnippet={() => {}} T={T}><SkeletonLoader /></Section>
+                ) : (
+                    <Section icon={<HelpCircle className="w-4 h-4" />} title={T.quizTitle} onCopy={() => {}} onSaveSnippet={() => {}} T={T}>
+                        {patientCase.quiz && patientCase.quiz.length > 0 ? (
+                            <QuizView quiz={patientCase.quiz} T={T} />
+                        ) : (
+                            <div className="p-4 text-center text-gray-500 dark:text-slate-400 text-sm italic">
+                                {T.noQuizQuestionsAvailable}
+                            </div>
+                        )}
+                    </Section>
+                )}
+            </div>
+        ) : null }
+        <div ref={bottomRef} className="h-1" />
       </div>
       {activeImageGenerator && <ImageGenerator content={activeImageGenerator.content} onClose={() => setActiveImageGenerator(null)} language={language} T={T} onImageGenerated={(img) => handleImageGenerated(activeImageGenerator.index, img)} />}
       {activeSourceSearch && <SourceSearchModal isOpen={!!activeSourceSearch} onClose={() => setActiveSourceSearch(null)} sourceQuery={activeSourceSearch} language={language} T={T} />}

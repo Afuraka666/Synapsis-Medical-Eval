@@ -1,5 +1,23 @@
 
 import React, { useState, useEffect, useRef } from 'react';
+import { 
+    X, 
+    Maximize, 
+    Minimize, 
+    Download, 
+    FileText, 
+    FileType, 
+    Mic, 
+    MicOff, 
+    Send, 
+    Save, 
+    Activity,
+    Share2,
+    Minus,
+    MessageSquare,
+    Info,
+    ChevronDown
+} from 'lucide-react';
 import type { DisciplineSpecificConsideration, ChatMessage, DiagramData, EducationalContent } from '../types';
 import { EducationalContentType } from '../types';
 import { GoogleGenAI, Chat, GenerateContentResponse, Content } from "@google/genai";
@@ -148,10 +166,10 @@ interface DiscussionModalProps {
 }
 
 const LoadingSpinner: React.FC = () => (
-    <div className="flex space-x-1.5">
-        <div className="w-2 h-2 bg-gray-500 dark:bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0s' }}></div>
-        <div className="w-2 h-2 bg-gray-500 dark:bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-        <div className="w-2 h-2 bg-gray-500 dark:bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+    <div className="flex items-center gap-1.5 px-2">
+        <div className="w-1.5 h-1.5 bg-brand-blue rounded-full animate-bounce" style={{ animationDelay: '0s' }}></div>
+        <div className="w-1.5 h-1.5 bg-brand-blue rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+        <div className="w-1.5 h-1.5 bg-brand-blue rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
     </div>
 );
 
@@ -329,7 +347,9 @@ export const DiscussionModal: React.FC<DiscussionModalProps> = ({
                     const tableRows = [
                         new TableRow({
                             children: block.table.header.map(cell => new TableCell({
-                                children: [new Paragraph({ text: cell, bold: true })],
+                                children: [new Paragraph({ 
+                                    children: [new TextRun({ text: cell, bold: true })]
+                                })],
                                 shading: { fill: 'f3f4f6' }
                             }))
                         }),
@@ -474,12 +494,14 @@ export const DiscussionModal: React.FC<DiscussionModalProps> = ({
             <div className="fixed bottom-6 right-6 z-[60] animate-bounce-slow">
                 <button 
                     onClick={() => setIsMinimised(false)}
-                    className="group relative flex items-center gap-3 bg-brand-blue hover:bg-blue-800 text-white p-3 pr-5 rounded-full shadow-2xl transition-all hover:scale-105 active:scale-95"
+                    className="group relative flex items-center gap-3 bg-brand-blue hover:bg-brand-blue-dark text-white p-3 pr-5 rounded-2xl shadow-2xl transition-all hover:scale-105 active:scale-95"
                     title="Resume AI Tutorial"
                 >
-                    <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center font-black text-sm">AI</div>
+                    <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
+                        <MessageSquare className="w-5 h-5" />
+                    </div>
                     <div className="flex flex-col items-start leading-none">
-                        <span className="text-[10px] font-black uppercase tracking-widest opacity-70">Tutorial Active</span>
+                        <span className="text-[9px] font-black uppercase tracking-widest opacity-70">Tutorial Active</span>
                         <span className="text-sm font-bold truncate max-w-[120px]">{topic.aspect}</span>
                     </div>
                     {isLoading && <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full animate-ping border-2 border-white"></div>}
@@ -489,39 +511,50 @@ export const DiscussionModal: React.FC<DiscussionModalProps> = ({
     }
 
     return (
-        <div className={`fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4 animate-fade-in ${isFullscreen ? 'bg-white dark:bg-dark-bg' : ''}`} aria-modal="true" role="dialog">
-            <div className={`bg-white dark:bg-dark-surface flex flex-col transition-all duration-300 ${isFullscreen ? 'w-full h-full rounded-none' : 'rounded-xl shadow-2xl w-full max-w-lg h-[90vh] sm:h-[85vh]'}`}>
-                <header className={`p-4 border-b border-gray-200 dark:border-dark-border bg-white dark:bg-dark-surface z-10 transition-colors ${isFullscreen ? 'rounded-none' : 'rounded-t-xl'}`}>
+        <div className={`fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fade-in ${isFullscreen ? 'bg-white dark:bg-dark-bg' : ''}`} aria-modal="true" role="dialog">
+            <div className={`bg-white dark:bg-dark-surface flex flex-col transition-all duration-300 ${isFullscreen ? 'w-full h-full rounded-none' : 'medical-card w-full max-w-lg h-[90vh] sm:h-[85vh]'}`}>
+                <header className={`p-4 border-b border-gray-100 dark:border-dark-border bg-white/80 dark:bg-dark-surface/80 backdrop-blur-md z-10 transition-colors ${isFullscreen ? 'rounded-none' : 'rounded-t-2xl'}`}>
                     <div className="flex justify-between items-center">
                         <div className="flex flex-col min-w-0 pr-4">
-                            <h2 className="text-sm font-black text-brand-blue uppercase tracking-widest leading-none mb-1">AI Medical Tutor</h2>
-                            <h3 className="text-lg font-bold text-gray-800 dark:text-slate-100 truncate">{topic.aspect}</h3>
+                            <div className="flex items-center gap-2 mb-1">
+                                <Activity className="w-3 h-3 text-brand-blue" />
+                                <h2 className="text-[10px] font-black text-brand-blue uppercase tracking-[0.2em] leading-none">AI Medical Tutor</h2>
+                            </div>
+                            <h3 className="text-lg font-black text-gray-900 dark:text-slate-100 truncate tracking-tight">{topic.aspect}</h3>
                         </div>
                         <div className="flex items-center gap-1 sm:gap-2">
                              <div className="relative" ref={shareMenuRef}>
-                                <button onClick={() => setShowShareMenu(!showShareMenu)} className="p-1.5 text-gray-500 dark:text-gray-400 hover:text-brand-blue rounded-full transition" title="Export">
-                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                                <button onClick={() => setShowShareMenu(!showShareMenu)} className="p-2 text-gray-500 dark:text-gray-400 hover:text-brand-blue hover:bg-brand-blue/5 rounded-xl transition-all" title={T.exportOptions}>
+                                    <Share2 className="h-5 w-5" />
                                 </button>
                                 {showShareMenu && (
-                                    <div className="absolute right-0 mt-2 w-64 bg-white dark:bg-dark-surface rounded-md shadow-lg border border-gray-200 dark:border-dark-border z-20 py-1 animate-fade-in">
-                                        <button onClick={handleDownloadPdf} className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-slate-200 hover:bg-gray-100 dark:hover:bg-slate-700 flex items-center gap-2">
-                                            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>
-                                            Download High-Fidelity PDF
+                                    <div className="absolute right-0 mt-2 w-64 bg-white dark:bg-dark-surface rounded-2xl shadow-2xl border border-gray-100 dark:border-dark-border z-20 py-2 animate-fade-in overflow-hidden">
+                                        <button onClick={handleDownloadPdf} className="w-full text-left px-4 py-3 text-sm text-gray-700 dark:text-slate-200 hover:bg-brand-blue/5 dark:hover:bg-slate-700 flex items-center gap-3 transition-colors">
+                                            <FileType className="h-4 w-4 text-red-500" />
+                                            <div className="flex flex-col">
+                                                <span className="font-bold">{T.downloadPdfButton}</span>
+                                                <span className="text-[10px] opacity-60">{T.highFidelityDocument}</span>
+                                            </div>
                                         </button>
-                                        <button onClick={handleDownloadWord} className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-slate-200 hover:bg-gray-100 dark:hover:bg-slate-700 flex items-center gap-2">
-                                            <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2c5.514 0 10 4.486 10 10s-4.486 10-10 10-10-4.486-10-10 4.486-10 10-10zm0-2c-6.627 0-12 5.373-12 12s5.373 12 12 12 12-5.373 12-12-5.373-12-12-12zm-3 8h6v1h-6v-1zm0 2h6v1h-6v-1zm0 2h6v1h-6v-1zm0 2h6v1h-6v-1zm0 2h6v1h-6v-1zm0 2h6v1h-6v-1z" /></svg>
-                                            Download Microsoft Word (.docx)
+                                        <button onClick={handleDownloadWord} className="w-full text-left px-4 py-3 text-sm text-gray-700 dark:text-slate-200 hover:bg-brand-blue/5 dark:hover:bg-slate-700 flex items-center gap-3 transition-colors">
+                                            <FileText className="h-4 w-4 text-blue-500" />
+                                            <div className="flex flex-col">
+                                                <span className="font-bold">{T.downloadWordButton}</span>
+                                                <span className="text-[10px] opacity-60">{T.editableDocxFile}</span>
+                                            </div>
                                         </button>
                                     </div>
                                 )}
                             </div>
-                            <button onClick={() => setIsFullscreen(!isFullscreen)} className="p-1.5 text-gray-500 dark:text-gray-400 hover:text-brand-blue rounded-full transition" title="Toggle Fullscreen">
-                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5v-4m0 4h-4m4 0l-5-5" /></svg>
+                            <button onClick={() => setIsFullscreen(!isFullscreen)} className="p-2 text-gray-500 dark:text-gray-400 hover:text-brand-blue hover:bg-brand-blue/5 rounded-xl transition-all" title="Toggle Fullscreen">
+                                {isFullscreen ? <Minimize className="h-5 w-5" /> : <Maximize className="h-5 w-5" />}
                             </button>
-                            <button onClick={() => setIsMinimised(true)} className="p-1.5 text-gray-500 dark:text-gray-400 hover:text-brand-blue rounded-full transition" title="Minimise Discussion">
-                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M20 12H4" /></svg>
+                            <button onClick={() => setIsMinimised(true)} className="p-2 text-gray-500 dark:text-gray-400 hover:text-brand-blue hover:bg-brand-blue/5 rounded-xl transition-all" title="Minimise Discussion">
+                                <Minus className="h-5 w-5" />
                             </button>
-                            <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition" title="Close Tutorial"><svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>
+                            <button onClick={onClose} className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all" title="Close Tutorial">
+                                <X className="w-6 h-6" />
+                            </button>
                         </div>
                     </div>
                 </header>
@@ -593,19 +626,48 @@ export const DiscussionModal: React.FC<DiscussionModalProps> = ({
                         <div ref={messagesEndRef} />
                     </div>
                 </main>
-                <footer className={`p-4 border-t border-gray-200 dark:border-dark-border bg-white dark:bg-dark-surface transition-colors ${isFullscreen ? 'rounded-none' : 'rounded-b-xl'}`}>
+                <footer className={`p-4 border-t border-gray-100 dark:border-dark-border bg-white dark:bg-dark-surface transition-colors ${isFullscreen ? 'rounded-none' : 'rounded-b-2xl'}`}>
                     <div className={`flex flex-col ${isFullscreen ? 'max-w-4xl mx-auto w-full' : ''}`}>
                         <form onSubmit={(e) => handleSendMessage(e)} className="flex items-center gap-2 mb-3">
-                            <button type="button" onClick={handleMicClick} disabled={isLoading} className={`p-2 rounded-md border transition flex items-center justify-center gap-2 ${isListening ? 'text-red-500 border-red-500 bg-red-50' : 'text-gray-600 dark:text-gray-400 border-gray-300 dark:border-dark-border hover:bg-gray-100'}`}>
+                            <button 
+                                type="button" 
+                                onClick={handleMicClick} 
+                                disabled={isLoading} 
+                                className={`p-3 rounded-xl border transition-all flex items-center justify-center gap-2 ${isListening ? 'text-red-500 border-red-200 bg-red-50 animate-pulse' : 'text-gray-600 dark:text-gray-400 border-gray-200 dark:border-dark-border hover:bg-gray-50 dark:hover:bg-slate-800'}`}
+                            >
                                 <AudioVisualizer isListening={isListening} />
-                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M7 4a3 3 0 016 0v4a3 3 0 11-6 0V4zm-1 4a4 4 0 108 0V4a4 4 0 10-8 0v4zM2 11a1 1 0 011-1h1a1 1 0 011 1v.5a.5.5 0 001 0V11a3 3 0 013-3h0a3 3 0 013 3v.5a.5.5 0 001 0V11a1 1 0 011 1h1a1 1 0 110 2h-1a1 1 0 01-1-1v-.5a2.5 2.5 0 00-5 0v.5a1 1 0 01-1 1H3a1 1 0 01-1-1v-2z" clipRule="evenodd" /></svg>
+                                {isListening ? <MicOff className="h-5 w-5" /> : <Mic className="h-5 w-5" />}
                             </button>
-                            <input type="text" value={userInput} onChange={(e) => setUserInput(e.target.value)} placeholder={T.chatPlaceholder} disabled={isLoading} className="flex-grow p-2 border border-gray-300 dark:border-dark-border rounded-md bg-gray-50 dark:bg-slate-800 text-black dark:text-white text-sm focus:ring-2 focus:ring-brand-blue/20 transition-colors" />
-                            <button type="submit" disabled={isLoading || !userInput.trim()} className="bg-brand-blue hover:bg-blue-800 text-white font-bold p-2 rounded-md transition-colors shadow-sm"><svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.428A1 1 0 0010 16h.008a1 1 0 00.724-.316l5-5a1 1 0 00.316-.724V4a1 1 0 00-1-1h-2a1 1 0 00-1 1v.008a1 1 0 00.316.724l-3 3.428z" /></svg></button>
+                            <div className="flex-grow relative">
+                                <input 
+                                    type="text" 
+                                    value={userInput} 
+                                    onChange={(e) => setUserInput(e.target.value)} 
+                                    placeholder={T.chatPlaceholder} 
+                                    disabled={isLoading} 
+                                    className="w-full p-3 pr-12 border border-gray-200 dark:border-dark-border rounded-xl bg-gray-50 dark:bg-slate-800 text-black dark:text-white text-sm focus:ring-2 focus:ring-brand-blue/20 focus:border-brand-blue outline-none transition-all" 
+                                />
+                                <button 
+                                    type="submit" 
+                                    disabled={isLoading || !userInput.trim()} 
+                                    className="absolute right-2 top-1/2 -translate-y-1/2 p-2 text-brand-blue hover:bg-brand-blue/10 rounded-lg transition-all disabled:opacity-30"
+                                >
+                                    <Send className="h-5 w-5" />
+                                </button>
+                            </div>
                         </form>
-                        <div className="flex justify-between items-center pt-3 border-t border-gray-100 dark:border-dark-border">
-                            <span className="text-[10px] text-gray-400 italic">{isSaved ? "Session saved" : "Unsaved session"}</span>
-                            <button type="button" onClick={() => { onSaveDiscussion(topicId, messages); setIsSaved(true); }} disabled={isLoading} className={`text-xs px-4 py-1.5 rounded-md transition font-semibold border ${isSaved ? 'text-green-700 bg-green-50 border-green-200' : 'text-brand-blue bg-blue-50 border-blue-200 hover:bg-blue-100'}`}>
+                        <div className="flex justify-between items-center pt-3 border-t border-gray-50 dark:border-dark-border">
+                            <div className="flex items-center gap-2">
+                                <div className={`w-1.5 h-1.5 rounded-full ${isSaved ? 'bg-green-500' : 'bg-amber-500 animate-pulse'}`}></div>
+                                <span className="text-[10px] font-black uppercase tracking-widest text-gray-400">{isSaved ? "Session saved" : "Unsaved session"}</span>
+                            </div>
+                            <button 
+                                type="button" 
+                                onClick={() => { onSaveDiscussion(topicId, messages); setIsSaved(true); }} 
+                                disabled={isLoading || isSaved} 
+                                className={`text-[10px] font-black uppercase tracking-widest px-4 py-2 rounded-xl transition-all flex items-center gap-2 ${isSaved ? 'text-green-600 bg-green-50 border border-green-100' : 'text-brand-blue bg-brand-blue/5 border border-brand-blue/10 hover:bg-brand-blue/10'}`}
+                            >
+                                <Save className="w-3 h-3" />
                                 {isSaved ? "Saved" : "Save Changes"}
                             </button>
                         </div>

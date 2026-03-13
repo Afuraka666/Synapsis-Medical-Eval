@@ -1,5 +1,19 @@
 
 import React, { useEffect, useRef, useCallback, useState, useMemo, forwardRef, useImperativeHandle } from 'react';
+import { 
+    ZoomIn, 
+    ZoomOut, 
+    Maximize, 
+    Minimize, 
+    RotateCcw, 
+    Save, 
+    Activity,
+    Brain,
+    Stethoscope,
+    FlaskConical,
+    Network,
+    Info
+} from 'lucide-react';
 import { Discipline } from '../types';
 import type { KnowledgeMapData, KnowledgeNode, KnowledgeLink } from '../types';
 import { ConceptCard } from './ConceptCard';
@@ -81,11 +95,14 @@ const svgToDataURL = async (svgEl: SVGSVGElement): Promise<string> => {
 };
 
 const LoadingSpinner: React.FC = () => (
-    <div className="flex justify-center items-center h-full p-4 text-brand-blue dark:text-brand-blue-light">
-        <svg className="animate-spin h-8 w-8" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-        </svg>
+    <div className="flex flex-col items-center justify-center h-full p-4 text-brand-blue dark:text-brand-blue-light">
+        <div className="relative">
+            <Activity className="h-12 w-12 animate-pulse" />
+            <div className="absolute inset-0 flex items-center justify-center">
+                <div className="h-4 w-4 bg-brand-blue rounded-full animate-ping"></div>
+            </div>
+        </div>
+        <p className="mt-4 text-xs font-black uppercase tracking-widest animate-pulse">Mapping Connections...</p>
     </div>
 );
 
@@ -117,24 +134,24 @@ interface MapControlsProps {
 }
 
 const MapControls: React.FC<MapControlsProps> = ({ onZoomIn, onZoomOut, onReset, onToggleFullscreen, onSaveMap, isFullscreen }) => {
-    const buttonClasses = "bg-white/95 dark:bg-slate-800/95 backdrop-blur-sm hover:bg-white dark:hover:bg-slate-700 text-gray-700 dark:text-slate-200 shadow-xl border border-gray-200 dark:border-dark-border rounded-lg w-10 h-10 flex items-center justify-center transition-all hover:scale-110 active:scale-90";
+    const buttonClasses = "bg-white/95 dark:bg-slate-800/95 backdrop-blur-sm hover:bg-white dark:hover:bg-slate-700 text-gray-700 dark:text-slate-200 shadow-xl border border-gray-200 dark:border-dark-border rounded-xl w-11 h-11 flex items-center justify-center transition-all hover:scale-110 active:scale-90";
     return (
-        <div className="absolute top-3 left-3 flex flex-col gap-2 z-10">
+        <div className="absolute top-4 left-4 flex flex-col gap-2.5 z-10">
             <button onClick={onZoomIn} title="Zoom In" className={buttonClasses}>
-                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M10 3a1 1 0 011-1h4a1 1 0 010 2H6.414l2.293 2.293a1 1 0 11-1.414 1.414L5 5.414V8a1 1 0 01-2 0V4zm9 0a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 11-2 0V5.414l-2.293 2.293a1 1 0 11-1.414-1.414L14.586 5H13a1 1 0 01-1-1zm1 12a1 1 0 010-2h1.586l-2.293-2.293a1 1 0 111.414-1.414L15 14.586V12a1 1 0 112 0v4a1 1 0 01-1 1h-4zm-7 0a1 1 0 01-1 1H4a1 1 0 01-1-1v-4a1 1 0 112 v2.586l2.293-2.293a1 1 0 111.414 1.414L5.414 15H8a1 1 0 011 1z" clipRule="evenodd" /></svg>
+                 <ZoomIn className="h-5 w-5" />
             </button>
             <button onClick={onZoomOut} title="Zoom Out" className={buttonClasses}>
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M3 10a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clipRule="evenodd" /></svg>
+                <ZoomOut className="h-5 w-5" />
             </button>
             <button onClick={onReset} title="Reset View" className={buttonClasses}>
-                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-.707a1 1 0 00-1.414-1.414l-3 3a1 1 0 000 1.414l3 3a1 1 0 001.414-1.414L9.414 11H13a1 1 0 100-2H9.414l1.293-1.293z" clipRule="evenodd" /></svg>
+                 <RotateCcw className="h-5 w-5" />
             </button>
              <button onClick={onToggleFullscreen} title={isFullscreen ? "Exit Fullscreen" : "Enter Fullscreen"} className={buttonClasses}>
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M3 4a1 1 0 011-1h4a1 1 0 010 2H6.414l2.293 2.293a1 1 0 11-1.414 1.414L5 5.414V8a1 1 0 01-2 0V4zm9 0a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 11-2 0V5.414l-2.293 2.293a1 1 0 11-1.414-1.414L14.586 5H13a1 1 0 01-1-1zm1 12a1 1 0 010-2h1.586l-2.293-2.293a1 1 0 111.414-1.414L15 14.586V12a1 1 0 112 0v4a1 1 0 01-1 1h-4zm-7 0a1 1 0 01-1 1H4a1 1 0 01-1-1v-4a1 1 0 112 v2.586l2.293-2.293a1 1 0 111.414 1.414L5.414 15H8a1 1 0 011 1z" clipRule="evenodd" /></svg>
+                {isFullscreen ? <Minimize className="h-5 w-5" /> : <Maximize className="h-5 w-5" />}
             </button>
             {onSaveMap && (
                 <button onClick={onSaveMap} title="Save Map to Collection" className={`${buttonClasses} text-brand-blue`}>
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M5 4a2 2 0 012-2h6a2 2 0 012 2v12a1 1 0 01-1.447.894L10 14.586l-3.553 2.308A1 1 0 015 16V4z" /></svg>
+                    <Save className="h-5 w-5" />
                 </button>
             )}
         </div>
@@ -145,14 +162,16 @@ const NodeTooltip: React.FC<{ node: KnowledgeNode | null; position: { x: number;
     if (!node || !position) return null;
     return (
         <div 
-            className="fixed z-[100] bg-white dark:bg-slate-800 border-2 border-brand-blue/30 dark:border-brand-blue-light/20 p-3 rounded-lg shadow-2xl pointer-events-none max-w-[240px] animate-fade-in"
-            style={{ top: position.y + 15, left: position.x + 15 }}
+            className="fixed z-[100] bg-white/95 dark:bg-slate-800/95 backdrop-blur-md border border-brand-blue/20 dark:border-brand-blue-light/10 p-4 rounded-2xl shadow-2xl pointer-events-none max-w-[280px] animate-fade-in"
+            style={{ top: position.y + 20, left: position.x + 20 }}
         >
-            <div className="flex items-center gap-2 mb-1.5">
-                <span className="text-[10px] font-black uppercase tracking-widest text-gray-400">{node.discipline}</span>
+            <div className="flex items-center justify-between mb-2">
+                <span className="text-[9px] font-black uppercase tracking-[0.2em] text-brand-blue dark:text-brand-blue-light bg-brand-blue/5 dark:bg-brand-blue-light/5 px-2 py-0.5 rounded-full">{node.discipline}</span>
+                <Info className="w-3 h-3 text-gray-300" />
             </div>
-            <h4 className="font-bold text-sm text-gray-800 dark:text-white mb-1.5">{node.label}</h4>
-            <p className="text-xs text-gray-600 dark:text-slate-300 leading-relaxed italic line-clamp-4">{node.summary}</p>
+            <h4 className="font-black text-sm text-gray-900 dark:text-white mb-2 tracking-tight">{node.label}</h4>
+            <div className="h-px w-full bg-gray-100 dark:bg-slate-700 mb-2"></div>
+            <p className="text-xs text-gray-500 dark:text-slate-400 leading-relaxed italic line-clamp-4">{node.summary}</p>
         </div>
     );
 };

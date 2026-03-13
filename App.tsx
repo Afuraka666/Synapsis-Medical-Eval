@@ -21,10 +21,8 @@ import { DiscussionModal } from './components/DiscussionModal';
 
 // Services
 import { 
-    generateCorePatientCase, 
-    generateExtendedDetails,
+    generateFullCase,
     generateEvidenceAndQuiz,
-    generateKnowledgeMap,
     getConceptAbstract
 } from './services/geminiService';
 
@@ -250,31 +248,41 @@ export const App: React.FC = () => {
         setMobileView('case');
 
         try {
-            const coreCase = await generateCorePatientCase(condition, discipline, difficulty, language);
-            setPatientCase(coreCase);
+            // Start both in parallel for maximum speed
+            const casePromise = generateFullCase(condition, discipline, difficulty, language);
+            const evidencePromise = generateEvidenceAndQuiz(condition, discipline, difficulty, language);
+
+            // Wait for core case first to show UI immediately
+            const { patientCase: fullCase, knowledgeMap: fullMap } = await casePromise;
+            
+            setPatientCase(fullCase);
+            setMapData(fullMap);
             setIsLoading(false);
-            setIsGeneratingDetails(true);
+            setIsGeneratingDetails(true); // Keep this for evidence/quiz loading state
+            
             setGenerationCount(prev => {
                 const count = prev + 1;
                 localStorage.setItem('ungana_generation_count', String(count));
                 return count;
             });
             
-            const promises = [
-                generateExtendedDetails(coreCase, discipline, difficulty, language).then(res => {
-                    setPatientCase(prev => prev ? { ...prev, ...res } : null);
-                }),
-                generateEvidenceAndQuiz(coreCase, discipline, difficulty, language).then(res => {
-                    setPatientCase(prev => prev ? { ...prev, ...res } : null);
-                }),
-                generateKnowledgeMap(coreCase, discipline, difficulty, language).then(res => {
-                    setMapData(res);
-                })
-            ];
-            await Promise.allSettled(promises);
+            // Wait for evidence and quiz (already running in parallel)
+            try {
+                const evidenceRes = await evidencePromise;
+                if (evidenceRes && (evidenceRes.traceableEvidence || evidenceRes.quiz || evidenceRes.educationalContent)) {
+                    setPatientCase(prev => prev ? { ...prev, ...evidenceRes } : null);
+                } else {
+                    // Fallback to empty arrays so sections at least show "No data" or are handled
+                    setPatientCase(prev => prev ? { ...prev, traceableEvidence: [], educationalContent: [], quiz: [] } : null);
+                }
+            } catch (err) {
+                console.error("Error generating evidence/quiz:", err);
+                setPatientCase(prev => prev ? { ...prev, traceableEvidence: [], educationalContent: [], quiz: [] } : null);
+            }
+            
             setInteractionState(prev => ({ ...prev, caseGenerated: true, caseEdited: false, caseSaved: false, nodeClicks: 0, snippetSaved: false }));
         } catch (err: any) {
-            console.error("Error generating core case:", err);
+            console.error("Error generating case:", err);
             setError(T.errorService);
             setIsLoading(false);
         } finally {
@@ -428,34 +436,36 @@ export const App: React.FC = () => {
                 className={`sticky top-0 z-30 transition-transform duration-300 ${!isUiVisible && patientCase ? '-translate-y-full' : 'translate-y-0'}`}
             />
             
-            <main className="flex-grow p-2 sm:p-4 overflow-hidden relative">
-                <div className="max-w-7xl mx-auto h-full flex flex-col space-y-4">
-                    <ControlPanel
-                        onGenerate={handleGenerate}
-                        disabled={isLoading || isGeneratingDetails}
-                        T={T}
-                        language={language}
-                        onSaveCase={handleSaveCase}
-                        onOpenSavedWork={() => setIsSavedWorkOpen(true)}
-                        onOpenClinicalTools={() => setIsClinicalToolsOpen(true)}
-                        isCaseActive={!!patientCase}
-                        onGenerateNew={handleGenerateNew}
-                        mobileView={mobileView}
-                        onSetMobileView={setMobileView}
-                    />
+            <main className="flex-grow p-1.5 sm:p-3 overflow-hidden relative flex flex-col">
+                <div className="max-w-7xl mx-auto w-full h-full flex flex-col min-h-0">
+                    <div className="flex-shrink-0 mb-2 sm:mb-4">
+                        <ControlPanel
+                            onGenerate={handleGenerate}
+                            disabled={isLoading || isGeneratingDetails}
+                            T={T}
+                            language={language}
+                            onSaveCase={handleSaveCase}
+                            onOpenSavedWork={() => setIsSavedWorkOpen(true)}
+                            onOpenClinicalTools={() => setIsClinicalToolsOpen(true)}
+                            isCaseActive={!!patientCase}
+                            onGenerateNew={handleGenerateNew}
+                            mobileView={mobileView}
+                            onSetMobileView={setMobileView}
+                        />
+                    </div>
 
-                    <div className="hidden md:block">
+                    <div className="hidden md:block flex-shrink-0 mb-2 sm:mb-4">
                         <TipsCarousel interactionState={interactionState} T={T} />
                     </div>
                     
                     {patientCase ? (
-                        <div className="flex-grow overflow-hidden h-full relative">
+                        <div className="flex-grow min-h-0 relative flex flex-col">
                             <div 
-                                className="flex h-full w-full transition-transform duration-300 ease-in-out lg:transform-none lg:flex-row lg:gap-4 absolute inset-0"
+                                className="flex flex-grow w-full transition-transform duration-300 ease-in-out lg:transform-none lg:flex-row lg:gap-4 min-h-0"
                                 style={{ transform: `translateX(${mobileView === 'map' ? '-100%' : '0%'})` }}
                             >
-                                <div className="w-full flex-shrink-0 h-full lg:w-3/5 lg:flex-shrink">
-                                    <div ref={caseScrollRef} onScroll={handleCaseScroll} className="h-full overflow-y-auto bg-white dark:bg-dark-surface rounded-lg shadow-lg border border-gray-200 dark:border-dark-border">
+                                <div className="w-full flex-shrink-0 h-full lg:w-[62%] lg:flex-shrink min-h-0 flex flex-col">
+                                    <div ref={caseScrollRef} onScroll={handleCaseScroll} className="flex-grow overflow-y-auto bg-white dark:bg-dark-surface rounded-lg shadow-lg border border-gray-200 dark:border-dark-border">
                                         <PatientCaseView
                                             patientCase={patientCase}
                                             isGeneratingDetails={isGeneratingDetails}
@@ -470,22 +480,24 @@ export const App: React.FC = () => {
                                         />
                                     </div>
                                 </div>
-                                <div className="w-full flex-shrink-0 h-full flex flex-col lg:w-2/5 lg:flex-shrink">
+                                <div className="w-full flex-shrink-0 h-full flex flex-col lg:w-[38%] lg:flex-shrink min-h-0">
                                     {mapData ? (
-                                        <KnowledgeMap
-                                            ref={knowledgeMapRef}
-                                            data={mapData}
-                                            onNodeClick={handleNodeClick}
-                                            selectedNodeInfo={selectedNodeInfo}
-                                            onClearSelection={handleClearNodeSelection}
-                                            isMapFullscreen={isMapFullscreen}
-                                            setIsMapFullscreen={setIsMapFullscreen}
-                                            caseTitle={patientCase.title}
-                                            language={language}
-                                            T={T}
-                                            onDiscussNode={handleDiscussNode}
-                                            onSaveMap={handleSaveMapSnippet}
-                                        />
+                                        <div className="flex-grow min-h-0">
+                                            <KnowledgeMap
+                                                ref={knowledgeMapRef}
+                                                data={mapData}
+                                                onNodeClick={handleNodeClick}
+                                                selectedNodeInfo={selectedNodeInfo}
+                                                onClearSelection={handleClearNodeSelection}
+                                                isMapFullscreen={isMapFullscreen}
+                                                setIsMapFullscreen={setIsMapFullscreen}
+                                                caseTitle={patientCase.title}
+                                                language={language}
+                                                T={T}
+                                                onDiscussNode={handleDiscussNode}
+                                                onSaveMap={handleSaveMapSnippet}
+                                            />
+                                        </div>
                                     ) : isGeneratingDetails ? (
                                         <div className="w-full h-full flex items-center justify-center bg-white dark:bg-dark-surface rounded-lg shadow-lg border border-gray-200 dark:border-dark-border p-8 text-center text-dark-text">
                                             <LoadingOverlay message={T.buildingMapMessage} subMessages={[]} />

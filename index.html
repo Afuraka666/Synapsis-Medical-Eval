@@ -26,74 +26,12 @@
     <!-- KaTeX CSS for Math Rendering -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css" integrity="sha384-GvrOXuhMATgEsSwCs4smul74iXGOixntILdUW9XmUC6+HX0sLNAK3q71HotJqlAn" crossorigin="anonymous">
 
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-      tailwind.config = {
-        darkMode: 'class',
-        theme: {
-          extend: {
-            colors: {
-              'brand-blue': '#1e3a8a',
-              'brand-blue-light': '#3b82f6',
-              'brand-gray': '#f3f4f6',
-              'brand-text': '#111827',
-              'dark-bg': '#0f172a',
-              'dark-surface': '#1e293b',
-              'dark-border': '#334155',
-              'dark-text': '#e2e8f0',
-            },
-            animation: {
-              'fade-in': 'fadeIn 0.5s ease-in-out',
-            },
-            keyframes: {
-              fadeIn: {
-                '0%': { opacity: '0', transform: 'scale(0.95) translateY(-12px)' },
-                '100%': { opacity: '1', transform: 'scale(1) translateY(0)' },
-              },
-            }
-          }
-        }
-      }
-    </script>
-    <style>
-      /* Smooth transitions for theme switching */
-      body, div, header, main, footer, section, aside, nav {
-        transition: background-color 0.3s ease, border-color 0.3s ease, color 0.2s ease, box-shadow 0.3s ease;
-      }
-    </style>
     <script src="https://d3js.org/d3.v7.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
-  <script type="importmap">
-{
-  "imports": {
-    "@google/genai": "https://esm.sh/@google/genai@^1.14.0",
-    "react": "https://esm.sh/react@^19.1.1",
-    "react/": "https://esm.sh/react@^19.1.1/",
-    "react-dom": "https://esm.sh/react-dom@^19.1.1",
-    "react-dom/": "https://esm.sh/react-dom@^19.1.1/",
-    "react-markdown": "https://esm.sh/react-markdown@9.0.1",
-    "remark-gfm": "https://esm.sh/remark-gfm@4.0.0",
-    "remark-math": "https://esm.sh/remark-math@6.0.0",
-    "rehype-katex": "https://esm.sh/rehype-katex@7.0.0",
-    "docx": "https://esm.sh/docx@8.5.0"
-  }
-}
-</script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
 </head>
   <body class="bg-brand-gray dark:bg-dark-bg transition-colors duration-300">
     <div id="root"></div>
-    <script type="module" src="/index.tsx"></script>
-    <script>
-      if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-          navigator.serviceWorker.register('./sw.js').then(registration => {
-            console.log('ServiceWorker registration successful with scope: ', registration.scope);
-          }, err => {
-            console.log('ServiceWorker registration failed: ', err);
-          });
-        });
-      }
-    </script>
+    <script type="module" src="/main.tsx"></script>
   </body>
 </html>

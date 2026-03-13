@@ -114,6 +114,7 @@ export interface PatientCase {
   traceableEvidence?: TraceableEvidence[];
   furtherReadings?: FurtherReading[];
   quiz?: QuizQuestion[];
+  groundingSources?: any[];
   // Map of discussion topic IDs to array of chat messages
   discussions?: Record<string, ChatMessage[]>;
 }
@@ -159,7 +160,7 @@ export interface InteractionState {
   caseEdited: boolean;
   caseSaved: boolean;
   snippetSaved: boolean;
-  nodeClicks: 0;
+  nodeClicks: number;
 }
 
 export interface Tip {
