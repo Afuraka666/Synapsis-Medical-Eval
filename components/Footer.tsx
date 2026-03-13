@@ -24,6 +24,11 @@ export const Footer: React.FC<FooterProps> = ({ T, evaluationDaysRemaining, onOp
                         <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest leading-none mb-1">Copyright</span>
                         <span className="text-xs font-medium text-gray-500 dark:text-gray-400">© {currentYear} Ungana Medical</span>
                     </div>
+                    <div className="h-6 w-px bg-gray-100 dark:bg-slate-800 hidden sm:block"></div>
+                    <div className="flex flex-col">
+                        <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest leading-none mb-1">Version</span>
+                        <span className="text-xs font-medium text-gray-500 dark:text-gray-400">v1.0.30</span>
+                    </div>
                 </div>
 
                 <div className="flex items-center space-x-6">

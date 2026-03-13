@@ -4,18 +4,15 @@ self.addEventListener('message', event => {
   }
 });
 
-const CACHE_NAME = 'ungana-medical-cache-v28';
+const CACHE_NAME = 'ungana-medical-cache-v30';
 const URLS_TO_CACHE = [
   '/',
   '/index.html',
-  '/index.tsx',
-  '/favicon.svg?v=8',
-  'https://cdn.tailwindcss.com',
+  '/favicon.svg?v=10',
   'https://d3js.org/d3.v7.min.js',
   'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js',
-  'https://esm.sh/react@^19.1.1',
-  'https://esm.sh/react-dom@^19.1.1/client',
-  'https://esm.sh/@google/genai@^1.14.0'
+  'https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js',
+  'https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css'
 ];
 
 // Install the service worker and cache the app shell
@@ -23,7 +20,7 @@ self.addEventListener('install', event => {
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then(cache => {
-        console.log('Opened cache and caching app shell v28');
+        console.log('Opened cache and caching app shell v30');
         return cache.addAll(URLS_TO_CACHE);
       })
   );
