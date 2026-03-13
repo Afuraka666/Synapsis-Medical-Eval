@@ -86,10 +86,10 @@ export const EvaluationScreen: React.FC<EvaluationScreenProps> = ({ T, onFeedbac
 
 
     useEffect(() => {
-        let id = localStorage.getItem('synapsis_respondent_id');
+        let id = localStorage.getItem('ungana_respondent_id');
         if (!id) {
             id = `user_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
-            localStorage.setItem('synapsis_respondent_id', id);
+            localStorage.setItem('ungana_respondent_id', id);
         }
         setRespondentId(id);
     }, []);

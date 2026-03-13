@@ -149,6 +149,12 @@ export const App: React.FC = () => {
             if (!localStorage.getItem('ungana_generation_count') && localStorage.getItem('synapsis_generation_count')) {
                 localStorage.setItem('ungana_generation_count', localStorage.getItem('synapsis_generation_count')!);
             }
+            if (!localStorage.getItem('ungana_dismissed_tips') && localStorage.getItem('synapsis_dismissed_tips')) {
+                localStorage.setItem('ungana_dismissed_tips', localStorage.getItem('synapsis_dismissed_tips')!);
+            }
+            if (!localStorage.getItem('ungana_respondent_id') && localStorage.getItem('synapsis_respondent_id')) {
+                localStorage.setItem('ungana_respondent_id', localStorage.getItem('synapsis_respondent_id')!);
+            }
             document.title = "Ungana Medical";
         } catch (e) {
             console.error("Migration error:", e);

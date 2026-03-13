@@ -53,7 +53,7 @@ export const TipsCarousel: React.FC<TipsCarouselProps> = ({ interactionState, T 
 
     useEffect(() => {
         try {
-            const storedDismissed = localStorage.getItem('synapsis_dismissed_tips');
+            const storedDismissed = localStorage.getItem('ungana_dismissed_tips');
             if (storedDismissed) {
                 setDismissedTips(JSON.parse(storedDismissed));
             }
@@ -73,7 +73,7 @@ export const TipsCarousel: React.FC<TipsCarouselProps> = ({ interactionState, T 
     const handleDismissTip = (tipId: string) => {
         const newDismissed = [...dismissedTips, tipId];
         setDismissedTips(newDismissed);
-        localStorage.setItem('synapsis_dismissed_tips', JSON.stringify(newDismissed));
+        localStorage.setItem('ungana_dismissed_tips', JSON.stringify(newDismissed));
         if (activeTips.length <= 1) {
             setIsVisible(false);
         }
