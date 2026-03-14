@@ -3,7 +3,8 @@ import { GoogleGenAI, Type, GenerateContentResponse, Modality, ThinkingLevel } f
 import type { PatientCase, KnowledgeMapData, KnowledgeNode, KnowledgeLink, TraceableEvidence, FurtherReading, DiagramData, EcgFindings } from '../types';
 
 const getAiClient = () => {
-    return new GoogleGenAI({ apiKey: process.env.API_KEY });
+    const apiKey = process.env.GEMINI_API_KEY || process.env.API_KEY;
+    return new GoogleGenAI({ apiKey: apiKey || '' });
 };
 
 export async function retryWithBackoff<T>(
@@ -325,13 +326,18 @@ export const generateFullCase = async (condition: string, discipline: string, di
         }
     });
 
-    const { knowledgeMap, ...patientCase } = data;
+    const { knowledgeMap = { nodes: [], links: [] }, ...patientCaseData } = data;
     
     // Validate knowledge map links
-    const validNodeIds = new Set(knowledgeMap.nodes?.map((n: any) => n.id) || []);
-    knowledgeMap.links = (knowledgeMap.links || []).filter((l: any) => validNodeIds.has(l.source) && validNodeIds.has(l.target));
+    const nodes = knowledgeMap.nodes || [];
+    const links = knowledgeMap.links || [];
+    const validNodeIds = new Set(nodes.map((n: any) => n.id));
+    const validLinks = links.filter((l: any) => validNodeIds.has(l.source) && validNodeIds.has(l.target));
 
-    return { patientCase: patientCase as PatientCase, knowledgeMap: knowledgeMap as KnowledgeMapData };
+    const finalMap = { nodes, links: validLinks };
+    const patientCase = { ...patientCaseData, knowledgeMap: finalMap } as PatientCase;
+
+    return { patientCase, knowledgeMap: finalMap as KnowledgeMapData };
 };
 
 export const generateEvidenceAndQuiz = async (condition: string, discipline: string, difficulty: string, language: string) => {

@@ -4,7 +4,7 @@ self.addEventListener('message', event => {
   }
 });
 
-const CACHE_NAME = 'ungana-cache-v35';
+const CACHE_NAME = 'ungana-cache-v36';
 const URLS_TO_CACHE = [
   '/',
   '/index.html',
@@ -21,7 +21,7 @@ self.addEventListener('install', event => {
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then(cache => {
-        console.log('Opened cache and caching Ungana app shell v35');
+        console.log('Opened cache and caching Ungana app shell v36');
         return cache.addAll(URLS_TO_CACHE);
       })
   );

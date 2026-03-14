@@ -200,25 +200,26 @@ export const KnowledgeMap = forwardRef<any, KnowledgeMapProps>(({ data, onNodeCl
     const [hoveredNode, setHoveredNode] = useState<{ node: KnowledgeNode; position: { x: number; y: number } } | null>(null);
     const [hoveredLink, setHoveredLink] = useState<KnowledgeLink | null>(null);
     
-    const nodes = useMemo(() => data.nodes.map(n => ({ ...n })), [data.nodes]);
-    const links = useMemo(() => data.links.map(l => ({ ...l })), [data.links]);
+    const nodes = useMemo(() => (data?.nodes || []).map(n => ({ ...n })), [data?.nodes]);
+    const links = useMemo(() => (data?.links || []).map(l => ({ ...l })), [data?.links]);
 
     useImperativeHandle(ref, () => ({ async captureAsImage() { if (svgRef.current) return await svgToDataURL(svgRef.current); return ''; } }));
     
     const resetZoom = useCallback(() => {
-        if (!svgRef.current || !gRef.current || !containerRef.current || !zoomRef.current) return;
+        if (!svgRef.current || !gRef.current || !containerRef.current || !zoomRef.current || typeof d3 === 'undefined') return;
         const svg = d3.select(svgRef.current);
         const g = gRef.current;
         const bounds = g.node().getBBox();
         const { width, height } = containerRef.current.getBoundingClientRect();
-        if (bounds.width === 0 || bounds.height === 0) return;
+        if (bounds.width === 0 || bounds.height === 0 || width === 0 || height === 0) return;
         const scale = Math.min(1.2, 0.85 / Math.max(bounds.width / width, bounds.height / height));
+        if (isNaN(scale) || !isFinite(scale)) return;
         const transform = d3.zoomIdentity.translate(width / 2 - scale * (bounds.x + bounds.width / 2), height / 2 - scale * (bounds.y + bounds.height / 2)).scale(scale);
         svg.transition().duration(750).call(zoomRef.current.transform, transform);
     }, []);
 
     useEffect(() => {
-        if (!containerRef.current) return;
+        if (!containerRef.current || typeof d3 === 'undefined') return;
         const observer = new ResizeObserver(() => {
             window.requestAnimationFrame(() => {
                 if (svgRef.current && gRef.current && !isLoading) {
@@ -235,7 +236,14 @@ export const KnowledgeMap = forwardRef<any, KnowledgeMapProps>(({ data, onNodeCl
     }, [isLoading]);
 
     useEffect(() => {
-        if (!svgRef.current || !containerRef.current) return;
+        if (!svgRef.current || !containerRef.current || typeof d3 === 'undefined') return;
+        
+        if (!nodes || nodes.length === 0) {
+            console.warn('No nodes provided to KnowledgeMap.');
+            setIsLoading(false);
+            return;
+        }
+
         setIsLoading(true);
         const svg = d3.select(svgRef.current);
         svg.selectAll('*').remove();
@@ -263,7 +271,12 @@ export const KnowledgeMap = forwardRef<any, KnowledgeMapProps>(({ data, onNodeCl
             .force('center', d3.forceCenter(width / 2, height / 2))
             .force('collide', d3.forceCollide().radius(120).iterations(2))
             .velocityDecay(0.4)
-            .on('end', () => { setIsLoading(false); resetZoom(); });
+            .on('tick.loading', () => {
+                setIsLoading(false);
+                resetZoom();
+                simulationRef.current.on('tick.loading', null);
+            })
+            .on('end', () => { resetZoom(); });
 
         const linkPaths = g.append("g").selectAll("path").data(links).join("path")
             .attr("fill", "none")
@@ -349,11 +362,44 @@ export const KnowledgeMap = forwardRef<any, KnowledgeMapProps>(({ data, onNodeCl
         return () => simulationRef.current.stop();
     }, [data, nodes, links, onNodeClick, resetZoom]);
 
+    if (typeof d3 === 'undefined') {
+        return (
+            <div className="w-full h-full flex flex-col items-center justify-center bg-slate-50 dark:bg-slate-900 p-8 text-center">
+                <Network className="h-12 w-12 text-red-400 mb-4" />
+                <h3 className="font-black text-gray-900 dark:text-white mb-2">Visualization Error</h3>
+                <p className="text-sm text-gray-500 dark:text-slate-400 max-w-xs">
+                    The knowledge map engine (D3.js) failed to load. Please check your internet connection and refresh the page.
+                </p>
+                <button 
+                    onClick={() => window.location.reload()}
+                    className="mt-6 px-6 py-2 bg-brand-blue text-white rounded-xl font-bold text-sm hover:bg-blue-800 transition-all"
+                >
+                    Refresh Page
+                </button>
+            </div>
+        );
+    }
+
     return (
         <div ref={containerRef} className={`w-full h-full bg-slate-50 dark:bg-slate-900 shadow-inner border border-gray-200 dark:border-dark-border overflow-hidden transition-colors duration-300 ${isMapFullscreen ? 'fixed inset-0 z-40' : 'relative rounded-xl'}`}>
             {isLoading && <div className="absolute inset-0 z-20 flex items-center justify-center bg-slate-50/50 dark:bg-dark-bg/50 backdrop-blur-sm"><LoadingSpinner /></div>}
             <svg ref={svgRef} className="w-full h-full touch-none" onClick={onClearSelection}></svg>
-            <MapControls onZoomIn={() => zoomRef.current && d3.select(svgRef.current).transition().call(zoomRef.current.scaleBy, 1.3)} onZoomOut={() => zoomRef.current && d3.select(svgRef.current).transition().call(zoomRef.current.scaleBy, 0.7)} onReset={resetZoom} onToggleFullscreen={() => setIsMapFullscreen(!isMapFullscreen)} onSaveMap={onSaveMap} isFullscreen={isMapFullscreen} />
+            <MapControls 
+                onZoomIn={() => {
+                    if (typeof d3 !== 'undefined' && zoomRef.current && svgRef.current) {
+                        d3.select(svgRef.current).transition().call(zoomRef.current.scaleBy, 1.3);
+                    }
+                }} 
+                onZoomOut={() => {
+                    if (typeof d3 !== 'undefined' && zoomRef.current && svgRef.current) {
+                        d3.select(svgRef.current).transition().call(zoomRef.current.scaleBy, 0.7);
+                    }
+                }} 
+                onReset={resetZoom} 
+                onToggleFullscreen={() => setIsMapFullscreen(!isMapFullscreen)} 
+                onSaveMap={onSaveMap} 
+                isFullscreen={isMapFullscreen} 
+            />
             <NodeTooltip node={hoveredNode?.node || null} position={hoveredNode?.position || null} />
             
             {hoveredLink && (

@@ -115,6 +115,7 @@ export interface PatientCase {
   furtherReadings?: FurtherReading[];
   quiz?: QuizQuestion[];
   groundingSources?: any[];
+  knowledgeMap?: KnowledgeMapData;
   // Map of discussion topic IDs to array of chat messages
   discussions?: Record<string, ChatMessage[]>;
 }

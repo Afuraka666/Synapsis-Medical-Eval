@@ -200,8 +200,9 @@ export const App: React.FC = () => {
             setLoadingMessage('Loading shared case...');
             decodeAndDecompress(caseDataParam).then(decodedCase => {
                 if (decodedCase) {
-                    setPatientCase(decodedCase as PatientCase);
-                    setMapData(null); 
+                    const pc = decodedCase as PatientCase;
+                    setPatientCase(pc);
+                    setMapData(pc.knowledgeMap || null); 
                 } else {
                     setError('Failed to load the shared case. The link might be invalid.');
                 }
@@ -300,11 +301,18 @@ export const App: React.FC = () => {
     
     const handleClearNodeSelection = useCallback(() => setSelectedNodeInfo(null), []);
     
+    const generateId = () => {
+        if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+            return crypto.randomUUID();
+        }
+        return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+    };
+
     const handleSaveCase = () => {
         if (!patientCase || !mapData) return;
         logEvent('save_case', { case_title: patientCase.title });
         
-        const caseId = patientCase.id || crypto.randomUUID();
+        const caseId = patientCase.id || generateId();
         const newSavedCase: SavedCase = {
             id: caseId,
             title: patientCase.title,
@@ -351,7 +359,7 @@ export const App: React.FC = () => {
     const handleSaveSnippet = (title: string, content: string, visualData?: Partial<Snippet>) => {
         logEvent('save_snippet', { snippet_title: title });
         const newSnippet: Snippet = {
-            id: crypto.randomUUID(),
+            id: generateId(),
             title,
             content,
             savedAt: new Date().toISOString(),
