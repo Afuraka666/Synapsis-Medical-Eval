@@ -308,13 +308,18 @@ export const generateFullCase = async (condition: string, discipline: string, di
 
     const data = await retryWithBackoff(async () => {
         const response: GenerateContentResponse = await ai.models.generateContent({
-            model: FAST_MODEL,
+            model: PRO_MODEL,
             contents: prompt,
             config: { 
                 responseMimeType: "application/json", 
                 responseSchema: fullCaseSchema
             },
         });
+
+        const finishReason = response.candidates?.[0]?.finishReason;
+        if (finishReason !== 'STOP') {
+            console.warn("generateFullCase finished with reason:", finishReason);
+        }
 
         const text = response.text || "{}";
         try {
@@ -358,7 +363,7 @@ export const generateEvidenceAndQuiz = async (condition: string, discipline: str
     try {
         const result = await retryWithBackoff(async () => {
             const response: GenerateContentResponse = await ai.models.generateContent({
-                model: FAST_MODEL,
+                model: PRO_MODEL,
                 contents: prompt,
                 config: { 
                     responseMimeType: "application/json", 
@@ -366,6 +371,12 @@ export const generateEvidenceAndQuiz = async (condition: string, discipline: str
                     tools: [{ googleSearch: {} }]
                 },
             });
+
+            const finishReason = response.candidates?.[0]?.finishReason;
+            if (finishReason !== 'STOP') {
+                console.warn("generateEvidenceAndQuiz finished with reason:", finishReason);
+            }
+
             const text = response.text || "{}";
             try {
                 const data = JSON.parse(extractJson(text));
@@ -476,14 +487,20 @@ export const getConceptConnectionExplanation = async (conceptA: string, conceptB
 export const generateDiagramForDiscussion = async (prompt: string, chatContext: string, language: string): Promise<DiagramData> => {
     const ai = getAiClient();
     const response: GenerateContentResponse = await retryWithBackoff(() => ai.models.generateContent({
-        model: FAST_MODEL,
+        model: PRO_MODEL,
         contents: `Diagram JSON for: "${prompt}". Context: ${chatContext}. Language: ${language}.`,
         config: { 
             responseMimeType: "application/json", 
             responseSchema: diagramDataSchema
         },
     }));
-    const rawData = JSON.parse(response.text || "{}");
+
+    const finishReason = response.candidates?.[0]?.finishReason;
+    if (finishReason !== 'STOP') {
+        console.warn("generateDiagramForDiscussion finished with reason:", finishReason);
+    }
+
+    const rawData = JSON.parse(extractJson(response.text || "{}"));
     return (rawData as DiagramData) || { nodes: [], links: [] };
 };
 
@@ -496,13 +513,19 @@ export const enrichCaseWithWebSources = async (patientCase: PatientCase, languag
     Language: ${language}. JSON.`;
     
     const response: GenerateContentResponse = await retryWithBackoff(() => ai.models.generateContent({
-        model: FAST_MODEL, // Switched to FAST_MODEL for speed
+        model: PRO_MODEL,
         contents: prompt,
         config: { 
             tools: [{ googleSearch: {} }], 
             temperature: 0.2
         },
     }));
+
+    const finishReason = response.candidates?.[0]?.finishReason;
+    if (finishReason !== 'STOP') {
+        console.warn("enrichCaseWithWebSources finished with reason:", finishReason);
+    }
+
     const text = extractJson(response.text || "{}");
     const parsedData = JSON.parse(text);
     return { 
