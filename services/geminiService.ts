@@ -312,8 +312,7 @@ export const generateFullCase = async (condition: string, discipline: string, di
             contents: prompt,
             config: { 
                 responseMimeType: "application/json", 
-                responseSchema: fullCaseSchema,
-                maxOutputTokens: 4096
+                responseSchema: fullCaseSchema
             },
         });
 
@@ -364,7 +363,6 @@ export const generateEvidenceAndQuiz = async (condition: string, discipline: str
                 config: { 
                     responseMimeType: "application/json", 
                     responseSchema: evidenceAndQuizSchema,
-                    maxOutputTokens: 4096,
                     tools: [{ googleSearch: {} }]
                 },
             });
@@ -400,8 +398,7 @@ export const searchForSource = async (sourceQuery: string, language: string): Pr
         contents: prompt,
         config: { 
             tools: [{ googleSearch: {} }], 
-            temperature: 0.1, 
-            maxOutputTokens: 2048 
+            temperature: 0.1
         },
     }));
     return { summary: response.text || "", sources: response.candidates?.[0]?.groundingMetadata?.groundingChunks || [] };
@@ -414,8 +411,7 @@ export const interpretEcg = async (findings: EcgFindings, imageBase64: string | 
     if (imageBase64 && imageMimeType) contentParts.push({ inlineData: { data: imageBase64, mimeType: imageMimeType } });
     const response: GenerateContentResponse = await retryWithBackoff(() => ai.models.generateContent({
         model: FAST_MODEL,
-        contents: { parts: contentParts },
-        config: { maxOutputTokens: 2048 }
+        contents: { parts: contentParts }
     }));
     return response.text || "";
 };
@@ -437,8 +433,7 @@ export const checkDrugInteractions = async (drugNames: string[], language: strin
     const prompt = `Drug interactions for: ${drugNames.join(', ')}. Language: ${language}.`;
     const response: GenerateContentResponse = await retryWithBackoff(() => ai.models.generateContent({
         model: FAST_MODEL,
-        contents: prompt,
-        config: { maxOutputTokens: 2048 }
+        contents: prompt
     }));
     return response.text || "";
 };
@@ -463,8 +458,7 @@ export const getConceptAbstract = async (concept: string, caseContext: string, l
     const prompt = `Significance: "${concept}" in context of "${caseContext}". 50 words. Language: ${language}.`;
     const response: GenerateContentResponse = await retryWithBackoff(() => ai.models.generateContent({
         model: FAST_MODEL,
-        contents: prompt,
-        config: { maxOutputTokens: 1024 }
+        contents: prompt
     }));
     return response.text || "";
 };
@@ -474,8 +468,7 @@ export const getConceptConnectionExplanation = async (conceptA: string, conceptB
     const prompt = `Connection: "${conceptA}" and "${conceptB}" in "${caseContext}". 3 sentences. Language: ${language}.`;
     const response: GenerateContentResponse = await retryWithBackoff(() => ai.models.generateContent({
         model: FAST_MODEL,
-        contents: prompt,
-        config: { maxOutputTokens: 1024 }
+        contents: prompt
     }));
     return response.text || "";
 };
@@ -487,8 +480,7 @@ export const generateDiagramForDiscussion = async (prompt: string, chatContext: 
         contents: `Diagram JSON for: "${prompt}". Context: ${chatContext}. Language: ${language}.`,
         config: { 
             responseMimeType: "application/json", 
-            responseSchema: diagramDataSchema,
-            maxOutputTokens: 2048
+            responseSchema: diagramDataSchema
         },
     }));
     const rawData = JSON.parse(response.text || "{}");
@@ -508,8 +500,7 @@ export const enrichCaseWithWebSources = async (patientCase: PatientCase, languag
         contents: prompt,
         config: { 
             tools: [{ googleSearch: {} }], 
-            temperature: 0.2, 
-            maxOutputTokens: 4096 
+            temperature: 0.2
         },
     }));
     const text = extractJson(response.text || "{}");
