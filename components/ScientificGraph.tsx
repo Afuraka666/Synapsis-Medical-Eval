@@ -25,15 +25,22 @@ export const ScientificGraph: React.FC<ScientificGraphProps> = ({ type, title, c
         const rect = containerRef.current.getBoundingClientRect();
         if (rect.width === 0) return;
 
-        const margin = { top: 60, right: 60, bottom: 60, left: 75 };
+        const isMobile = rect.width < 640;
+        const margin = isMobile 
+            ? { top: 50, right: 20, bottom: 50, left: 50 }
+            : { top: 60, right: 60, bottom: 60, left: 75 };
+            
         const width = rect.width - margin.left - margin.right;
-        const height = 400 - margin.top - margin.bottom;
+        const height = (isMobile ? 300 : 400) - margin.top - margin.bottom;
 
         if (width <= 0 || height <= 0) return;
 
         const isDark = document.documentElement.classList.contains('dark');
         const textColor = isDark ? '#f1f5f9' : '#0f172a';
         const gridColor = isDark ? '#334155' : '#cbd5e1';
+        const labelFontSize = isMobile ? '10px' : '13px';
+        const axisFontSize = isMobile ? '10px' : '12px';
+        const titleFontSize = isMobile ? '16px' : '20px';
 
         const svg = container.append('svg')
             .attr('width', width + margin.left + margin.right)
@@ -47,22 +54,23 @@ export const ScientificGraph: React.FC<ScientificGraphProps> = ({ type, title, c
 
         // Tooltip Marker Helper
         const addMarker = (xVal: number, yVal: number, color: string, infoTitle: string, infoDesc: string) => {
+            const markerSize = isMobile ? 8 : 10;
             const marker = svg.append('g')
                 .attr('class', 'info-marker cursor-help transition-all')
                 .attr('transform', `translate(${x(xVal)}, ${y(yVal)})`);
 
             marker.append('circle')
-                .attr('r', 10)
+                .attr('r', markerSize)
                 .attr('fill', color)
                 .attr('stroke', '#fff')
-                .attr('stroke-width', 2.5)
+                .attr('stroke-width', isMobile ? 1.5 : 2.5)
                 .attr('filter', 'drop-shadow(0px 2px 4px rgba(0,0,0,0.2))');
 
             marker.append('text')
                 .attr('text-anchor', 'middle')
                 .attr('dy', '0.35em')
                 .attr('fill', '#fff')
-                .attr('font-size', '12px')
+                .attr('font-size', isMobile ? '9px' : '12px')
                 .attr('font-weight', '900')
                 .text('i');
 
@@ -71,11 +79,14 @@ export const ScientificGraph: React.FC<ScientificGraphProps> = ({ type, title, c
                 .style('opacity', 0)
                 .style('pointer-events', 'none');
 
+            const tooltipWidth = isMobile ? 160 : 220;
+            const tooltipHeight = isMobile ? 80 : 100;
+
             tooltip.append('rect')
                 .attr('x', 15)
                 .attr('y', -45)
-                .attr('width', 220)
-                .attr('height', 100)
+                .attr('width', tooltipWidth)
+                .attr('height', tooltipHeight)
                 .attr('rx', 12)
                 .attr('fill', isDark ? '#1e293b' : '#ffffff')
                 .attr('stroke', color)
@@ -85,7 +96,7 @@ export const ScientificGraph: React.FC<ScientificGraphProps> = ({ type, title, c
             const text = tooltip.append('text')
                 .attr('x', 25)
                 .attr('y', -22)
-                .attr('font-size', '13px')
+                .attr('font-size', isMobile ? '11px' : '13px')
                 .attr('fill', textColor);
 
             text.append('tspan')
@@ -104,10 +115,10 @@ export const ScientificGraph: React.FC<ScientificGraphProps> = ({ type, title, c
             });
 
             marker.on('mouseenter', function() {
-                d3.select(this).select('circle').transition().duration(200).attr('r', 12).attr('stroke-width', 3);
+                d3.select(this).select('circle').transition().duration(200).attr('r', markerSize + 2).attr('stroke-width', isMobile ? 2 : 3);
                 tooltip.transition().duration(300).style('opacity', 1).attr('transform', 'translate(8, 0)');
             }).on('mouseleave', function() {
-                d3.select(this).select('circle').transition().duration(200).attr('r', 10).attr('stroke-width', 2.5);
+                d3.select(this).select('circle').transition().duration(200).attr('r', markerSize).attr('stroke-width', isMobile ? 1.5 : 2.5);
                 tooltip.transition().duration(300).style('opacity', 0).attr('transform', 'translate(0, 0)');
             });
         };
@@ -264,18 +275,18 @@ export const ScientificGraph: React.FC<ScientificGraphProps> = ({ type, title, c
         }
 
         // --- AXES & GRID ---
-        svg.append('g').attr('class', 'grid').attr('transform', `translate(0,${height})`).call(d3.axisBottom(x).ticks(8).tickSize(-height).tickFormat('')).attr('stroke', gridColor).attr('stroke-opacity', 0.1);
-        svg.append('g').attr('class', 'grid').call(d3.axisLeft(y).ticks(8).tickSize(-width).tickFormat('')).attr('stroke', gridColor).attr('stroke-opacity', 0.1);
+        svg.append('g').attr('class', 'grid').attr('transform', `translate(0,${height})`).call(d3.axisBottom(x).ticks(isMobile ? 5 : 8).tickSize(-height).tickFormat('')).attr('stroke', gridColor).attr('stroke-opacity', 0.1);
+        svg.append('g').attr('class', 'grid').call(d3.axisLeft(y).ticks(isMobile ? 5 : 8).tickSize(-width).tickFormat('')).attr('stroke', gridColor).attr('stroke-opacity', 0.1);
         
-        const xAxis = svg.append('g').attr('transform', `translate(0,${height})`).call(d3.axisBottom(x).ticks(8));
-        xAxis.selectAll('text').attr('fill', textColor).attr('font-size', '12px').attr('font-weight', '600');
+        const xAxis = svg.append('g').attr('transform', `translate(0,${height})`).call(d3.axisBottom(x).ticks(isMobile ? 5 : 8));
+        xAxis.selectAll('text').attr('fill', textColor).attr('font-size', axisFontSize).attr('font-weight', '600');
         
-        const yAxis = svg.append('g').call(d3.axisLeft(y).ticks(8));
-        yAxis.selectAll('text').attr('fill', textColor).attr('font-size', '12px').attr('font-weight', '600');
+        const yAxis = svg.append('g').call(d3.axisLeft(y).ticks(isMobile ? 5 : 8));
+        yAxis.selectAll('text').attr('fill', textColor).attr('font-size', axisFontSize).attr('font-weight', '600');
 
-        svg.append('text').attr('x', width/2).attr('y', height + 45).attr('text-anchor', 'middle').attr('fill', textColor).attr('font-weight', '900').attr('font-size', '13px').attr('text-transform', 'uppercase').attr('letter-spacing', '0.08em').text(xLabel);
-        svg.append('text').attr('transform', 'rotate(-90)').attr('y', -60).attr('x', -height/2).attr('text-anchor', 'middle').attr('fill', textColor).attr('font-weight', '900').attr('font-size', '13px').attr('text-transform', 'uppercase').attr('letter-spacing', '0.08em').text(yLabel);
-        svg.append('text').attr('x', width / 2).attr('y', -30).attr('text-anchor', 'middle').attr('font-weight', '900').attr('fill', textColor).attr('font-size', '20px').attr('letter-spacing', '-0.03em').text(title);
+        svg.append('text').attr('x', width/2).attr('y', height + (isMobile ? 35 : 45)).attr('text-anchor', 'middle').attr('fill', textColor).attr('font-weight', '900').attr('font-size', labelFontSize).attr('text-transform', 'uppercase').attr('letter-spacing', '0.08em').text(xLabel);
+        svg.append('text').attr('transform', 'rotate(-90)').attr('y', isMobile ? -35 : -60).attr('x', -height/2).attr('text-anchor', 'middle').attr('fill', textColor).attr('font-weight', '900').attr('font-size', labelFontSize).attr('text-transform', 'uppercase').attr('letter-spacing', '0.08em').text(yLabel);
+        svg.append('text').attr('x', width / 2).attr('y', -30).attr('text-anchor', 'middle').attr('font-weight', '900').attr('fill', textColor).attr('font-size', titleFontSize).attr('letter-spacing', '-0.03em').text(title);
 
         // --- INTERACTIVE CROSSHAIR ---
         const focus = svg.append('g').style('display', 'none');

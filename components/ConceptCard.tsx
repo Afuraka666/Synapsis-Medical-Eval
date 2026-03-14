@@ -27,7 +27,7 @@ export const ConceptCard: React.FC<ConceptCardProps> = ({ nodeInfo, onClose, onD
   const color = DisciplineColors[node.discipline] || '#6b7280';
   
   return (
-    <div className="absolute top-4 right-4 w-11/12 max-w-sm sm:w-80 medical-card p-6 animate-fade-in z-10">
+    <div className="absolute top-4 left-1/2 -translate-x-1/2 sm:left-auto sm:translate-x-0 sm:right-4 w-[calc(100%-2rem)] max-w-sm sm:w-80 medical-card p-4 sm:p-6 animate-fade-in z-10">
       <div className="flex justify-between items-start mb-4">
         <div className="flex-1">
           <div className="flex items-center gap-2 mb-2">

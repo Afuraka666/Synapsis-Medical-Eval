@@ -114,6 +114,22 @@ export const App: React.FC = () => {
     const [mobileView, setMobileView] = useState<'case' | 'map'>('case');
     const caseScrollRef = useRef<HTMLDivElement>(null);
 
+    // Automatically detect screen size and adjust layout state
+    useEffect(() => {
+        const handleResize = () => {
+            if (window.innerWidth >= 1024) {
+                setMobileView('case');
+                setIsMapFullscreen(false);
+            }
+        };
+        
+        // Initial check
+        handleResize();
+        
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
+
     const T = useMemo(() => {
         const selectedTranslation = translations[language];
         if (!selectedTranslation) return translations.en;
@@ -434,9 +450,9 @@ export const App: React.FC = () => {
                 className="sticky top-0 z-30"
             />
             
-            <main className="flex-grow p-1.5 sm:p-3 overflow-hidden relative flex flex-col">
+            <main className="flex-grow p-2 sm:p-4 overflow-hidden relative flex flex-col">
                 <div className="max-w-7xl mx-auto w-full h-full flex flex-col min-h-0">
-                    <div className="flex-shrink-0 mb-2 sm:mb-4">
+                    <div className="flex-shrink-0 mb-3 sm:mb-4">
                         <ControlPanel
                             onGenerate={handleGenerate}
                             disabled={isLoading || isGeneratingDetails}
@@ -452,18 +468,18 @@ export const App: React.FC = () => {
                         />
                     </div>
 
-                    <div className="hidden md:block flex-shrink-0 mb-2 sm:mb-4">
+                    <div className="hidden md:block flex-shrink-0 mb-4">
                         <TipsCarousel interactionState={interactionState} T={T} />
                     </div>
                     
                     {patientCase ? (
-                        <div className="flex-grow min-h-0 relative flex flex-col">
+                        <div className="flex-grow min-h-0 relative flex flex-col overflow-hidden">
                             <div 
-                                className="flex flex-grow w-full transition-transform duration-300 ease-in-out lg:transform-none lg:flex-row lg:gap-4 min-h-0"
+                                className="flex flex-grow w-full transition-transform duration-500 ease-in-out lg:transform-none lg:flex-row lg:gap-4 min-h-0"
                                 style={{ transform: `translateX(${mobileView === 'map' ? '-100%' : '0%'})` }}
                             >
                                 <div className="w-full flex-shrink-0 h-full lg:w-[62%] lg:flex-shrink min-h-0 flex flex-col">
-                                    <div ref={caseScrollRef} className="flex-grow overflow-y-auto bg-white dark:bg-dark-surface rounded-lg shadow-lg border border-gray-200 dark:border-dark-border">
+                                    <div ref={caseScrollRef} className="flex-grow overflow-y-auto bg-white dark:bg-dark-surface rounded-2xl shadow-lg border border-gray-200 dark:border-dark-border">
                                         <PatientCaseView
                                             patientCase={patientCase}
                                             isGeneratingDetails={isGeneratingDetails}
@@ -497,7 +513,7 @@ export const App: React.FC = () => {
                                             />
                                         </div>
                                     ) : isGeneratingDetails ? (
-                                        <div className="w-full h-full flex items-center justify-center bg-white dark:bg-dark-surface rounded-lg shadow-lg border border-gray-200 dark:border-dark-border p-8 text-center text-dark-text">
+                                        <div className="w-full h-full flex items-center justify-center bg-white dark:bg-dark-surface rounded-2xl shadow-lg border border-gray-200 dark:border-dark-border p-8 text-center text-dark-text">
                                             <LoadingOverlay message={T.buildingMapMessage} subMessages={[]} />
                                         </div>
                                     ) : null}
@@ -505,15 +521,17 @@ export const App: React.FC = () => {
                             </div>
                         </div>
                     ) : (
-                        !isLoading && <WelcomeScreen 
-                                        T={T} 
-                                        onOpenSavedWork={() => setIsSavedWorkOpen(true)}
-                                        onOpenClinicalTools={() => setIsClinicalToolsOpen(true)}
-                                      />
+                        !isLoading && <div className="flex-grow overflow-y-auto px-1">
+                            <WelcomeScreen 
+                                T={T} 
+                                onOpenSavedWork={() => setIsSavedWorkOpen(true)}
+                                onOpenClinicalTools={() => setIsClinicalToolsOpen(true)}
+                            />
+                        </div>
                     )}
 
                     {isLoading && <LoadingOverlay message={loadingMessage} subMessages={T.loadingSubMessages} />}
-                    {error && <ErrorDisplay message={error} />}
+                    {error && <div className="mt-4"><ErrorDisplay message={error} /></div>}
                 </div>
             </main>
             

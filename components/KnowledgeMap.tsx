@@ -261,15 +261,21 @@ export const KnowledgeMap = forwardRef<any, KnowledgeMapProps>(({ data, onNodeCl
             .attr('fill', '#94a3b8');
 
         const { width, height } = containerRef.current.getBoundingClientRect();
+        const isMobile = width < 640;
+        
         const g = svg.append('g'); gRef.current = g;
         const zoom = d3.zoom().scaleExtent([0.1, 4]).on('zoom', (event: any) => g.attr('transform', event.transform));
         zoomRef.current = zoom; svg.call(zoom);
         
+        const linkDistance = isMobile ? 120 : 220;
+        const chargeStrength = isMobile ? -1200 : -2500;
+        const collideRadius = isMobile ? 80 : 120;
+
         simulationRef.current = d3.forceSimulation(nodes)
-            .force('link', d3.forceLink(links).id((d: any) => d.id).distance(220).strength(0.6))
-            .force('charge', d3.forceManyBody().strength(-2500))
+            .force('link', d3.forceLink(links).id((d: any) => d.id).distance(linkDistance).strength(0.6))
+            .force('charge', d3.forceManyBody().strength(chargeStrength))
             .force('center', d3.forceCenter(width / 2, height / 2))
-            .force('collide', d3.forceCollide().radius(120).iterations(2))
+            .force('collide', d3.forceCollide().radius(collideRadius).iterations(2))
             .velocityDecay(0.4)
             .on('tick.loading', () => {
                 setIsLoading(false);
@@ -319,15 +325,15 @@ export const KnowledgeMap = forwardRef<any, KnowledgeMapProps>(({ data, onNodeCl
         node.append('text')
             .text((d: any) => d.label)
             .attr("font-family", "Inter, sans-serif")
-            .attr('font-size', '13px')
+            .attr('font-size', isMobile ? '11px' : '13px')
             .attr('font-weight', '800')
             .attr('fill', '#ffffff')
             .attr('text-anchor', 'middle')
             .attr('dy', '0.15em')
             .each(function(d: any) { 
                 const bbox = (this as any).getBBox(); 
-                d.pillWidth = Math.max(120, bbox.width + 40); 
-                d.pillHeight = 46; 
+                d.pillWidth = Math.max(isMobile ? 90 : 120, bbox.width + (isMobile ? 24 : 40)); 
+                d.pillHeight = isMobile ? 36 : 46; 
             });
 
         node.select('rect')
@@ -338,13 +344,13 @@ export const KnowledgeMap = forwardRef<any, KnowledgeMapProps>(({ data, onNodeCl
 
         node.append('text')
             .text((d: any) => (d.discipline || '').toUpperCase())
-            .attr('font-size', '8px')
+            .attr('font-size', isMobile ? '7px' : '8px')
             .attr('font-weight', '900')
             .attr('fill', '#ffffff')
             .attr('opacity', 0.9)
             .attr('letter-spacing', '0.08em')
             .attr('text-anchor', 'middle')
-            .attr('dy', '1.6em');
+            .attr('dy', isMobile ? '1.8em' : '1.6em');
 
         simulationRef.current.on('tick', () => { 
             linkPaths.attr('d', (d: any) => {

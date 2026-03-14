@@ -512,19 +512,19 @@ export const DiscussionModal: React.FC<DiscussionModalProps> = ({
 
     return (
         <div className={`fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fade-in ${isFullscreen ? 'bg-white dark:bg-dark-bg' : ''}`} aria-modal="true" role="dialog">
-            <div className={`bg-white dark:bg-dark-surface flex flex-col transition-all duration-300 ${isFullscreen ? 'w-full h-full rounded-none' : 'medical-card w-full max-w-lg h-[90vh] sm:h-[85vh]'}`}>
-                <header className={`p-4 border-b border-gray-100 dark:border-dark-border bg-white/80 dark:bg-dark-surface/80 backdrop-blur-md z-10 transition-colors ${isFullscreen ? 'rounded-none' : 'rounded-t-2xl'}`}>
+            <div className={`bg-white dark:bg-dark-surface flex flex-col transition-all duration-300 ${isFullscreen ? 'w-full h-full rounded-none' : 'medical-card w-full max-w-lg h-[90dvh] sm:h-[85dvh]'}`}>
+                <header className={`p-3 sm:p-4 border-b border-gray-100 dark:border-dark-border bg-white/80 dark:bg-dark-surface/80 backdrop-blur-md z-10 transition-colors ${isFullscreen ? 'rounded-none' : 'rounded-t-2xl'}`}>
                     <div className="flex justify-between items-center">
-                        <div className="flex flex-col min-w-0 pr-4">
+                        <div className="flex flex-col min-w-0 pr-2 sm:pr-4">
                             <div className="flex items-center gap-2 mb-1">
                                 <Activity className="w-3 h-3 text-brand-blue" />
                                 <h2 className="text-[10px] font-black text-brand-blue uppercase tracking-[0.2em] leading-none">{T.aiMedicalTutor}</h2>
                             </div>
-                            <h3 className="text-lg font-black text-gray-900 dark:text-slate-100 truncate tracking-tight">{topic.aspect}</h3>
+                            <h3 className="text-base sm:text-lg font-black text-gray-900 dark:text-slate-100 truncate tracking-tight">{topic.aspect}</h3>
                         </div>
                         <div className="flex items-center gap-1 sm:gap-2">
                              <div className="relative" ref={shareMenuRef}>
-                                <button onClick={() => setShowShareMenu(!showShareMenu)} className="p-2 text-gray-500 dark:text-gray-400 hover:text-brand-blue hover:bg-brand-blue/5 rounded-xl transition-all" title={T.exportOptions}>
+                                <button onClick={() => setShowShareMenu(!showShareMenu)} className="p-2 sm:p-2.5 text-gray-500 dark:text-gray-400 hover:text-brand-blue hover:bg-brand-blue/5 rounded-xl transition-all" title={T.exportOptions}>
                                     <Share2 className="h-5 w-5" />
                                 </button>
                                 {showShareMenu && (
@@ -546,13 +546,13 @@ export const DiscussionModal: React.FC<DiscussionModalProps> = ({
                                     </div>
                                 )}
                             </div>
-                            <button onClick={() => setIsFullscreen(!isFullscreen)} className="p-2 text-gray-500 dark:text-gray-400 hover:text-brand-blue hover:bg-brand-blue/5 rounded-xl transition-all" title={T.toggleFullscreen}>
+                            <button onClick={() => setIsFullscreen(!isFullscreen)} className="p-2 sm:p-2.5 text-gray-500 dark:text-gray-400 hover:text-brand-blue hover:bg-brand-blue/5 rounded-xl transition-all hidden sm:flex" title={T.toggleFullscreen}>
                                 {isFullscreen ? <Minimize className="h-5 w-5" /> : <Maximize className="h-5 w-5" />}
                             </button>
-                            <button onClick={() => setIsMinimised(true)} className="p-2 text-gray-500 dark:text-gray-400 hover:text-brand-blue hover:bg-brand-blue/5 rounded-xl transition-all" title={T.minimiseDiscussion}>
+                            <button onClick={() => setIsMinimised(true)} className="p-2 sm:p-2.5 text-gray-500 dark:text-gray-400 hover:text-brand-blue hover:bg-brand-blue/5 rounded-xl transition-all" title={T.minimiseDiscussion}>
                                 <Minus className="h-5 w-5" />
                             </button>
-                            <button onClick={onClose} className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all" title={T.closeTutorial}>
+                            <button onClick={onClose} className="p-2 sm:p-2.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all" title={T.closeTutorial}>
                                 <X className="w-6 h-6" />
                             </button>
                         </div>
@@ -568,8 +568,8 @@ export const DiscussionModal: React.FC<DiscussionModalProps> = ({
                             return (
                                 <div key={index} className={`msg-${index} flex items-start gap-3 ${msg.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
                                     {msg.role === 'model' && <div className="w-8 h-8 bg-brand-blue dark:bg-brand-blue-light text-white rounded-full flex items-center justify-center flex-shrink-0 text-xs font-bold shadow-sm">AI</div>}
-                                    <div className={`max-w-[85%] space-y-3 ${msg.role === 'user' ? 'items-end' : 'items-start'}`}>
-                                        <div className={`px-4 py-3 rounded-2xl text-sm shadow-sm transition-colors ${msg.role === 'user' ? 'bg-brand-blue dark:bg-brand-blue-light text-white rounded-tr-none' : msg.role === 'model' ? 'bg-white dark:bg-dark-surface text-brand-text dark:text-slate-200 border border-gray-200 dark:border-dark-border rounded-tl-none' : 'text-center w-full text-gray-500 italic bg-transparent shadow-none'}`}>
+                                    <div className={`max-w-[92%] sm:max-w-[85%] space-y-3 ${msg.role === 'user' ? 'items-end' : 'items-start'}`}>
+                                        <div className={`px-3 py-2.5 sm:px-4 sm:py-3 rounded-2xl text-sm shadow-sm transition-colors ${msg.role === 'user' ? 'bg-brand-blue dark:bg-brand-blue-light text-white rounded-tr-none' : msg.role === 'model' ? 'bg-white dark:bg-dark-surface text-brand-text dark:text-slate-200 border border-gray-200 dark:border-dark-border rounded-tl-none' : 'text-center w-full text-gray-500 italic bg-transparent shadow-none'}`}>
                                             {msg.role === 'model' ? (
                                                 <div className="space-y-2">
                                                     <MarkdownRenderer content={textWithoutTags} />
@@ -626,14 +626,14 @@ export const DiscussionModal: React.FC<DiscussionModalProps> = ({
                         <div ref={messagesEndRef} />
                     </div>
                 </main>
-                <footer className={`p-4 border-t border-gray-100 dark:border-dark-border bg-white dark:bg-dark-surface transition-colors ${isFullscreen ? 'rounded-none' : 'rounded-b-2xl'}`}>
+                <footer className={`p-3 sm:p-4 border-t border-gray-100 dark:border-dark-border bg-white dark:bg-dark-surface transition-colors ${isFullscreen ? 'rounded-none' : 'rounded-b-2xl'}`}>
                     <div className={`flex flex-col ${isFullscreen ? 'max-w-4xl mx-auto w-full' : ''}`}>
                         <form onSubmit={(e) => handleSendMessage(e)} className="flex items-center gap-2 mb-3">
                             <button 
                                 type="button" 
                                 onClick={handleMicClick} 
                                 disabled={isLoading} 
-                                className={`p-3 rounded-xl border transition-all flex items-center justify-center gap-2 ${isListening ? 'text-red-500 border-red-200 bg-red-50 animate-pulse' : 'text-gray-600 dark:text-gray-400 border-gray-200 dark:border-dark-border hover:bg-gray-50 dark:hover:bg-slate-800'}`}
+                                className={`p-2.5 sm:p-3 rounded-xl border transition-all flex items-center justify-center gap-2 ${isListening ? 'text-red-500 border-red-200 bg-red-50 animate-pulse' : 'text-gray-600 dark:text-gray-400 border-gray-200 dark:border-dark-border hover:bg-gray-50 dark:hover:bg-slate-800'}`}
                             >
                                 <AudioVisualizer isListening={isListening} />
                                 {isListening ? <MicOff className="h-5 w-5" /> : <Mic className="h-5 w-5" />}
@@ -645,12 +645,12 @@ export const DiscussionModal: React.FC<DiscussionModalProps> = ({
                                     onChange={(e) => setUserInput(e.target.value)} 
                                     placeholder={T.chatPlaceholder} 
                                     disabled={isLoading} 
-                                    className="w-full p-3 pr-12 border border-gray-200 dark:border-dark-border rounded-xl bg-gray-50 dark:bg-slate-800 text-black dark:text-white text-sm focus:ring-2 focus:ring-brand-blue/20 focus:border-brand-blue outline-none transition-all" 
+                                    className="w-full p-2.5 sm:p-3 pr-10 sm:pr-12 border border-gray-200 dark:border-dark-border rounded-xl bg-gray-50 dark:bg-slate-800 text-black dark:text-white text-sm focus:ring-2 focus:ring-brand-blue/20 focus:border-brand-blue outline-none transition-all" 
                                 />
                                 <button 
                                     type="submit" 
                                     disabled={isLoading || !userInput.trim()} 
-                                    className="absolute right-2 top-1/2 -translate-y-1/2 p-2 text-brand-blue hover:bg-brand-blue/10 rounded-lg transition-all disabled:opacity-30"
+                                    className="absolute right-1.5 sm:right-2 top-1/2 -translate-y-1/2 p-1.5 sm:p-2 text-brand-blue hover:bg-brand-blue/10 rounded-lg transition-all disabled:opacity-30"
                                 >
                                     <Send className="h-5 w-5" />
                                 </button>

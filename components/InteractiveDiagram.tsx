@@ -73,9 +73,15 @@ export const InteractiveDiagram: React.FC<InteractiveDiagramProps> = ({ data, id
     feMerge.append("feMergeNode").attr("in", "offsetBlur");
     feMerge.append("feMergeNode").attr("in", "SourceGraphic");
     
+    const isMobile = width < 640;
+    const nodeFontSize = isMobile ? "14px" : "18px";
+    const linkFontSize = isMobile ? "12px" : "16px";
+    const chargeStrength = isMobile ? -1000 : -2000;
+    const linkDistance = isMobile ? 120 : 200;
+
     simulationRef.current = d3.forceSimulation(nodes)
-      .force("link", d3.forceLink(links).id((d: any) => d.id).distance(200).strength(0.5))
-      .force("charge", d3.forceManyBody().strength(-2000))
+      .force("link", d3.forceLink(links).id((d: any) => d.id).distance(linkDistance).strength(0.5))
+      .force("charge", d3.forceManyBody().strength(chargeStrength))
       .force("center", d3.forceCenter(width / 2, height / 2))
       .force("collision", d3.forceCollide().radius(100).iterations(2));
     
@@ -86,19 +92,19 @@ export const InteractiveDiagram: React.FC<InteractiveDiagramProps> = ({ data, id
     const linkPath = linkGroup.append("path").attr("fill", "none").attr("stroke-width", 1.5).attr("stroke", "#9ca3af").attr("marker-end", `url(#arrow-diagram-${componentId})`);
     const linkLabelGroup = g.append("g").attr("class", "link-labels").selectAll("g").data(links).join("g");
     linkLabelGroup.append("rect").attr("rx", 12).attr("ry", 12).attr("fill", "white").attr("fill-opacity", 0.9).attr("stroke", "#e5e7eb").attr("stroke-width", 1);
-    linkLabelGroup.append("text").text((d: any) => d.label).attr("text-anchor", "middle").attr("dy", "0.35em").attr("font-size", "16px").attr("fill", "#4b5563").attr("font-family", "sans-serif")
-      .each(function(d: any) { const bbox = (this as any).getBBox(); d.width = bbox.width + 16; d.height = bbox.height + 10; });
+    linkLabelGroup.append("text").text((d: any) => d.label).attr("text-anchor", "middle").attr("dy", "0.35em").attr("font-size", linkFontSize).attr("fill", "#4b5563").attr("font-family", "sans-serif")
+      .each(function(d: any) { const bbox = (this as any).getBBox(); d.width = bbox.width + 12; d.height = bbox.height + 8; });
     linkLabelGroup.select("rect").attr("width", (d: any) => d.width).attr("height", (d: any) => d.height).attr("x", (d: any) => -d.width / 2).attr("y", (d: any) => -d.height / 2);
     
     const nodeGroup = g.append("g").attr("class", "nodes").selectAll("g").data(nodes).join("g").attr("cursor", "grab")
       .on("click", (event: any, d: any) => { event.stopPropagation(); setSelectedElement(d); })
       .call(d3.drag().on("start", (event: any, d: any) => { if (!event.active) simulationRef.current.alphaTarget(0.3).restart(); d.fx = d.x; d.fy = d.y; }).on("drag", (event: any, d: any) => { d.fx = event.x; d.fy = event.y; }).on("end", (event: any, d: any) => { if (!event.active) simulationRef.current.alphaTarget(0); d.fx = null; d.fy = null; }));
     nodeGroup.append("rect").attr("rx", 8).attr("ry", 8).attr("stroke", "#e5e7eb").attr("stroke-width", 1).attr("fill", "#ffffff").style("filter", `url(#drop-shadow-${componentId})`);
-    nodeGroup.append("text").text((d: any) => d.label).attr("text-anchor", "middle").attr("dy", ".35em").attr("font-size", "18px").attr("font-weight", "600").attr("fill", "#1f2937")
-      .each(function(d: any) { const bbox = (this as any).getBBox(); d.width = bbox.width + 30; d.height = bbox.height + 20; });
+    nodeGroup.append("text").text((d: any) => d.label).attr("text-anchor", "middle").attr("dy", ".35em").attr("font-size", nodeFontSize).attr("font-weight", "600").attr("fill", "#1f2937")
+      .each(function(d: any) { const bbox = (this as any).getBBox(); d.width = bbox.width + (isMobile ? 20 : 30); d.height = bbox.height + (isMobile ? 14 : 20); });
     nodeGroup.select("rect").attr("width", (d: any) => d.width).attr("height", (d: any) => d.height).attr("x", (d: any) => -d.width / 2).attr("y", (d: any) => -d.height / 2);
 
-    simulationRef.current.force("collision").radius((d: any) => (d.width || 100) / 2 + 15);
+    simulationRef.current.force("collision").radius((d: any) => (d.width || 100) / 2 + (isMobile ? 10 : 15));
     simulationRef.current.alpha(1).restart();
     zoomRef.current = d3.zoom().scaleExtent([0.2, 4]).on("zoom", (event: any) => g.attr("transform", event.transform));
     svg.call(zoomRef.current);
