@@ -210,7 +210,7 @@ export const DiscussionModal: React.FC<DiscussionModalProps> = ({
             
             Language: ${language}.`;
             
-            const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+            const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
             let chatHistory: Content[] | undefined = undefined;
             if (initialHistory && initialHistory.length > 0) {
                 setMessages(initialHistory);
@@ -221,8 +221,8 @@ export const DiscussionModal: React.FC<DiscussionModalProps> = ({
                 setIsSaved(false);
             }
             chatRef.current = ai.chats.create({
-              model: 'gemini-3-pro-preview',
-              config: { systemInstruction, thinkingConfig: { thinkingBudget: 32768 } },
+              model: 'gemini-3.1-pro-preview',
+              config: { systemInstruction },
               history: chatHistory
             });
         } else {

@@ -274,7 +274,7 @@ export const App: React.FC = () => {
             setInteractionState(prev => ({ ...prev, caseGenerated: true, caseEdited: false, caseSaved: false, nodeClicks: 0, snippetSaved: false }));
         } catch (err: any) {
             console.error("Error generating case:", err);
-            setError(T.errorService);
+            setError(T.errorService + " Details: " + (err.message || err.toString()));
             setIsLoading(false);
         } finally {
             setIsGeneratingDetails(false);

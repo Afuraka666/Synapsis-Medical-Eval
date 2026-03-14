@@ -17,6 +17,7 @@ export async function retryWithBackoff<T>(
         try {
             return await fn();
         } catch (error: any) {
+            console.error(`Attempt ${i + 1} failed:`, error);
             lastError = error;
             const status = error?.status || error?.response?.status;
             if (status !== 429 && (status < 500 || status >= 600)) {
@@ -312,8 +313,7 @@ export const generateFullCase = async (condition: string, discipline: string, di
             config: { 
                 responseMimeType: "application/json", 
                 responseSchema: fullCaseSchema,
-                maxOutputTokens: 4096,
-                thinkingConfig: { thinkingLevel: ThinkingLevel.LOW }
+                maxOutputTokens: 4096
             },
         });
 
@@ -365,7 +365,6 @@ export const generateEvidenceAndQuiz = async (condition: string, discipline: str
                     responseMimeType: "application/json", 
                     responseSchema: evidenceAndQuizSchema,
                     maxOutputTokens: 4096,
-                    thinkingConfig: { thinkingLevel: ThinkingLevel.LOW },
                     tools: [{ googleSearch: {} }]
                 },
             });
