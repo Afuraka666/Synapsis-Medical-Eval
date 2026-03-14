@@ -3,8 +3,7 @@ import { GoogleGenAI, Type, GenerateContentResponse, Modality, ThinkingLevel } f
 import type { PatientCase, KnowledgeMapData, KnowledgeNode, KnowledgeLink, TraceableEvidence, FurtherReading, DiagramData, EcgFindings } from '../types';
 
 const getAiClient = () => {
-    const apiKey = process.env.GEMINI_API_KEY || process.env.API_KEY;
-    return new GoogleGenAI({ apiKey: apiKey || '' });
+    return new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 };
 
 export async function retryWithBackoff<T>(

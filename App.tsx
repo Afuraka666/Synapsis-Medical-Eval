@@ -14,7 +14,6 @@ import { ShareModal } from './components/ShareModal';
 import { ClinicalToolsModal } from './components/ClinicalToolsModal';
 import { FeedbackModal } from './components/FeedbackModal';
 import { TipsCarousel } from './components/TipsCarousel';
-import { UpdateNotifier } from './components/UpdateNotifier';
 import { Footer } from './components/Footer';
 import { EvaluationScreen } from './components/EvaluationScreen';
 import { DiscussionModal } from './components/DiscussionModal';
@@ -592,7 +591,6 @@ export const App: React.FC = () => {
                 onOpenFeedback={() => setIsFeedbackModalOpen(true)}
                 className="sticky bottom-0 z-20"
             />
-            <UpdateNotifier />
         </div>
     );
 };
