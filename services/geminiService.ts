@@ -36,9 +36,10 @@ const SYNTHESIS_GUIDELINE = `
 **STRICT MEDICAL SYNTHESIS RULES:**
 1. **DISCIPLINE RIGOR:** Management MUST be specific to the discipline (e.g., Anaesthesia, Nursing).
 2. **VISUALS:** Use triggers: \`[GRAPH: oxygen_dissociation]\`, \`[GRAPH: frank_starling]\`, \`[GRAPH: pressure_volume_loop]\`, \`[GRAPH: respiratory_flow_volume]\`.
-3. **LATEX:** Wrap ALL mathematical equations, formulas, and scientific notation in double dollar signs ($$ ... $$) for blocks or single dollar signs ($ ... $) for inline.
-4. **LATEX JSON ESCAPING:** When outputting LaTeX in JSON strings, you MUST double-escape backslashes (e.g., use "\\\\times" for \\times, "\\\\frac" for \\frac). Failure to do so will break rendering.
-5. **COMPLETENESS:** You MUST provide detailed, high-fidelity content for EVERY field in the schema. DO NOT TRUNCATE. DO NOT USE PLACEHOLDERS.
+3. **LATEX:** Wrap complex mathematical equations and scientific notation in double dollar signs ($$ ... $$) for blocks or single dollar signs ($ ... $) for inline.
+4. **MOLECULAR FORMULAS:** Do NOT use LaTeX for simple molecular formulas (e.g., CO2, O2, H2O, PaO2). You MUST use Unicode subscripts: CO₂, O₂, H₂O, PaO₂, SaO₂, PvO₂, HCO₃⁻.
+5. **LATEX JSON ESCAPING:** When outputting LaTeX in JSON strings, you MUST double-escape backslashes (e.g., use "\\\\times" for \\times, "\\\\frac" for \\frac). Failure to do so will break rendering.
+6. **COMPLETENESS:** You MUST provide detailed, high-fidelity content for EVERY field in the schema. DO NOT TRUNCATE. DO NOT USE PLACEHOLDERS.
 `;
 
 const EVIDENCE_GUIDELINE = `
@@ -223,15 +224,15 @@ const fullCaseSchema = {
         },
         patientProfile: { 
             type: Type.STRING,
-            description: "Detailed patient demographics, age, gender, occupation, and relevant background (min 150 words)."
+            description: "Detailed patient demographics, age, gender, occupation, and relevant background (min 100 words)."
         },
         presentingComplaint: { 
             type: Type.STRING,
-            description: "The primary reason for the visit, described in clinical terms (min 50 words)."
+            description: "The primary reason for the visit, described in clinical terms (min 30 words)."
         },
         history: { 
             type: Type.STRING,
-            description: "Comprehensive HPI, PMH, Medications, Social History, and Family History (min 250 words)."
+            description: "Comprehensive HPI, PMH, Medications, Social History, and Family History (min 150 words)."
         },
         biochemicalPathway: {
             ...educationalContentSchema,
@@ -263,7 +264,7 @@ const fullCaseSchema = {
         },
         knowledgeMap: {
             ...knowledgeMapSchema,
-            description: "10-15 interconnected nodes showing the conceptual framework of the case."
+            description: "8-12 interconnected nodes showing the conceptual framework of the case."
         }
     },
     required: ["title", "patientProfile", "presentingComplaint", "history", "biochemicalPathway", "multidisciplinaryConnections", "disciplineSpecificConsiderations", "knowledgeMap"]
@@ -296,22 +297,22 @@ export const generateFullCase = async (condition: string, discipline: string, di
     1. PATIENT PROFILE: Elaborate on demographics, lifestyle, and background.
     2. PRESENTING COMPLAINT: Use precise clinical language.
     3. HISTORY: Include a full HPI, PMH (with specific dates/conditions), Medications (with dosages), and Social/Family History.
-    4. BIOCHEMICAL PATHWAY: Provide a rigorous explanation of the pathophysiology. Include specific enzymes, metabolites, and chemical reactions (use LaTeX for formulas).
+    4. BIOCHEMICAL PATHWAY: Provide a rigorous explanation of the pathophysiology. Include specific enzymes, metabolites, and chemical reactions.
     5. MULTIDISCIPLINARY CONNECTIONS: Detail how at least 3 other specialties (e.g., Radiology, Pathology, Cardiology) intersect with this case.
     6. MANAGEMENT: Provide specific, evidence-based management steps relevant to ${discipline}.
-    7. KNOWLEDGE MAP: Design a network of 10-15 nodes showing how symptoms, labs, and mechanisms are linked.
+    7. KNOWLEDGE MAP: Design a network of 8-12 nodes showing how symptoms, labs, and mechanisms are linked.
     
     ${SYNTHESIS_GUIDELINE}`;
 
     const data = await retryWithBackoff(async () => {
         const response: GenerateContentResponse = await ai.models.generateContent({
-            model: PRO_MODEL,
+            model: FAST_MODEL,
             contents: prompt,
             config: { 
                 responseMimeType: "application/json", 
                 responseSchema: fullCaseSchema,
-                maxOutputTokens: 16000,
-                tools: [{ googleSearch: {} }]
+                maxOutputTokens: 4096,
+                thinkingConfig: { thinkingLevel: ThinkingLevel.LOW }
             },
         });
 
@@ -352,12 +353,13 @@ export const generateEvidenceAndQuiz = async (condition: string, discipline: str
     try {
         const result = await retryWithBackoff(async () => {
             const response: GenerateContentResponse = await ai.models.generateContent({
-                model: PRO_MODEL,
+                model: FAST_MODEL,
                 contents: prompt,
                 config: { 
                     responseMimeType: "application/json", 
                     responseSchema: evidenceAndQuizSchema,
-                    maxOutputTokens: 16000,
+                    maxOutputTokens: 4096,
+                    thinkingConfig: { thinkingLevel: ThinkingLevel.LOW },
                     tools: [{ googleSearch: {} }]
                 },
             });

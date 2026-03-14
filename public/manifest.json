@@ -1,0 +1,23 @@
+{
+  "short_name": "Ungana",
+  "name": "Ungana Medical",
+  "description": "Ungana Medical Intelligence - Advanced Clinical Synthesis Platform",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "type": "image/svg+xml",
+      "sizes": "any",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon.svg",
+      "type": "image/svg+xml",
+      "sizes": "any",
+      "purpose": "maskable"
+    }
+  ],
+  "start_url": "/",
+  "display": "standalone",
+  "theme_color": "#1e3a8a",
+  "background_color": "#f3f4f6"
+}

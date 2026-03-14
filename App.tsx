@@ -112,8 +112,6 @@ export const App: React.FC = () => {
     const [showEvaluationScreen, setShowEvaluationScreen] = useState(false);
     const [evaluationDaysRemaining, setEvaluationDaysRemaining] = useState<number | null>(null);
     const [mobileView, setMobileView] = useState<'case' | 'map'>('case');
-    const [isUiVisible, setIsUiVisible] = useState(true);
-    const lastScrollTop = useRef(0);
     const caseScrollRef = useRef<HTMLDivElement>(null);
 
     const T = useMemo(() => {
@@ -136,26 +134,24 @@ export const App: React.FC = () => {
     // MIGRATION Logic
     useEffect(() => {
         try {
-            if (!localStorage.getItem('ungana_language') && localStorage.getItem('synapsis_language')) {
-                localStorage.setItem('ungana_language', localStorage.getItem('synapsis_language')!);
-                setLanguage(localStorage.getItem('synapsis_language')!);
-            }
-            if (!localStorage.getItem('ungana_saved_cases') && localStorage.getItem('synapsis_saved_cases')) {
-                localStorage.setItem('ungana_saved_cases', localStorage.getItem('synapsis_saved_cases')!);
-            }
-            if (!localStorage.getItem('ungana_saved_snippets') && localStorage.getItem('synapsis_saved_snippets')) {
-                localStorage.setItem('ungana_saved_snippets', localStorage.getItem('synapsis_saved_snippets')!);
-            }
-            if (!localStorage.getItem('ungana_generation_count') && localStorage.getItem('synapsis_generation_count')) {
-                localStorage.setItem('ungana_generation_count', localStorage.getItem('synapsis_generation_count')!);
-            }
-            if (!localStorage.getItem('ungana_dismissed_tips') && localStorage.getItem('synapsis_dismissed_tips')) {
-                localStorage.setItem('ungana_dismissed_tips', localStorage.getItem('synapsis_dismissed_tips')!);
-            }
-            if (!localStorage.getItem('ungana_respondent_id') && localStorage.getItem('synapsis_respondent_id')) {
-                localStorage.setItem('ungana_respondent_id', localStorage.getItem('synapsis_respondent_id')!);
-            }
             document.title = "Ungana Medical";
+            
+            const keysToMigrate = [
+                'theme', 'language', 'saved_cases', 'saved_snippets', 
+                'generation_count', 'trial_start_date', 'feedback_submitted',
+                'generationHistory', 'dismissed_tips', 'respondent_id'
+            ];
+
+            keysToMigrate.forEach(key => {
+                const oldKey = `synapsis_${key}`;
+                const newKey = `ungana_${key}`;
+                const oldValue = localStorage.getItem(oldKey);
+                const newValue = localStorage.getItem(newKey);
+
+                if (oldValue !== null && newValue === null) {
+                    localStorage.setItem(newKey, oldValue);
+                }
+            });
         } catch (e) {
             console.error("Migration error:", e);
         }
@@ -216,18 +212,6 @@ export const App: React.FC = () => {
     }, []);
 
     // -- HANDLERS --
-    
-    const handleCaseScroll = useCallback(() => {
-        if (!caseScrollRef.current) return;
-        const { scrollTop } = caseScrollRef.current;
-        if (Math.abs(scrollTop - lastScrollTop.current) < 20) return;
-        if (scrollTop > lastScrollTop.current && scrollTop > 150) {
-            setIsUiVisible(false);
-        } else if (scrollTop < lastScrollTop.current || scrollTop < 50) {
-            setIsUiVisible(true);
-        }
-        lastScrollTop.current = scrollTop <= 0 ? 0 : scrollTop;
-    }, []);
     
     const handleLanguageChange = (langCode: string) => {
         setLanguage(langCode);
@@ -378,7 +362,7 @@ export const App: React.FC = () => {
         localStorage.setItem('ungana_saved_snippets', JSON.stringify(updatedSnippets));
         setInteractionState(prev => ({ ...prev, snippetSaved: true }));
     };
-    
+
     const handleSaveMapSnippet = () => {
         if (!mapData || !patientCase) return;
         handleSaveSnippet(
@@ -439,7 +423,7 @@ export const App: React.FC = () => {
                 currentTheme={theme}
                 onThemeToggle={toggleTheme}
                 T={T}
-                className={`sticky top-0 z-30 transition-transform duration-300 ${!isUiVisible && patientCase ? '-translate-y-full' : 'translate-y-0'}`}
+                className="sticky top-0 z-30"
             />
             
             <main className="flex-grow p-1.5 sm:p-3 overflow-hidden relative flex flex-col">
@@ -471,7 +455,7 @@ export const App: React.FC = () => {
                                 style={{ transform: `translateX(${mobileView === 'map' ? '-100%' : '0%'})` }}
                             >
                                 <div className="w-full flex-shrink-0 h-full lg:w-[62%] lg:flex-shrink min-h-0 flex flex-col">
-                                    <div ref={caseScrollRef} onScroll={handleCaseScroll} className="flex-grow overflow-y-auto bg-white dark:bg-dark-surface rounded-lg shadow-lg border border-gray-200 dark:border-dark-border">
+                                    <div ref={caseScrollRef} className="flex-grow overflow-y-auto bg-white dark:bg-dark-surface rounded-lg shadow-lg border border-gray-200 dark:border-dark-border">
                                         <PatientCaseView
                                             patientCase={patientCase}
                                             isGeneratingDetails={isGeneratingDetails}
@@ -580,7 +564,7 @@ export const App: React.FC = () => {
                 T={T}
                 evaluationDaysRemaining={evaluationDaysRemaining}
                 onOpenFeedback={() => setIsFeedbackModalOpen(true)}
-                className={`sticky bottom-0 z-20 transition-transform duration-300 ${!isUiVisible && patientCase ? 'translate-y-full' : 'translate-y-0'}`}
+                className="sticky bottom-0 z-20"
             />
             <UpdateNotifier />
         </div>

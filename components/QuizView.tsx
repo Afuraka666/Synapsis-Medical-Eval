@@ -30,7 +30,7 @@ export const QuizView: React.FC<QuizViewProps> = ({ quiz, T, showTitle = true })
   }, 0);
 
   return (
-    <div className="mt-1 relative pb-24">
+    <div className="mt-1 relative pb-28">
       {showTitle && <h3 className="text-base font-black text-brand-blue border-b-2 border-brand-blue/30 pb-1 mb-3 uppercase tracking-tight">{T.quizTitle}</h3>}
       {isSubmitted && (
         <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-4 mb-4 text-center shadow-sm">
@@ -90,11 +90,11 @@ export const QuizView: React.FC<QuizViewProps> = ({ quiz, T, showTitle = true })
         ))}
       </div>
       {!isSubmitted && (
-        <div className="sticky bottom-0 -mx-3 sm:-mx-5 mt-6 py-3 bg-white/95 dark:bg-dark-surface/95 backdrop-blur-md border-t border-gray-100 dark:border-dark-border text-center z-10 shadow-[0_-4px_12px_rgba(0,0,0,0.05)]">
+        <div className="sticky bottom-0 -mx-4 sm:-mx-6 mt-6 py-4 bg-white/95 dark:bg-dark-surface/95 backdrop-blur-md border-t border-gray-100 dark:border-dark-border text-center z-10 shadow-[0_-4px_12px_rgba(0,0,0,0.08)]">
           <button 
             onClick={handleSubmit} 
             disabled={Object.keys(userAnswers).length !== quiz.length}
-            className="bg-brand-blue hover:bg-blue-800 text-white font-black py-2 px-6 rounded-full transition-all duration-300 disabled:bg-gray-300 dark:disabled:bg-slate-700 disabled:text-gray-500 shadow-lg hover:shadow-xl active:scale-95 text-[10px] uppercase tracking-widest"
+            className="bg-brand-blue hover:bg-blue-800 text-white font-black py-2.5 px-8 rounded-full transition-all duration-300 disabled:bg-gray-300 dark:disabled:bg-slate-700 disabled:text-gray-500 shadow-lg hover:shadow-xl active:scale-95 text-[10px] uppercase tracking-widest"
           >
             {T.quizSubmit}
           </button>

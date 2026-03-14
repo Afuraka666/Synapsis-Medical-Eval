@@ -34,14 +34,14 @@ const SpeechRecognition = (window as any).SpeechRecognition || (window as any).w
 const isSpeechRecognitionSupported = !!SpeechRecognition;
 
 const GRAPH_TITLES: Record<string, string> = {
-    'oxygen_dissociation': 'Hemoglobin-Oxygen Dissociation Curve',
-    'frank_starling': 'Frank-Starling Relationship Model',
-    'pressure_volume_loop': 'Left Ventricular Pressure-Volume Loop',
-    'respiratory_flow_volume': 'Respiratory Flow-Volume Loop',
-    'cerebral_pressure_volume': 'Monro-Kellie Intracranial Relationship',
-    'cerebral_autoregulation': 'Cerebral Blood Flow Autoregulation Curve',
-    'capnography': 'Capnogram Waveform Analysis',
-    'spirometry': 'Spirogram: Volume vs Time'
+    'oxygen_dissociation': 'hemoglobinOxygenCurve',
+    'frank_starling': 'frankStarlingModel',
+    'pressure_volume_loop': 'pressureVolumeLoop',
+    'respiratory_flow_volume': 'respiratoryFlowVolume',
+    'cerebral_pressure_volume': 'monroKellieRelationship',
+    'cerebral_autoregulation': 'cerebralAutoregulationCurve',
+    'capnography': 'capnographyAnalysis',
+    'spirometry': 'spirometryVolumeTime'
 };
 
 const getBCP47Language = (lang: string): string => {
@@ -205,7 +205,7 @@ export const DiscussionModal: React.FC<DiscussionModalProps> = ({
             
             **STRICT FORMATTING:**
             1. No LaTeX words (rightarrow, etc.). Use Unicode: →, ←, Δ.
-            2. Use Unicode for variables: PaO₂, SaO₂, CO₂.
+            2. Use Unicode for variables and molecular formulas: PaO₂, SaO₂, PvO₂, CO₂, O₂, H₂O, HCO₃⁻. Do NOT use LaTeX for these.
             3. Ensure clear spacing between all words and symbols.
             
             Language: ${language}.`;
@@ -307,7 +307,7 @@ export const DiscussionModal: React.FC<DiscussionModalProps> = ({
         const brandColor = '1e3a8a';
 
         sections.push(new Paragraph({
-            text: 'Ungana Medical Clinical Tutorial',
+            text: 'Ungana Clinical Tutorial',
             heading: HeadingLevel.HEADING_1,
             alignment: AlignmentType.CENTER,
             spacing: { after: 200 }
@@ -420,7 +420,7 @@ export const DiscussionModal: React.FC<DiscussionModalProps> = ({
         const pageWidth = doc.internal.pageSize.getWidth();
         const brandColor = '#1e3a8a';
         
-        doc.setFont('helvetica', 'bold').setFontSize(24).setTextColor(brandColor).text('Ungana Medical', margin, 20);
+        doc.setFont('helvetica', 'bold').setFontSize(24).setTextColor(brandColor).text('Ungana', margin, 20);
         doc.setDrawColor(brandColor).setLineWidth(0.5).line(margin, 23, pageWidth - margin, 23);
         doc.setFontSize(14).setTextColor('#111827').text(`Clinical Tutorial: ${topic.aspect.toUpperCase()}`, margin, 35);
         doc.setFontSize(10).setTextColor('#4b5563').text(`Case: ${caseTitle}`, margin, 42);
@@ -495,13 +495,13 @@ export const DiscussionModal: React.FC<DiscussionModalProps> = ({
                 <button 
                     onClick={() => setIsMinimised(false)}
                     className="group relative flex items-center gap-3 bg-brand-blue hover:bg-brand-blue-dark text-white p-3 pr-5 rounded-2xl shadow-2xl transition-all hover:scale-105 active:scale-95"
-                    title="Resume AI Tutorial"
+                    title={T.resumeAiTutorial}
                 >
                     <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
                         <MessageSquare className="w-5 h-5" />
                     </div>
                     <div className="flex flex-col items-start leading-none">
-                        <span className="text-[9px] font-black uppercase tracking-widest opacity-70">Tutorial Active</span>
+                        <span className="text-[9px] font-black uppercase tracking-widest opacity-70">{T.tutorialActive}</span>
                         <span className="text-sm font-bold truncate max-w-[120px]">{topic.aspect}</span>
                     </div>
                     {isLoading && <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full animate-ping border-2 border-white"></div>}
@@ -518,7 +518,7 @@ export const DiscussionModal: React.FC<DiscussionModalProps> = ({
                         <div className="flex flex-col min-w-0 pr-4">
                             <div className="flex items-center gap-2 mb-1">
                                 <Activity className="w-3 h-3 text-brand-blue" />
-                                <h2 className="text-[10px] font-black text-brand-blue uppercase tracking-[0.2em] leading-none">AI Medical Tutor</h2>
+                                <h2 className="text-[10px] font-black text-brand-blue uppercase tracking-[0.2em] leading-none">{T.aiMedicalTutor}</h2>
                             </div>
                             <h3 className="text-lg font-black text-gray-900 dark:text-slate-100 truncate tracking-tight">{topic.aspect}</h3>
                         </div>
@@ -546,13 +546,13 @@ export const DiscussionModal: React.FC<DiscussionModalProps> = ({
                                     </div>
                                 )}
                             </div>
-                            <button onClick={() => setIsFullscreen(!isFullscreen)} className="p-2 text-gray-500 dark:text-gray-400 hover:text-brand-blue hover:bg-brand-blue/5 rounded-xl transition-all" title="Toggle Fullscreen">
+                            <button onClick={() => setIsFullscreen(!isFullscreen)} className="p-2 text-gray-500 dark:text-gray-400 hover:text-brand-blue hover:bg-brand-blue/5 rounded-xl transition-all" title={T.toggleFullscreen}>
                                 {isFullscreen ? <Minimize className="h-5 w-5" /> : <Maximize className="h-5 w-5" />}
                             </button>
-                            <button onClick={() => setIsMinimised(true)} className="p-2 text-gray-500 dark:text-gray-400 hover:text-brand-blue hover:bg-brand-blue/5 rounded-xl transition-all" title="Minimise Discussion">
+                            <button onClick={() => setIsMinimised(true)} className="p-2 text-gray-500 dark:text-gray-400 hover:text-brand-blue hover:bg-brand-blue/5 rounded-xl transition-all" title={T.minimiseDiscussion}>
                                 <Minus className="h-5 w-5" />
                             </button>
-                            <button onClick={onClose} className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all" title="Close Tutorial">
+                            <button onClick={onClose} className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all" title={T.closeTutorial}>
                                 <X className="w-6 h-6" />
                             </button>
                         </div>
@@ -582,7 +582,7 @@ export const DiscussionModal: React.FC<DiscussionModalProps> = ({
                                                 <div className="mt-3 pt-3 border-t border-gray-100 dark:border-dark-border flex justify-center">
                                                     <button onClick={() => handleGenerateDiagram(index, diagramMatch[1])} className="flex items-center gap-2 px-4 py-2 bg-blue-50 dark:bg-blue-900/30 text-brand-blue dark:text-blue-300 hover:bg-blue-100 border border-blue-200 rounded-lg transition text-xs font-semibold">
                                                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
-                                                        Generate Medical Diagram
+                                                        {T.generateMedicalDiagram}
                                                     </button>
                                                 </div>
                                             )}
@@ -595,7 +595,7 @@ export const DiscussionModal: React.FC<DiscussionModalProps> = ({
                                                 <div className="mt-3 pt-3 border-t border-gray-100 dark:border-dark-border flex justify-center">
                                                     <button onClick={() => setActiveImagePrompt({ prompt: illustrationMatch[1], index })} className="flex items-center gap-2 px-4 py-2 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 border border-indigo-200 rounded-lg transition text-xs font-semibold">
                                                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h14a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
-                                                        Generate Illustration
+                                                        {T.generateIllustration}
                                                     </button>
                                                 </div>
                                             )}
@@ -605,7 +605,7 @@ export const DiscussionModal: React.FC<DiscussionModalProps> = ({
                                                         <ScientificGraph 
                                                             key={i} 
                                                             type={m[1].trim() as any} 
-                                                            title={GRAPH_TITLES[m[1].trim()] || "Model"} 
+                                                            title={T[GRAPH_TITLES[m[1].trim()]] || "Model"} 
                                                             className="scale-100" 
                                                         />
                                                     ))}
@@ -659,7 +659,7 @@ export const DiscussionModal: React.FC<DiscussionModalProps> = ({
                         <div className="flex justify-between items-center pt-3 border-t border-gray-50 dark:border-dark-border">
                             <div className="flex items-center gap-2">
                                 <div className={`w-1.5 h-1.5 rounded-full ${isSaved ? 'bg-green-500' : 'bg-amber-500 animate-pulse'}`}></div>
-                                <span className="text-[10px] font-black uppercase tracking-widest text-gray-400">{isSaved ? "Session saved" : "Unsaved session"}</span>
+                                <span className="text-[10px] font-black uppercase tracking-widest text-gray-400">{isSaved ? T.sessionSaved : T.unsavedSession}</span>
                             </div>
                             <button 
                                 type="button" 
@@ -668,7 +668,7 @@ export const DiscussionModal: React.FC<DiscussionModalProps> = ({
                                 className={`text-[10px] font-black uppercase tracking-widest px-4 py-2 rounded-xl transition-all flex items-center gap-2 ${isSaved ? 'text-green-600 bg-green-50 border border-green-100' : 'text-brand-blue bg-brand-blue/5 border border-brand-blue/10 hover:bg-brand-blue/10'}`}
                             >
                                 <Save className="w-3 h-3" />
-                                {isSaved ? "Saved" : "Save Changes"}
+                                {isSaved ? T.savedStatus : T.saveChanges}
                             </button>
                         </div>
                     </div>

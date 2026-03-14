@@ -16,7 +16,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
 // Register Service Worker for PWA and caching
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js').then(registration => {
+    navigator.serviceWorker.register('/sw.js?v=35').then(registration => {
       console.log('SW registered: ', registration);
     }).catch(registrationError => {
       console.log('SW registration failed: ', registrationError);

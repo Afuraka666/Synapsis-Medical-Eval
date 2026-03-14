@@ -38,7 +38,7 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ T, onOpenSavedWork
                 <h3 className="font-black text-gray-800 dark:text-white uppercase tracking-widest text-xs mb-2">{T.savedWorkButton}</h3>
                 <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">{T.viewSavedWorkButton}</p>
                 <div className="flex items-center text-brand-blue text-xs font-black uppercase tracking-tighter opacity-0 group-hover:opacity-100 transition-opacity">
-                    Open Collection <ArrowRight className="ml-1 w-3 h-3" />
+                    {T.openCollection} <ArrowRight className="ml-1 w-3 h-3" />
                 </div>
             </button>
 
@@ -52,14 +52,14 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ T, onOpenSavedWork
                 <h3 className="font-black text-gray-800 dark:text-white uppercase tracking-widest text-xs mb-2">{T.clinicalToolsButton}</h3>
                 <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">{T.clinicalToolsTitle}</p>
                 <div className="flex items-center text-indigo-600 dark:text-indigo-400 text-xs font-black uppercase tracking-tighter opacity-0 group-hover:opacity-100 transition-opacity">
-                    Open Tools <ArrowRight className="ml-1 w-3 h-3" />
+                    {T.openTools} <ArrowRight className="ml-1 w-3 h-3" />
                 </div>
             </button>
         </div>
 
         <div className="mt-12 flex items-center justify-center gap-2 text-gray-400 dark:text-gray-500 text-xs font-black uppercase tracking-widest">
             <Sparkles className="w-4 h-4" />
-            Powered by Advanced Clinical AI
+            {T.poweredByAi}
         </div>
       </div>
     </div>

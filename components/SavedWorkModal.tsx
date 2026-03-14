@@ -71,7 +71,7 @@ export const SavedWorkModal: React.FC<SavedWorkModalProps> = ({
 
     const copySnippet = (text: string) => {
         navigator.clipboard.writeText(text).then(() => {
-            alert('Snippet copied to clipboard!');
+            alert(T.snippetCopied);
         }).catch(err => {
             console.error('Failed to copy snippet:', err);
         });

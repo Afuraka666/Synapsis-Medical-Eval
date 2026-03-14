@@ -35,11 +35,11 @@ export const EcgInterpreter: React.FC<EcgInterpreterProps> = ({ T, language }) =
 
     const processFile = (selectedFile: File) => {
         if (!selectedFile.type.startsWith('image/')) {
-            setError('Only image files are supported.');
+            setError(T.ecgErrorOnlyImages);
             return;
         }
         if (selectedFile.size > 4 * 1024 * 1024) { // 4MB limit for inline data
-            setError('File is too large. Please select an image under 4MB.');
+            setError(T.ecgErrorFileTooLarge);
             return;
         }
         setError(null);
@@ -49,7 +49,7 @@ export const EcgInterpreter: React.FC<EcgInterpreterProps> = ({ T, language }) =
             const base64String = dataUrl.split(',')[1];
             setFile({ base64: base64String, mimeType: selectedFile.type, name: selectedFile.name, url: dataUrl });
         };
-        reader.onerror = () => setError('Failed to read the file.');
+        reader.onerror = () => setError(T.ecgErrorReadFailed);
         reader.readAsDataURL(selectedFile);
     };
 
@@ -116,7 +116,7 @@ export const EcgInterpreter: React.FC<EcgInterpreterProps> = ({ T, language }) =
                             name="rate" 
                             value={findings.rate} 
                             onChange={handleInputChange} 
-                            placeholder="bpm"
+                            placeholder={T.ecgBpmPlaceholder || "bpm"}
                             className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-900 focus:ring-2 focus:ring-brand-blue/20 focus:border-brand-blue transition-all outline-none" 
                         />
                     </div>
@@ -131,13 +131,13 @@ export const EcgInterpreter: React.FC<EcgInterpreterProps> = ({ T, language }) =
                             onChange={handleInputChange} 
                             className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-900 focus:ring-2 focus:ring-brand-blue/20 focus:border-brand-blue transition-all outline-none appearance-none"
                         >
-                            <option>Normal Sinus Rhythm</option>
-                            <option>Sinus Tachycardia</option>
-                            <option>Sinus Bradycardia</option>
-                            <option>Atrial Fibrillation</option>
-                            <option>Atrial Flutter</option>
-                            <option>Ventricular Tachycardia</option>
-                            <option>Other</option>
+                            <option value="Normal Sinus Rhythm">{T.ecgRhythmNormal}</option>
+                            <option value="Sinus Tachycardia">{T.ecgRhythmSinusTachy}</option>
+                            <option value="Sinus Bradycardia">{T.ecgRhythmSinusBrady}</option>
+                            <option value="Atrial Fibrillation">{T.ecgRhythmAfib}</option>
+                            <option value="Atrial Flutter">{T.ecgRhythmAflutter}</option>
+                            <option value="Ventricular Tachycardia">{T.ecgRhythmVtach}</option>
+                            <option value="Other">{T.ecgRhythmOther}</option>
                         </select>
                     </div>
                 </div>
@@ -186,10 +186,10 @@ export const EcgInterpreter: React.FC<EcgInterpreterProps> = ({ T, language }) =
                         onChange={handleInputChange} 
                         className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-900 focus:ring-2 focus:ring-brand-blue/20 focus:border-brand-blue transition-all outline-none appearance-none"
                     >
-                        <option>Normal</option>
-                        <option>ST Elevation</option>
-                        <option>ST Depression</option>
-                        <option>Non-specific changes</option>
+                        <option value="Normal">{T.ecgStNormal}</option>
+                        <option value="ST Elevation">{T.ecgStElevation}</option>
+                        <option value="ST Depression">{T.ecgStDepression}</option>
+                        <option value="Non-specific changes">{T.ecgStNonSpecific}</option>
                     </select>
                 </div>
 
@@ -203,7 +203,7 @@ export const EcgInterpreter: React.FC<EcgInterpreterProps> = ({ T, language }) =
                         value={findings.other} 
                         onChange={handleInputChange} 
                         rows={2} 
-                        placeholder="e.g. T-wave inversion in V1-V3..."
+                        placeholder={T.ecgOtherFindingsPlaceholder || "e.g. T-wave inversion in V1-V3..."}
                         className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-900 focus:ring-2 focus:ring-brand-blue/20 focus:border-brand-blue transition-all outline-none resize-none" 
                     />
                 </div>

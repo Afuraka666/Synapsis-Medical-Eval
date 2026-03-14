@@ -116,8 +116,8 @@ export const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, patient
     const handleNativeShare = useCallback(() => {
         if (isWebShareSupported && shareLink && patientCase) {
             navigator.share({
-                title: `Ungana Medical Case: ${patientCase.title}`,
-                text: `Check out this medical case I generated with Ungana Medical.`,
+                title: `Ungana Case: ${patientCase.title}`,
+                text: `Check out this medical case I generated with Ungana.`,
                 url: shareLink,
             }).catch(error => console.error("Web Share API error:", error));
         }

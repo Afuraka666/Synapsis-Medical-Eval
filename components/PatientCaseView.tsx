@@ -221,7 +221,7 @@ const Section: React.FC<{
   const handleSaveSnippet = () => { onSaveSnippet(); setIsSnippetSaved(true); setTimeout(() => setIsSnippetSaved(false), 2000); };
   
   return (
-    <section className="mt-4 first:mt-0 medical-card overflow-hidden">
+    <section className="mt-4 first:mt-0 medical-card">
       <div className="flex items-center justify-between p-3 sm:p-4 bg-slate-50/50 dark:bg-slate-800/30 border-b border-gray-100 dark:border-dark-border">
         <div className="flex items-center space-x-2.5">
           <div className="text-brand-blue dark:text-brand-blue-light">
@@ -349,7 +349,7 @@ export const PatientCaseView: React.FC<PatientCaseViewProps> = ({ patientCase: i
   }, [isListening, language, patientCase]);
 
   const handleTriggerIllustration = (desc: string, sourceIndex: number) => { 
-    setActiveImageGenerator({ content: { title: 'Clinical Visualization', description: desc, type: EducationalContentType.IMAGE, reference: 'AI-Synthesized Evidence' }, index: sourceIndex }); 
+    setActiveImageGenerator({ content: { title: T.clinicalVisualization, description: desc, type: EducationalContentType.IMAGE, reference: T.aiSynthesizedEvidence }, index: sourceIndex }); 
   };
 
   const handleDownloadPdf = async () => {
@@ -500,7 +500,7 @@ export const PatientCaseView: React.FC<PatientCaseViewProps> = ({ patientCase: i
   }, [!!patientCase.quiz, isGeneratingDetails]);
 
   return (
-    <div ref={containerRef} className="p-3 sm:p-5 pb-32 relative bg-white dark:bg-dark-surface transition-colors duration-300">
+    <div ref={containerRef} className="p-3 sm:p-5 pb-40 relative bg-white dark:bg-dark-surface transition-colors duration-300">
       <header className="sticky top-0 -mx-3 sm:-mx-5 -mt-3 sm:-mt-5 p-2 sm:p-3 bg-white/95 dark:bg-dark-surface/95 backdrop-blur-md border-b border-gray-100 dark:border-dark-border z-20 shadow-sm mb-4">
         <div className="flex justify-between items-center max-w-5xl mx-auto">
           <h2 className="text-lg sm:text-xl font-black text-brand-text dark:text-dark-text truncate tracking-tight pr-4">{patientCase.title}</h2>

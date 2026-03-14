@@ -2270,7 +2270,7 @@ export const ClinicalToolsModal: React.FC<ClinicalToolsModalProps> = ({ isOpen, 
                         </div>
                         <div>
                             <h2 className="text-xl font-black text-slate-900 leading-tight">{T.clinicalToolsTitle}</h2>
-                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Clinical Decision Support</p>
+                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{T.clinicalDecisionSupport}</p>
                         </div>
                     </div>
                     <button 
@@ -2307,7 +2307,7 @@ export const ClinicalToolsModal: React.FC<ClinicalToolsModalProps> = ({ isOpen, 
                             <AlertTriangle className="w-5 h-5 text-amber-600" />
                         </div>
                         <div>
-                            <h4 className="text-[10px] font-black text-amber-700 uppercase tracking-widest mb-1">Medical Disclaimer</h4>
+                            <h4 className="text-[10px] font-black text-amber-700 uppercase tracking-widest mb-1">{T.medicalDisclaimer}</h4>
                             <p className="text-xs font-bold text-amber-900/70 leading-relaxed">
                                 {T.calculatorDisclaimer}
                             </p>
