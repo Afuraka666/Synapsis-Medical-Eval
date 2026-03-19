@@ -37,18 +37,25 @@ const SYNTHESIS_GUIDELINE = `
 **STRICT MEDICAL SYNTHESIS RULES:**
 1. **DISCIPLINE RIGOR:** Management MUST be specific to the discipline (e.g., Anaesthesia, Nursing).
 2. **VISUALS:** Use triggers: \`[GRAPH: oxygen_dissociation]\`, \`[GRAPH: frank_starling]\`, \`[GRAPH: pressure_volume_loop]\`, \`[GRAPH: respiratory_flow_volume]\`.
-3. **LATEX:** Wrap complex mathematical equations and scientific notation in double dollar signs ($$ ... $$) for blocks or single dollar signs ($ ... $) for inline.
-4. **MOLECULAR FORMULAS:** Do NOT use LaTeX for simple molecular formulas (e.g., CO2, O2, H2O, PaO2). You MUST use Unicode subscripts: CO₂, O₂, H₂O, PaO₂, SaO₂, PvO₂, HCO₃⁻.
+3. **LATEX EQUATIONS:** You MUST wrap complex mathematical equations, clinical formulas, and scientific notation in double dollar signs ($$ ... $$) for blocks or single dollar signs ($ ... $) for inline.
+   - Example: $$pH = pK_a + \log_{10}\left(\frac{[HCO_3^-]}{0.03 \times PaCO_2}\right)$$
+   - Example: $$E_k = 61.5 \times \log_{10}\left(\frac{[K^+]_{out}}{[K^+]_{in}}\right)$$
+   - Ensure all subscripts (e.g., _a, _2, _k) and superscripts (e.g., ^-, ^+) are correctly formatted in LaTeX.
+4. **MOLECULAR FORMULAS:** For simple molecular formulas in plain text (e.g., CO2, O2, H2O, PaO2), you MUST use Unicode subscripts: CO₂, O₂, H₂O, PaO₂, SaO₂, PvO₂, HCO₃⁻. Do NOT use LaTeX for these unless they are part of a larger LaTeX equation.
 5. **LATEX JSON ESCAPING:** When outputting LaTeX in JSON strings, you MUST double-escape backslashes (e.g., use "\\\\times" for \\times, "\\\\frac" for \\frac). Failure to do so will break rendering.
 6. **COMPLETENESS:** You MUST provide detailed, high-fidelity content for EVERY field in the schema. DO NOT TRUNCATE. DO NOT USE PLACEHOLDERS.
+7. **ACADEMIC RIGOR:** All references and sources MUST be real and traceable.
 `;
 
 const EVIDENCE_GUIDELINE = `
 **VERIFICATION RULES:**
-1. **GOOGLE SEARCH:** Use Google Search to verify clinical trials, PMIDs, and latest guidelines. No hallucinations.
-2. **QUIZ:** Generate exactly 5 high-yield MCQs with explanations.
-3. **LATEX JSON ESCAPING:** When outputting LaTeX in JSON strings, you MUST double-escape backslashes (e.g., use "\\\\times" for \\times, "\\\\frac" for \\frac).
-4. **COMPLETENESS:** Ensure all 5 questions are fully generated.
+1. **GOOGLE SEARCH:** You MUST use Google Search to verify clinical trials, PMIDs, and latest guidelines for the specific condition. 
+2. **ACADEMIC RIGOR:** All "traceableEvidence" and "furtherReadings" MUST be real, existing publications. DO NOT FABRICATE PMIDs, DOIs, OR URLs.
+3. **URL VERIFICATION:** The "url" field for each source MUST be a real, working link (preferably to PubMed, DOI.org, or official society guidelines) that you have found via the search tool.
+   - **CRITICAL:** The URL MUST lead directly to the article or its abstract. Do NOT use generic search result pages or homepage URLs.
+4. **QUIZ:** Generate exactly 5 high-yield MCQs with explanations.
+5. **LATEX JSON ESCAPING:** When outputting LaTeX in JSON strings, you MUST double-escape backslashes (e.g., use "\\\\times" for \\times, "\\\\frac" for \\frac).
+6. **COMPLETENESS:** Ensure all 5 questions are fully generated.
 `;
 
 const diagramNodeSchema = {
@@ -416,8 +423,13 @@ export const generateEvidenceAndQuiz = async (condition: string, discipline: str
     const prompt = `Generate high-yield clinical evidence and a medical quiz for "${condition}".
     Discipline: ${discipline}. Difficulty: ${difficulty}. Language: ${language}.
     
-    1. TRACEABLE EVIDENCE: Provide 3-5 verified clinical claims with sources (PMIDs or major guidelines). YOU MUST INCLUDE A VALID, CLICKABLE URL (e.g., https://pubmed.ncbi.nlm.nih.gov/...) in the "url" field for each source.
-    2. FURTHER READINGS: Provide 2-3 relevant topics for deeper study. YOU MUST INCLUDE A VALID, CLICKABLE URL in the "url" field for each reference.
+    1. TRACEABLE EVIDENCE: Provide 3-5 verified clinical claims with sources (PMIDs or major guidelines). 
+       - YOU MUST PERFORM A SEARCH to find real, existing evidence.
+       - YOU MUST INCLUDE A VALID, CLICKABLE URL (e.g., https://pubmed.ncbi.nlm.nih.gov/...) in the "url" field for each source.
+       - DO NOT FABRICATE URLs.
+    2. FURTHER READINGS: Provide 2-3 relevant topics for deeper study. 
+       - YOU MUST INCLUDE A VALID, CLICKABLE URL in the "url" field for each reference.
+       - DO NOT FABRICATE URLs.
     3. EDUCATIONAL CONTENT: Create 3-5 high-yield teaching points. Each MUST have a detailed description and a diagram specification.
     4. QUIZ: Generate exactly 5 high-yield multiple-choice questions (MCQs).
        - Each question must have exactly 4 options.
@@ -575,8 +587,11 @@ export const enrichCaseWithWebSources = async (patientCase: PatientCase, languag
     const ai = getAiClient();
     const prompt = `Find 2 trials and 2 meta-analyses for "${patientCase.title}". 
     
-    **MANDATORY VERIFICATION:** Use the Google Search tool to verify all clinical evidence.
-    Every PMID or DOI MUST be factually verified for accuracy and relevance. YOU MUST INCLUDE A VALID, CLICKABLE URL (e.g., https://pubmed.ncbi.nlm.nih.gov/...) in the "url" field for each source and reference.
+    **MANDATORY VERIFICATION:** 
+    1. Use the Google Search tool to verify all clinical evidence.
+    2. Every PMID or DOI MUST be factually verified for accuracy and relevance. 
+    3. YOU MUST INCLUDE A VALID, CLICKABLE URL (e.g., https://pubmed.ncbi.nlm.nih.gov/...) in the "url" field for each source and reference.
+    4. DO NOT FABRICATE URLs. Use the actual URLs found via the search tool.
     Language: ${language}.`;
     
     const response: GenerateContentResponse = await retryWithBackoff(() => ai.models.generateContent({

@@ -1,5 +1,6 @@
 
 @import "tailwindcss";
+@import "katex/dist/katex.min.css";
 
 @theme {
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
@@ -70,8 +71,17 @@
 /* KaTeX Overrides */
 .katex-display {
   @apply my-4 p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl overflow-x-auto border border-slate-100 dark:border-slate-700/50;
+  font-size: 1em !important;
+  text-align: left !important;
+  margin-left: 0 !important;
 }
 
 .katex {
   @apply text-brand-blue dark:text-brand-blue-light font-bold;
+  font-size: 1em !important;
+  white-space: nowrap;
+}
+
+.prose .katex {
+  font-size: 1em !important;
 }

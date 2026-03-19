@@ -54,7 +54,10 @@ const MicButton: React.FC<{ onClick: () => void, isListening: boolean, disabled:
         >
             <AudioVisualizer isListening={isListening} />
             {isListening ? (
-                 <MicOff className="h-4 w-4 text-red-500 animate-pulse" />
+                 <div className="flex items-center gap-2">
+                    <MicOff className="h-4 w-4 text-red-500 animate-pulse" />
+                    <span className="text-[10px] font-black uppercase tracking-tighter text-red-500 animate-pulse hidden sm:inline">Listening...</span>
+                 </div>
             ) : (
                 <Mic className="h-4 w-4" />
             )}
@@ -136,6 +139,12 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
           console.error("Mic error:", event.error);
           setIsListening(false); 
           setActiveInput(null); 
+          
+          if (event.error === 'no-speech') {
+              // Don't show a scary error for silence, just reset
+              return;
+          }
+          
           setMicError(event.error === 'not-allowed' ? T.micPermissionError : T.micGenericError); 
       };
       
@@ -181,39 +190,43 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
 
   return (
     <div className="medical-card p-3 sm:p-4 md:p-5 transition-all duration-300">
+      {micError && (
+          <div className="mb-4 p-2 bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-900/30 rounded-lg flex items-center justify-between animate-fade-in">
+              <p className="text-xs text-red-600 dark:text-red-400 font-bold">{micError}</p>
+              <button onClick={() => setMicError(null)} className="text-red-400 hover:text-red-600"><Plus className="w-4 h-4 rotate-45" /></button>
+          </div>
+      )}
       {!isCaseActive ? (
         <form onSubmit={handleSubmit} className="flex flex-col lg:flex-row gap-3 sm:gap-4 lg:items-end">
           <div className="flex flex-col flex-1">
               <label htmlFor="condition-input" className="font-black text-gray-500 dark:text-gray-400 text-[9px] sm:text-[10px] uppercase tracking-widest mb-1 sm:mb-1.5 ml-1">{T.conditionLabel}</label>
               <div className="flex gap-2">
-                  <input 
-                    type="text" 
-                    id="condition-input" 
-                    value={conditionInput} 
-                    onChange={(e) => setConditionInput(e.target.value)} 
-                    onFocus={() => !isListening && setConditionInput('')}
-                    autoComplete="off"
-                    disabled={disabled} 
-                    placeholder={T.conditionPlaceholder} 
-                    className="p-2.5 sm:p-3 border border-gray-200 dark:border-dark-border rounded-xl focus:ring-2 focus:ring-brand-blue-light/30 focus:border-brand-blue-light w-full bg-gray-50 dark:bg-slate-800 text-gray-900 dark:text-white transition-all outline-none font-medium text-sm sm:text-base" 
-                  />
+                    <input 
+                      type="text" 
+                      id="condition-input" 
+                      value={conditionInput} 
+                      onChange={(e) => setConditionInput(e.target.value)} 
+                      autoComplete="off"
+                      disabled={disabled} 
+                      placeholder={T.conditionPlaceholder} 
+                      className="p-2.5 sm:p-3 border border-gray-200 dark:border-dark-border rounded-xl focus:ring-2 focus:ring-brand-blue-light/30 focus:border-brand-blue-light w-full bg-gray-50 dark:bg-slate-800 text-gray-900 dark:text-white transition-all outline-none font-medium text-sm sm:text-base" 
+                    />
                   {isSpeechRecognitionSupported && <MicButton onClick={() => handleMicClick('condition')} isListening={isListening && activeInput === 'condition'} disabled={disabled} title={T.voiceInputCondition} />}
               </div>
           </div>
           <div className="flex flex-col flex-1">
               <label htmlFor="discipline-input" className="font-black text-gray-500 dark:text-gray-400 text-[9px] sm:text-[10px] uppercase tracking-widest mb-1 sm:mb-1.5 ml-1">{T.disciplineLabel}</label>
               <div className="flex gap-2">
-                  <input 
-                    type="text" 
-                    id="discipline-input" 
-                    value={disciplineInput} 
-                    onChange={(e) => setDisciplineInput(e.target.value)} 
-                    onFocus={() => !isListening && setDisciplineInput('')}
-                    autoComplete="off"
-                    disabled={disabled} 
-                    placeholder={T.disciplinePlaceholder} 
-                    className="p-2.5 sm:p-3 border border-gray-200 dark:border-dark-border rounded-xl focus:ring-2 focus:ring-brand-blue-light/30 focus:border-brand-blue-light w-full bg-gray-50 dark:bg-slate-800 text-gray-900 dark:text-white transition-all outline-none font-medium text-sm sm:text-base" 
-                  />
+                    <input 
+                      type="text" 
+                      id="discipline-input" 
+                      value={disciplineInput} 
+                      onChange={(e) => setDisciplineInput(e.target.value)} 
+                      autoComplete="off"
+                      disabled={disabled} 
+                      placeholder={T.disciplinePlaceholder} 
+                      className="p-2.5 sm:p-3 border border-gray-200 dark:border-dark-border rounded-xl focus:ring-2 focus:ring-brand-blue-light/30 focus:border-brand-blue-light w-full bg-gray-50 dark:bg-slate-800 text-gray-900 dark:text-white transition-all outline-none font-medium text-sm sm:text-base" 
+                    />
                   {isSpeechRecognitionSupported && <MicButton onClick={() => handleMicClick('discipline')} isListening={isListening && activeInput === 'discipline'} disabled={disabled} title={T.voiceInputDiscipline} />}
               </div>
           </div>

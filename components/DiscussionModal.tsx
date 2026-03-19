@@ -206,9 +206,14 @@ export const DiscussionModal: React.FC<DiscussionModalProps> = ({
             3. **DATA COMPARISON:** Use Markdown Tables for lab ranges, drug properties, or differential signs.
             
             **STRICT FORMATTING:**
-            1. No LaTeX words (rightarrow, etc.). Use Unicode: →, ←, Δ.
-            2. Use Unicode for variables and molecular formulas: PaO₂, SaO₂, PvO₂, CO₂, O₂, H₂O, HCO₃⁻. Do NOT use LaTeX for these.
-            3. Ensure clear spacing between all words and symbols.
+            1. **LATEX EQUATIONS:** You MUST wrap complex mathematical equations, clinical formulas, and scientific notation in double dollar signs ($$ ... $$) for blocks or single dollar signs ($ ... $) for inline.
+               - Example: $$pH = pK_a + \log_{10}\left(\frac{[HCO_3^-]}{0.03 \times PaCO_2}\right)$$
+               - Example: $$E_k = 61.5 \times \log_{10}\left(\frac{[K^+]_{out}}{[K^+]_{in}}\right)$$
+            2. **MOLECULAR FORMULAS:** For simple molecular formulas in plain text (e.g., CO2, O2, H2O, PaO2), you MUST use Unicode subscripts: CO₂, O₂, H₂O, PaO₂, SaO₂, PvO₂, HCO₃⁻. Do NOT use LaTeX for these unless they are part of a larger LaTeX equation.
+            3. No LaTeX words (rightarrow, etc.) in plain text. Use Unicode: →, ←, Δ.
+            4. Ensure clear spacing between all words and symbols.
+            5. **ACADEMIC RIGOR:** All references MUST be real and traceable. Use PMIDs or DOIs. DO NOT FABRICATE URLs.
+            6. **GOOGLE SEARCH:** Use the search tool to verify any clinical claims or guidelines you mention.
             
             Language: ${language}.`;
             
@@ -216,17 +221,32 @@ export const DiscussionModal: React.FC<DiscussionModalProps> = ({
             let chatHistory: Content[] | undefined = undefined;
             if (initialHistory && initialHistory.length > 0) {
                 setMessages(initialHistory);
-                chatHistory = initialHistory.filter(m => m.role !== 'system').map(m => ({ role: m.role as 'user' | 'model', parts: [{ text: m.text }] }));
+                // Ensure roles are strictly 'user' or 'model' for Gemini SDK
+                chatHistory = initialHistory
+                    .filter(m => m.role === 'user' || m.role === 'model')
+                    .map(m => ({ 
+                        role: m.role as 'user' | 'model', 
+                        parts: [{ text: m.text }] 
+                    }));
                 setIsSaved(true);
             } else {
                 setMessages([{ role: 'system', text: T.chatWelcomeMessage }]);
                 setIsSaved(false);
             }
-            chatRef.current = ai.chats.create({
-              model: 'gemini-3.1-pro-preview',
-              config: { systemInstruction },
-              history: chatHistory
-            });
+            
+            try {
+                chatRef.current = ai.chats.create({
+                  model: 'gemini-3.1-pro-preview',
+                  config: { 
+                      systemInstruction,
+                      tools: [{ googleSearch: {} }]
+                  },
+                  history: chatHistory
+                });
+            } catch (err) {
+                console.error("Failed to create chat session:", err);
+                chatRef.current = null;
+            }
         } else {
             chatRef.current = null;
         }
@@ -276,18 +296,61 @@ export const DiscussionModal: React.FC<DiscussionModalProps> = ({
         setIsLoading(true);
         setIsSaved(false); 
         try {
+            // Re-initialize AI client to ensure we have the latest API key
+            const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || process.env.API_KEY });
+            
+            // If chatRef is null, try to re-initialize it
+            if (!chatRef.current) {
+                const systemInstruction = `You are a medical education assistant. 
+                Topic: ${topic.aspect}
+                Case: ${caseTitle}
+                
+                Context:
+                ${topic.consideration}
+                
+                Guidelines:
+                1. Provide evidence-based, multidisciplinary insights.
+                2. Use Unicode for variables and molecular formulas: PaO₂, SaO₂, PvO₂, CO₂, O₂, H₂O, HCO₃⁻. Do NOT use LaTeX for these.
+                3. Ensure clear spacing between all words and symbols.
+                
+                Language: ${language}.`;
+
+                chatRef.current = ai.chats.create({
+                    model: 'gemini-3.1-pro-preview',
+                    config: { 
+                        systemInstruction,
+                        tools: [{ googleSearch: {} }]
+                    }
+                });
+            }
+
             const result = await retryWithBackoff(() => chatRef.current!.sendMessageStream({ message: text })) as AsyncIterable<GenerateContentResponse>;
             let currentResponse = '';
             setMessages(prev => [...prev, { role: 'model', text: '', timestamp: Date.now() }]);
+            
             for await (const chunk of result) {
-                currentResponse += chunk.text || '';
+                const chunkText = chunk.text || '';
+                currentResponse += chunkText;
                 setMessages(prev => {
                     const newMessages = [...prev];
                     newMessages[newMessages.length - 1] = { ...newMessages[newMessages.length - 1], text: currentResponse };
                     return newMessages;
                 });
             }
-        } catch (error) {
+        } catch (error: any) {
+            console.error('Chat error details:', {
+                message: error.message,
+                status: error.status,
+                stack: error.stack,
+                apiKeyPresent: !!(process.env.GEMINI_API_KEY || process.env.API_KEY),
+                model: 'gemini-3.1-pro-preview'
+            });
+            
+            // If it's a 404, the model might not be available, try falling back to flash in the next attempt
+            if (error.status === 404) {
+                console.warn("Model not found, might need to check model name availability.");
+            }
+
             setMessages(prev => [...prev, { role: 'system', text: T.errorChat }]);
         } finally { setIsLoading(false); }
     };
