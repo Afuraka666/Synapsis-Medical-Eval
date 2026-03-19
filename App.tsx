@@ -438,6 +438,18 @@ export const App: React.FC = () => {
         return await knowledgeMapRef.current?.captureAsImage();
     }, []);
 
+    const handleDownloadMap = useCallback(async () => {
+        const dataUrl = await getKnowledgeMapImage();
+        if (dataUrl) {
+            const link = document.createElement('a');
+            link.href = dataUrl;
+            link.download = `${patientCase?.title || 'knowledge-map'}.png`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+    }, [getKnowledgeMapImage, patientCase?.title]);
+
     if (showEvaluationScreen) return <EvaluationScreen T={T} onFeedbackSubmitted={handleFeedbackSubmitted} />;
     
     return (
@@ -453,7 +465,8 @@ export const App: React.FC = () => {
             />
             
             <main className="flex-grow p-2 sm:p-4 overflow-hidden relative flex flex-col">
-                <div className="max-w-7xl mx-auto w-full h-full flex flex-col min-h-0">
+                <div className="absolute inset-0 pointer-events-none opacity-[0.03] dark:opacity-[0.05]" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, currentColor 1px, transparent 0)', backgroundSize: '32px 32px' }}></div>
+                <div className="max-w-7xl mx-auto w-full h-full flex flex-col min-h-0 relative z-10">
                     <div className="flex-shrink-0 mb-3 sm:mb-4">
                         <ControlPanel
                             onGenerate={handleGenerate}
@@ -515,6 +528,7 @@ export const App: React.FC = () => {
                                                 T={T}
                                                 onDiscussNode={handleDiscussNode}
                                                 onSaveMap={handleSaveMapSnippet}
+                                                onDownloadMap={handleDownloadMap}
                                             />
                                         </div>
                                     ) : isGeneratingDetails ? (

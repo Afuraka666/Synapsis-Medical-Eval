@@ -52,9 +52,9 @@ const sanitizeContent = (text: string): string => {
         .replace(/\n{3,}/g, '\n\n')
         
         // 6. Recovery for lost backslashes in common LaTeX commands
-        .replace(/([^\\a-z])ext\{/gi, '$1\\text{')
-        .replace(/([^\\a-z])rac\{/gi, '$1\\frac{')
-        .replace(/([^\\a-z])sqrt\{/gi, '$1\\sqrt{')
+        .replace(/(?<!\\)\b(text|frac|sqrt)\{/gi, (match, p1) => `\\${p1.toLowerCase()}{`)
+        .replace(/(?:\\)?\btext(mg\/dl|mmol\/l|mmhg|meq\/l|bpm|mcg|ml|meq|pco|hco|pao|sao|pvo|o|co|h)(?=[^a-zA-Z]|$)/gi, '\\text{$1}')
+        .replace(/\\text\{([a-zA-Z]+)_([0-9]+)(\^[a-zA-Z0-9\+\-]+)?\}/gi, '\\text{$1}_{$2}$3')
         
         // 7. Specific fix for Alveolar Gas Equation
         .replace(/P\(A-a\)O2/g, 'P(A-a)O₂')

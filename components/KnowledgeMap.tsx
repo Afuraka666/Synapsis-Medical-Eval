@@ -132,29 +132,41 @@ interface MapControlsProps {
     onReset: () => void;
     onToggleFullscreen: () => void;
     onSaveMap?: () => void;
+    onDownloadMap?: () => void;
     isFullscreen: boolean;
 }
 
-const MapControls: React.FC<MapControlsProps> = ({ onZoomIn, onZoomOut, onReset, onToggleFullscreen, onSaveMap, isFullscreen }) => {
-    const buttonClasses = "bg-white/95 dark:bg-slate-800/95 backdrop-blur-sm hover:bg-white dark:hover:bg-slate-700 text-gray-700 dark:text-slate-200 shadow-xl border border-gray-200 dark:border-dark-border rounded-xl w-11 h-11 flex items-center justify-center transition-all hover:scale-110 active:scale-90";
+const MapControls: React.FC<MapControlsProps> = ({ onZoomIn, onZoomOut, onReset, onToggleFullscreen, onSaveMap, onDownloadMap, isFullscreen }) => {
+    const buttonClasses = "bg-white dark:bg-slate-800 hover:bg-gray-50 dark:hover:bg-slate-700 text-gray-700 dark:text-slate-200 rounded-xl w-10 h-10 flex items-center justify-center transition-all hover:scale-105 active:scale-95";
     return (
-        <div className="absolute top-4 left-4 flex flex-col gap-2.5 z-10">
+        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex flex-row gap-2 z-10 bg-white/90 dark:bg-slate-800/90 backdrop-blur-md p-1.5 rounded-2xl shadow-2xl border border-gray-200/50 dark:border-slate-700/50">
             <button onClick={onZoomIn} title="Zoom In" className={buttonClasses}>
                  <ZoomIn className="h-5 w-5" />
             </button>
             <button onClick={onZoomOut} title="Zoom Out" className={buttonClasses}>
                 <ZoomOut className="h-5 w-5" />
             </button>
+            <div className="w-px h-6 bg-gray-200 dark:bg-slate-700 self-center mx-1"></div>
             <button onClick={onReset} title="Reset View" className={buttonClasses}>
                  <RotateCcw className="h-5 w-5" />
             </button>
              <button onClick={onToggleFullscreen} title={isFullscreen ? "Exit Fullscreen" : "Enter Fullscreen"} className={buttonClasses}>
                 {isFullscreen ? <Minimize className="h-5 w-5" /> : <Maximize className="h-5 w-5" />}
             </button>
-            {onSaveMap && (
-                <button onClick={onSaveMap} title="Save Map to Collection" className={`${buttonClasses} text-brand-blue`}>
-                    <Save className="h-5 w-5" />
-                </button>
+            {(onSaveMap || onDownloadMap) && (
+                <>
+                    <div className="w-px h-6 bg-gray-200 dark:bg-slate-700 self-center mx-1"></div>
+                    {onSaveMap && (
+                        <button onClick={onSaveMap} title="Save Map to Collection" className={`${buttonClasses} text-brand-blue dark:text-brand-blue-light`}>
+                            <Save className="h-5 w-5" />
+                        </button>
+                    )}
+                    {onDownloadMap && (
+                        <button onClick={onDownloadMap} title="Download Map as Image" className={`${buttonClasses} text-brand-blue dark:text-brand-blue-light`}>
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-download"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
+                        </button>
+                    )}
+                </>
             )}
         </div>
     );
@@ -190,9 +202,10 @@ interface KnowledgeMapProps {
     T: Record<string, any>;
     onDiscussNode: (nodeInfo: { node: KnowledgeNode; abstract: string; loading: boolean }) => void;
     onSaveMap?: () => void;
+    onDownloadMap?: () => void;
 }
 
-export const KnowledgeMap = forwardRef<any, KnowledgeMapProps>(({ data, onNodeClick, selectedNodeInfo, onClearSelection, isMapFullscreen, setIsMapFullscreen, caseTitle, language, T, onDiscussNode, onSaveMap }, ref) => {
+export const KnowledgeMap = forwardRef<any, KnowledgeMapProps>(({ data, onNodeClick, selectedNodeInfo, onClearSelection, isMapFullscreen, setIsMapFullscreen, caseTitle, language, T, onDiscussNode, onSaveMap, onDownloadMap }, ref) => {
     const { logEvent } = useAnalytics();
     const svgRef = useRef<SVGSVGElement | null>(null);
     const containerRef = useRef<HTMLDivElement | null>(null);
@@ -308,14 +321,18 @@ export const KnowledgeMap = forwardRef<any, KnowledgeMapProps>(({ data, onNodeCl
             .on('click', (event: MouseEvent, d: any) => { event.stopPropagation(); onNodeClick(d); })
             .on('mouseenter', (event: MouseEvent, d: any) => {
                 setHoveredNode({ node: d, position: { x: event.clientX, y: event.clientY } });
-                d3.select(event.currentTarget as any).select('rect').transition().duration(200).attr('stroke-width', 4).attr('stroke', '#3b82f6');
+                const group = d3.select(event.currentTarget as any);
+                group.select('rect').transition().duration(200).attr('stroke-width', 4).attr('stroke', '#3b82f6').attr('transform', 'scale(1.05)');
+                group.selectAll('text').transition().duration(200).attr('transform', 'scale(1.05)');
             })
             .on('mousemove', (event: MouseEvent) => {
                 setHoveredNode(prev => prev ? { ...prev, position: { x: event.clientX, y: event.clientY } } : null);
             })
             .on('mouseleave', (event: MouseEvent) => {
                 setHoveredNode(null);
-                d3.select(event.currentTarget as any).select('rect').transition().duration(200).attr('stroke-width', 2.5).attr('stroke', '#ffffff');
+                const group = d3.select(event.currentTarget as any);
+                group.select('rect').transition().duration(200).attr('stroke-width', 2.5).attr('stroke', '#ffffff').attr('transform', 'scale(1)');
+                group.selectAll('text').transition().duration(200).attr('transform', 'scale(1)');
             });
 
         node.append('rect')
@@ -392,8 +409,9 @@ export const KnowledgeMap = forwardRef<any, KnowledgeMapProps>(({ data, onNodeCl
 
     return (
         <div ref={containerRef} className={`w-full h-full bg-slate-50 dark:bg-slate-900 shadow-inner border border-gray-200 dark:border-dark-border overflow-hidden transition-colors duration-300 ${isMapFullscreen ? 'fixed inset-0 z-40' : 'relative rounded-xl'}`}>
+            <div className="absolute inset-0 pointer-events-none opacity-50 dark:opacity-20" style={{ backgroundImage: 'radial-gradient(circle at 1px 1px, #94a3b8 1px, transparent 0)', backgroundSize: '24px 24px' }}></div>
             {isLoading && <div className="absolute inset-0 z-20 flex items-center justify-center bg-slate-50/50 dark:bg-dark-bg/50 backdrop-blur-sm"><LoadingSpinner /></div>}
-            <svg ref={svgRef} className="w-full h-full touch-none" onClick={onClearSelection}></svg>
+            <svg ref={svgRef} className="w-full h-full touch-none relative z-0" onClick={onClearSelection}></svg>
             <MapControls 
                 onZoomIn={() => {
                     logEvent('map_zoom_in');
@@ -416,6 +434,7 @@ export const KnowledgeMap = forwardRef<any, KnowledgeMapProps>(({ data, onNodeCl
                     setIsMapFullscreen(!isMapFullscreen);
                 }} 
                 onSaveMap={onSaveMap} 
+                onDownloadMap={onDownloadMap}
                 isFullscreen={isMapFullscreen} 
             />
             <NodeTooltip node={hoveredNode?.node || null} position={hoveredNode?.position || null} />
