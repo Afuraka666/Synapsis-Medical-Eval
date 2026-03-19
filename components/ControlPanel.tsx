@@ -66,8 +66,8 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
     onGenerate, disabled, T, language, onSaveCase, onOpenSavedWork, 
     onOpenClinicalTools, isCaseActive, onGenerateNew, mobileView, onSetMobileView 
 }) => {
-  const [conditionInput, setConditionInput] = useState("Type 2 Diabetes Mellitus");
-  const [disciplineInput, setDisciplineInput] = useState("Medicine");
+  const [conditionInput, setConditionInput] = useState("");
+  const [disciplineInput, setDisciplineInput] = useState("");
   const [difficulty, setDifficulty] = useState("intermediate");
   const [history, setHistory] = useState<{ condition: string; discipline: string }[]>([]);
   const [showHistory, setShowHistory] = useState(false);
@@ -162,9 +162,8 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
                     id="condition-input" 
                     value={conditionInput} 
                     onChange={(e) => setConditionInput(e.target.value)} 
-                    onFocus={(e) => {
-                      if (e.target.value === "Type 2 Diabetes Mellitus") setConditionInput('');
-                    }}
+                    onFocus={() => setConditionInput('')}
+                    autoComplete="off"
                     disabled={disabled} 
                     placeholder={T.conditionPlaceholder} 
                     className="p-2.5 sm:p-3 pl-10 border border-gray-200 dark:border-dark-border rounded-xl focus:ring-2 focus:ring-brand-blue-light/30 focus:border-brand-blue-light w-full bg-gray-50 dark:bg-slate-800 text-gray-900 dark:text-white pr-10 transition-all outline-none font-medium text-sm sm:text-base" 
@@ -183,9 +182,8 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
                     id="discipline-input" 
                     value={disciplineInput} 
                     onChange={(e) => setDisciplineInput(e.target.value)} 
-                    onFocus={(e) => {
-                      if (e.target.value === "Medicine") setDisciplineInput('');
-                    }}
+                    onFocus={() => setDisciplineInput('')}
+                    autoComplete="off"
                     disabled={disabled} 
                     placeholder={T.disciplinePlaceholder} 
                     className="p-2.5 sm:p-3 pl-10 border border-gray-200 dark:border-dark-border rounded-xl focus:ring-2 focus:ring-brand-blue-light/30 focus:border-brand-blue-light w-full bg-gray-50 dark:bg-slate-800 text-gray-900 dark:text-white pr-10 transition-all outline-none font-medium text-sm sm:text-base" 
@@ -201,8 +199,6 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
                       <option value="beginner">{T.difficultyBeginner}</option>
                       <option value="intermediate">{T.difficultyIntermediate}</option>
                       <option value="advanced">{T.difficultyAdvanced}</option>
-                      <option value="postgraduate">{T.difficultyPostgraduate}</option>
-                      <option value="specialist">{T.difficultySpecialist}</option>
                   </select>
                   <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none text-gray-400">
                       <ChevronDown className="h-4 w-4" />

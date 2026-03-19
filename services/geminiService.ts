@@ -354,7 +354,8 @@ export const generateFullCase = async (condition: string, discipline: string, di
                 config: { 
                     responseMimeType: "application/json", 
                     responseSchema: coreCaseSchema,
-                    maxOutputTokens: 8192
+                    maxOutputTokens: 4096,
+                    thinkingConfig: { thinkingLevel: ThinkingLevel.LOW }
                 },
             });
 
@@ -378,7 +379,8 @@ export const generateFullCase = async (condition: string, discipline: string, di
                 config: { 
                     responseMimeType: "application/json", 
                     responseSchema: knowledgeMapSchema,
-                    maxOutputTokens: 8192
+                    maxOutputTokens: 2048,
+                    thinkingConfig: { thinkingLevel: ThinkingLevel.LOW }
                 },
             });
 
