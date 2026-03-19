@@ -71,33 +71,73 @@ const sanitizeContent = (text: string): string => {
         // 7. REMOVED: Detect and wrap equations that look like LaTeX but aren't wrapped
         // We no longer want to force LaTeX wrapping as the user wants plain text with Unicode.
         
-        // 8. Restore math blocks and fix common issues inside them
-        cleaned = cleaned.replace(/__MATH_BLOCK_(\d+)__/g, (match, p1) => {
-            let block = mathBlocks[parseInt(p1)];
-            
-            // If the user wants NO $, we should probably strip them from the block
-            // but only if it's a simple equation.
-            // For now, let's just unwrap them if they are simple.
-            const unwrapped = block.replace(/^\$\$?|\$\$?$/g, '').trim();
-            
-            // Convert LaTeX subscripts/superscripts to Unicode for the "clean" look
-            return unwrapped
-                .replace(/_\{?([0-9a-z])\}?/g, (m, p1) => {
-                    const subs: Record<string, string> = {
-                        '0': '₀', '1': '₁', '2': '₂', '3': '₃', '4': '₄', '5': '₅', '6': '₆', '7': '₇', '8': '₈', '9': '₉',
-                        'a': 'ₐ', 'e': 'ₑ', 'h': 'ₕ', 'i': 'ᵢ', 'j': 'ⱼ', 'k': 'ₖ', 'l': 'ₗ', 'm': 'ₘ', 'n': 'ₙ', 'o': 'ₒ', 'p': 'ₚ', 'r': 'ᵣ', 's': 'ₛ', 't': 'ₜ', 'u': 'ᵤ', 'v': 'ᵥ', 'x': 'ₓ'
-                    };
-                    return subs[p1] || m;
-                })
-                .replace(/\^\{?([0-9a-z\+\-])\}?/g, (m, p1) => {
-                    const supers: Record<string, string> = {
-                        '0': '⁰', '1': '¹', '2': '²', '3': '³', '4': '⁴', '5': '⁵', '6': '⁶', '7': '⁷', '8': '⁸', '9': '⁹',
-                        '+': '⁺', '-': '⁻',
-                        'a': 'ᵃ', 'b': 'ᵇ', 'c': 'ᶜ', 'd': 'ᵈ', 'e': 'ᵉ', 'f': 'ᶠ', 'g': 'ᵍ', 'h': 'ʰ', 'i': 'ⁱ', 'j': 'ʲ', 'k': 'ᵏ', 'l': 'ˡ', 'm': 'ᵐ', 'n': 'ⁿ', 'o': 'ᵒ', 'p': 'ᵖ', 'r': 'ʳ', 's': 'ˢ', 't': 'ᵗ', 'u': 'ᵘ', 'v': 'ᵛ', 'w': 'ʷ', 'x': 'ˣ', 'y': 'ʸ', 'z': 'ᶻ'
-                    };
-                    return supers[p1] || m;
-                });
-        });
+    // 8. Restore math blocks and fix common issues inside them
+    cleaned = cleaned.replace(/__MATH_BLOCK_(\d+)__/g, (match, p1) => {
+        let block = mathBlocks[parseInt(p1)];
+        
+        // If the user wants NO $, we strip them and convert to plain text
+        let unwrapped = block.replace(/^\$\$?|\$\$?$/g, '').trim();
+        
+        // Convert common LaTeX math commands to plain text/Unicode
+        unwrapped = unwrapped
+            .replace(/\\frac\{([^}]*)\}\{([^}]*)\}/g, '($1 / $2)')
+            .replace(/\\left\(|\\right\)/g, '')
+            .replace(/\\left\[|\\right\]/g, '[')
+            .replace(/\\left\{|\\right\}/g, '{')
+            .replace(/\\log_\{?(\d+)\}?/g, 'log$1')
+            .replace(/\\times/g, ' × ')
+            .replace(/\\cdot/g, ' · ')
+            .replace(/\\pm/g, ' ± ')
+            .replace(/\\approx/g, ' ≈ ')
+            .replace(/\\Delta/g, ' Δ ')
+            .replace(/\\rightarrow/g, ' → ')
+            .replace(/\\leftarrow/g, ' ← ')
+            .replace(/\\alpha/g, ' α ')
+            .replace(/\\beta/g, ' β ')
+            .replace(/\\gamma/g, ' γ ')
+            .replace(/\\theta/g, ' θ ')
+            .replace(/\\mu/g, ' μ ')
+            .replace(/\\pi/g, ' π ')
+            .replace(/\\sigma/g, ' σ ')
+            .replace(/\\tau/g, ' τ ')
+            .replace(/\\phi/g, ' φ ')
+            .replace(/\\omega/g, ' ω ')
+            .replace(/\\infty/g, ' ∞ ')
+            .replace(/\\partial/g, ' ∂ ')
+            .replace(/\\nabla/g, ' ∇ ')
+            .replace(/\\sum/g, ' Σ ')
+            .replace(/\\prod/g, ' Π ')
+            .replace(/\\int/g, ' ∫ ')
+            .replace(/\\sqrt\{([^}]*)\}/g, '√($1)')
+            .replace(/\\text\{([^}]*)\}/g, '$1')
+            .replace(/\\mathrm\{([^}]*)\}/g, '$1')
+            .replace(/\\mathbf\{([^}]*)\}/g, '$1')
+            .replace(/\\mathit\{([^}]*)\}/g, '$1')
+            .replace(/\\mathsf\{([^}]*)\}/g, '$1')
+            .replace(/\\mathtt\{([^}]*)\}/g, '$1')
+            .replace(/\\mathcal\{([^}]*)\}/g, '$1')
+            .replace(/\\mathbb\{([^}]*)\}/g, '$1');
+
+        // Convert LaTeX subscripts/superscripts to Unicode
+        return unwrapped
+            .replace(/_\{?([0-9a-z\+\-\=])\}?/g, (m, p1) => {
+                const subs: Record<string, string> = {
+                    '0': '₀', '1': '₁', '2': '₂', '3': '₃', '4': '₄', '5': '₅', '6': '₆', '7': '₇', '8': '₈', '9': '₉',
+                    '+': '₊', '-': '₋', '=': '₌',
+                    'a': 'ₐ', 'e': 'ₑ', 'h': 'ₕ', 'i': 'ᵢ', 'j': 'ⱼ', 'k': 'ₖ', 'l': 'ₗ', 'm': 'ₘ', 'n': 'ₙ', 'o': 'ₒ', 'p': 'ₚ', 'r': 'ᵣ', 's': 'ₛ', 't': 'ₜ', 'u': 'ᵤ', 'v': 'ᵥ', 'x': 'ₓ'
+                };
+                return subs[p1] || m;
+            })
+            .replace(/\^\{?([0-9a-z\+\-\=])\}?/g, (m, p1) => {
+                const supers: Record<string, string> = {
+                    '0': '⁰', '1': '¹', '2': '²', '3': '³', '4': '⁴', '5': '⁵', '6': '⁶', '7': '⁷', '8': '⁸', '9': '⁹',
+                    '+': '⁺', '-': '⁻', '=': '₌',
+                    'a': 'ᵃ', 'b': 'ᵇ', 'c': 'ᶜ', 'd': 'ᵈ', 'e': 'ᵉ', 'f': 'ᶠ', 'g': 'ᵍ', 'h': 'ʰ', 'i': 'ⁱ', 'j': 'ʲ', 'k': 'ᵏ', 'l': 'ˡ', 'm': 'ᵐ', 'n': 'ⁿ', 'o': 'ᵒ', 'p': 'ᵖ', 'r': 'ʳ', 's': 'ˢ', 't': 'ᵗ', 'u': 'ᵘ', 'v': 'ᵛ', 'w': 'ʷ', 'x': 'ˣ', 'y': 'ʸ', 'z': 'ᶻ'
+                };
+                return supers[p1] || m;
+            })
+            .replace(/\\/g, ''); // Remove any remaining backslashes
+    });
 
     // 9. Final cleanup
     cleaned = cleaned

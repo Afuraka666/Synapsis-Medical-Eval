@@ -295,7 +295,7 @@ export const DiscussionModal: React.FC<DiscussionModalProps> = ({
     const handleSendMessage = async (e?: React.FormEvent, customMsg?: string) => {
         if (e) e.preventDefault();
         const text = customMsg || userInput;
-        if (!text.trim() || isLoading || !chatRef.current) return;
+        if (!text.trim() || isLoading) return;
         
         logEvent('send_message', { topic_id: topicId });
         
@@ -315,11 +315,38 @@ export const DiscussionModal: React.FC<DiscussionModalProps> = ({
                     config: { 
                         systemInstruction: getSystemInstruction(),
                         tools: [{ googleSearch: {} }]
-                    }
+                    },
+                    history: messages
+                        .filter(m => m.role === 'user' || m.role === 'model')
+                        .map(m => ({ 
+                            role: m.role as 'user' | 'model', 
+                            parts: [{ text: m.text }] 
+                        }))
                 });
             }
 
-            const result = await retryWithBackoff(() => chatRef.current!.sendMessageStream({ message: text })) as AsyncIterable<GenerateContentResponse>;
+            let result;
+            try {
+                result = await retryWithBackoff(() => chatRef.current!.sendMessageStream({ message: text })) as AsyncIterable<GenerateContentResponse>;
+            } catch (streamErr) {
+                console.warn("Initial stream failed, re-initializing chat session...", streamErr);
+                // Re-initialize chat session on failure
+                chatRef.current = ai.chats.create({
+                    model: 'gemini-3.1-pro-preview',
+                    config: { 
+                        systemInstruction: getSystemInstruction(),
+                        tools: [{ googleSearch: {} }]
+                    },
+                    history: messages
+                        .filter(m => m.role === 'user' || m.role === 'model')
+                        .map(m => ({ 
+                            role: m.role as 'user' | 'model', 
+                            parts: [{ text: m.text }] 
+                        }))
+                });
+                result = await retryWithBackoff(() => chatRef.current!.sendMessageStream({ message: text })) as AsyncIterable<GenerateContentResponse>;
+            }
+
             let currentResponse = '';
             setMessages(prev => [...prev, { role: 'model', text: '', timestamp: Date.now() }]);
             
@@ -341,6 +368,9 @@ export const DiscussionModal: React.FC<DiscussionModalProps> = ({
                 model: 'gemini-3.1-pro-preview'
             });
             
+            // Clear chatRef so it re-initializes on next attempt
+            chatRef.current = null;
+
             // If it's a 404, the model might not be available, try falling back to flash in the next attempt
             if (error.status === 404) {
                 console.warn("Model not found, might need to check model name availability.");

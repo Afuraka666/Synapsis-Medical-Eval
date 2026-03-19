@@ -37,12 +37,13 @@ const SYNTHESIS_GUIDELINE = `
 **STRICT MEDICAL SYNTHESIS RULES:**
 1. **DISCIPLINE RIGOR:** Management MUST be specific to the discipline (e.g., Anaesthesia, Nursing).
 2. **VISUALS:** Use triggers: \`[GRAPH: oxygen_dissociation]\`, \`[GRAPH: frank_starling]\`, \`[GRAPH: pressure_volume_loop]\`, \`[GRAPH: respiratory_flow_volume]\`.
-3. **LATEX EQUATIONS:** You MUST wrap complex mathematical equations, clinical formulas, and scientific notation in double dollar signs ($$ ... $$) for blocks or single dollar signs ($ ... $) for inline.
-   - Example: $$pH = pK_a + \log_{10}\left(\frac{[HCO_3^-]}{0.03 \times PaCO_2}\right)$$
-   - Example: $$E_k = 61.5 \times \log_{10}\left(\frac{[K^+]_{out}}{[K^+]_{in}}\right)$$
-   - Ensure all subscripts (e.g., _a, _2, _k) and superscripts (e.g., ^-, ^+) are correctly formatted in LaTeX.
-4. **MOLECULAR FORMULAS:** For simple molecular formulas in plain text (e.g., CO2, O2, H2O, PaO2), you MUST use Unicode subscripts: CO₂, O₂, H₂O, PaO₂, SaO₂, PvO₂, HCO₃⁻. Do NOT use LaTeX for these unless they are part of a larger LaTeX equation.
-5. **LATEX JSON ESCAPING:** When outputting LaTeX in JSON strings, you MUST double-escape backslashes (e.g., use "\\\\times" for \\times, "\\\\frac" for \\frac). Failure to do so will break rendering.
+3. **NO LATEX:** Do NOT use LaTeX or dollar signs ($ or $$) for equations.
+4. **UNICODE SUBSCRIPTS/SUPERSCRIPTS:** You MUST use Unicode characters for all subscripts and superscripts in equations and formulas.
+   - Example: pH = pKₐ + log₁₀ ( [HCO₃⁻] / (0.03 × PaCO₂) )
+   - Example: Eₖ = 61.5 × log₁₀ ( [K⁺]out / [K⁺]in )
+   - Subscripts: ₀₁₂₃₄₅₆₇₈₉ ₊ ₋ ₌ ₍ ₎ ₐ ₑ ₕ ᵢ ⱼ ₖ ₗ ₘ ₙ ₒ ₚ ᵣ ₛ ₜ ᵤ ᵥ ₓ
+   - Superscripts: ⁰¹²³⁴⁵⁶⁷⁸⁹ ⁺ ⁻ ₌ ⁽ ⁾ ᵃ ᵇ ᶜ ᵈ ᵉ ᶠ ᵍ ʰ ⁱ ʲ ᵏ ˡ ᵐ ⁿ ᵒ ᵖ ʳ ˢ ᵗ ᵘ ᵛ ʷ ˣ ʸ ᶻ
+5. **MOLECULAR FORMULAS:** Use Unicode: CO₂, O₂, H₂O, PaO₂, SaO₂, PvO₂, HCO₃⁻.
 6. **COMPLETENESS:** You MUST provide detailed, high-fidelity content for EVERY field in the schema. DO NOT TRUNCATE. DO NOT USE PLACEHOLDERS.
 7. **ACADEMIC RIGOR:** All references and sources MUST be real and traceable.
 `;
@@ -60,7 +61,7 @@ const EVIDENCE_GUIDELINE = `
    - **CRITICAL:** You MUST verify that the article title at the URL matches your claim. Do NOT provide a URL if you are not 100% certain it leads to the correct material.
    - Do NOT use generic search result pages or homepage URLs.
 5. **QUIZ:** Generate exactly 5 high-yield MCQs with explanations.
-6. **LATEX JSON ESCAPING:** When outputting LaTeX in JSON strings, you MUST double-escape backslashes (e.g., use "\\\\times" for \\times, "\\\\frac" for \\frac).
+6. **NO LATEX:** Do NOT use LaTeX or dollar signs ($ or $$) for equations. Use Unicode subscripts/superscripts.
 7. **COMPLETENESS:** Ensure all 5 questions are fully generated.
 `;
 
