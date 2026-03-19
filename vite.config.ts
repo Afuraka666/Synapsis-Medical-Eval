@@ -14,6 +14,10 @@ export default defineConfig(({ mode }) => {
         port: 3000,
         host: '0.0.0.0',
       },
+      define: {
+        'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY || process.env.GEMINI_API_KEY || ''),
+        'process.env.API_KEY': JSON.stringify(env.API_KEY || process.env.API_KEY || '')
+      },
       plugins: [
         react(),
         tailwindcss()

@@ -157,7 +157,18 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
                   <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
                     <Search className="h-4 w-4 text-gray-400 group-focus-within:text-brand-blue transition-colors" />
                   </div>
-                  <input type="text" id="condition-input" value={conditionInput} onChange={(e) => setConditionInput(e.target.value)} disabled={disabled} placeholder={T.conditionPlaceholder} className="p-2.5 sm:p-3 pl-10 border border-gray-200 dark:border-dark-border rounded-xl focus:ring-2 focus:ring-brand-blue-light/30 focus:border-brand-blue-light w-full bg-gray-50 dark:bg-slate-800 text-gray-900 dark:text-white pr-10 transition-all outline-none font-medium text-sm sm:text-base" />
+                  <input 
+                    type="text" 
+                    id="condition-input" 
+                    value={conditionInput} 
+                    onChange={(e) => setConditionInput(e.target.value)} 
+                    onFocus={(e) => {
+                      if (e.target.value === "Type 2 Diabetes Mellitus") setConditionInput('');
+                    }}
+                    disabled={disabled} 
+                    placeholder={T.conditionPlaceholder} 
+                    className="p-2.5 sm:p-3 pl-10 border border-gray-200 dark:border-dark-border rounded-xl focus:ring-2 focus:ring-brand-blue-light/30 focus:border-brand-blue-light w-full bg-gray-50 dark:bg-slate-800 text-gray-900 dark:text-white pr-10 transition-all outline-none font-medium text-sm sm:text-base" 
+                  />
                   {isSpeechRecognitionSupported && <MicButton onClick={() => handleMicClick('condition')} isListening={isListening && activeInput === 'condition'} disabled={disabled} title={T.voiceInputCondition} />}
               </div>
           </div>
@@ -167,7 +178,18 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
                   <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
                     <Network className="h-4 w-4 text-gray-400 group-focus-within:text-brand-blue transition-colors" />
                   </div>
-                  <input type="text" id="discipline-input" value={disciplineInput} onChange={(e) => setDisciplineInput(e.target.value)} disabled={disabled} placeholder={T.disciplinePlaceholder} className="p-2.5 sm:p-3 pl-10 border border-gray-200 dark:border-dark-border rounded-xl focus:ring-2 focus:ring-brand-blue-light/30 focus:border-brand-blue-light w-full bg-gray-50 dark:bg-slate-800 text-gray-900 dark:text-white pr-10 transition-all outline-none font-medium text-sm sm:text-base" />
+                  <input 
+                    type="text" 
+                    id="discipline-input" 
+                    value={disciplineInput} 
+                    onChange={(e) => setDisciplineInput(e.target.value)} 
+                    onFocus={(e) => {
+                      if (e.target.value === "Medicine") setDisciplineInput('');
+                    }}
+                    disabled={disabled} 
+                    placeholder={T.disciplinePlaceholder} 
+                    className="p-2.5 sm:p-3 pl-10 border border-gray-200 dark:border-dark-border rounded-xl focus:ring-2 focus:ring-brand-blue-light/30 focus:border-brand-blue-light w-full bg-gray-50 dark:bg-slate-800 text-gray-900 dark:text-white pr-10 transition-all outline-none font-medium text-sm sm:text-base" 
+                  />
                   {isSpeechRecognitionSupported && <MicButton onClick={() => handleMicClick('discipline')} isListening={isListening && activeInput === 'discipline'} disabled={disabled} title={T.voiceInputDiscipline} />}
               </div>
           </div>
@@ -179,6 +201,8 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
                       <option value="beginner">{T.difficultyBeginner}</option>
                       <option value="intermediate">{T.difficultyIntermediate}</option>
                       <option value="advanced">{T.difficultyAdvanced}</option>
+                      <option value="postgraduate">{T.difficultyPostgraduate}</option>
+                      <option value="specialist">{T.difficultySpecialist}</option>
                   </select>
                   <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none text-gray-400">
                       <ChevronDown className="h-4 w-4" />
