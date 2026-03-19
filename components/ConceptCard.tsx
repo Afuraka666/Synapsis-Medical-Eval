@@ -53,7 +53,7 @@ export const ConceptCard: React.FC<ConceptCardProps> = ({ nodeInfo, onClose, onD
 
       <div className="relative group">
         <div className="absolute -left-2 top-0 bottom-0 w-1 bg-brand-blue/20 rounded-full"></div>
-        <div className="text-sm text-gray-600 dark:text-slate-300 min-h-[60px] leading-relaxed">
+        <div className="text-sm text-gray-800 dark:text-slate-200 min-h-[60px] leading-relaxed">
           {loading ? (
             <LoadingSpinner />
           ) : (
@@ -61,7 +61,7 @@ export const ConceptCard: React.FC<ConceptCardProps> = ({ nodeInfo, onClose, onD
               <p className="whitespace-pre-wrap font-medium">{abstract}</p>
               <div className="flex items-start gap-2 p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-100 dark:border-slate-700">
                 <Info className="w-4 h-4 text-brand-blue mt-0.5 flex-shrink-0" />
-                <p className="text-[11px] text-gray-500 dark:text-slate-400 italic">
+                <p className="text-[11px] text-gray-700 dark:text-slate-300 italic">
                   This concept is a key node in the biochemical pathway for this case.
                 </p>
               </div>

@@ -35,7 +35,7 @@ export const QuizView: React.FC<QuizViewProps> = ({ quiz, T, showTitle = true })
       {isSubmitted && (
         <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-4 mb-4 text-center shadow-sm">
             <h4 className="font-black text-lg text-brand-blue dark:text-blue-300 uppercase tracking-tight">{T.quizComplete}</h4>
-            <p className="text-sm text-gray-700 dark:text-slate-300 mt-1">{T.quizScore(score, quiz.length)}</p>
+            <p className="text-sm text-gray-900 dark:text-slate-100 mt-1">{T.quizScore(score, quiz.length)}</p>
             <button onClick={handleReset} className="mt-3 bg-brand-blue hover:bg-blue-800 text-white font-black py-2 px-5 rounded-lg transition text-[10px] uppercase tracking-widest shadow-md">
                 {T.quizTryAgain}
             </button>
@@ -82,7 +82,7 @@ export const QuizView: React.FC<QuizViewProps> = ({ quiz, T, showTitle = true })
                 <div className="mt-2 p-2 bg-slate-50 dark:bg-slate-800/40 border-l-4 border-brand-blue dark:border-brand-blue-light rounded-r-xl text-[9px] leading-relaxed">
                     <div className="flex gap-2">
                         <span className="font-black text-brand-blue dark:text-brand-blue-light uppercase tracking-tighter shrink-0">{T.quizExplanation}:</span> 
-                        <MarkdownRenderer content={q.explanation} className="!mb-0 text-gray-600 dark:text-slate-400" />
+                        <MarkdownRenderer content={q.explanation} className="!mb-0 text-gray-900 dark:text-slate-100" />
                     </div>
                 </div>
             )}

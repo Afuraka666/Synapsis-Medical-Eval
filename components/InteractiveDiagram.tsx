@@ -182,9 +182,9 @@ export const InteractiveDiagram: React.FC<InteractiveDiagramProps> = ({ data, id
             </ControlButton>
       </div>
       {selectedElement && (
-        <div className="absolute top-2 right-12 sm:w-64 bg-white/90 backdrop-blur-sm rounded-lg shadow-lg border border-gray-200 p-3 text-xs z-20 animate-fade-in">
-          <p className="font-bold text-gray-800">{selectedElement.label}</p>
-          {isNode(selectedElement) && selectedElement.description && <p className="text-gray-600 mt-1">{selectedElement.description}</p>}
+        <div className="absolute top-2 right-12 sm:w-64 bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm rounded-lg shadow-lg border border-gray-200 dark:border-slate-700 p-3 text-xs z-20 animate-fade-in">
+          <p className="font-bold text-gray-900 dark:text-slate-100">{selectedElement.label}</p>
+          {isNode(selectedElement) && selectedElement.description && <p className="text-gray-800 dark:text-slate-300 mt-1">{selectedElement.description}</p>}
         </div>
       )}
     </div>

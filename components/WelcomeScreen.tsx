@@ -23,7 +23,7 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ T, onOpenSavedWork
             {T.welcomeTitle}
             <span className="text-brand-blue">.</span>
         </h2>
-        <p className="text-base sm:text-lg text-gray-500 dark:text-gray-400 leading-relaxed font-medium px-4">
+        <p className="text-base sm:text-lg text-gray-700 dark:text-slate-300 leading-relaxed font-medium px-4">
           {T.welcomeMessage}
         </p>
 
@@ -35,8 +35,8 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ T, onOpenSavedWork
                 <div className="w-12 h-12 sm:w-14 sm:h-14 bg-blue-50 dark:bg-blue-900/20 text-brand-blue rounded-xl sm:rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-500">
                     <Library className="h-6 w-6 sm:h-7 sm:w-7" />
                 </div>
-                <h3 className="font-black text-gray-800 dark:text-white uppercase tracking-widest text-[10px] sm:text-xs mb-2">{T.savedWorkButton}</h3>
-                <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mb-4">{T.viewSavedWorkButton}</p>
+                <h3 className="font-black text-gray-900 dark:text-white uppercase tracking-widest text-[10px] sm:text-xs mb-2">{T.savedWorkButton}</h3>
+                <p className="text-xs sm:text-sm text-gray-700 dark:text-slate-300 mb-4">{T.viewSavedWorkButton}</p>
                 <div className="flex items-center text-brand-blue text-[10px] sm:text-xs font-black uppercase tracking-tighter opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity">
                     {T.openCollection} <ArrowRight className="ml-1 w-3 h-3" />
                 </div>
@@ -49,15 +49,15 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ T, onOpenSavedWork
                 <div className="w-12 h-12 sm:w-14 sm:h-14 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 rounded-xl sm:rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-500">
                     <Calculator className="h-6 w-6 sm:h-7 sm:w-7" />
                 </div>
-                <h3 className="font-black text-gray-800 dark:text-white uppercase tracking-widest text-[10px] sm:text-xs mb-2">{T.clinicalToolsButton}</h3>
-                <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mb-4">{T.clinicalToolsTitle}</p>
+                <h3 className="font-black text-gray-900 dark:text-white uppercase tracking-widest text-[10px] sm:text-xs mb-2">{T.clinicalToolsButton}</h3>
+                <p className="text-xs sm:text-sm text-gray-700 dark:text-slate-300 mb-4">{T.clinicalToolsTitle}</p>
                 <div className="flex items-center text-indigo-600 dark:text-indigo-400 text-[10px] sm:text-xs font-black uppercase tracking-tighter opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity">
                     {T.openTools} <ArrowRight className="ml-1 w-3 h-3" />
                 </div>
             </button>
         </div>
 
-        <div className="mt-8 sm:mt-12 flex items-center justify-center gap-2 text-gray-400 dark:text-gray-500 text-[10px] sm:text-xs font-black uppercase tracking-widest">
+        <div className="mt-8 sm:mt-12 flex items-center justify-center gap-2 text-gray-600 dark:text-slate-400 text-[10px] sm:text-xs font-black uppercase tracking-widest">
             <Sparkles className="w-4 h-4" />
             {T.poweredByAi}
         </div>

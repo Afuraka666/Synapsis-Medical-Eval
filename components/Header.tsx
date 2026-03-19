@@ -51,7 +51,7 @@ export const Header: React.FC<HeaderProps> = ({ supportedLanguages, currentLangu
         </div>
         
         <div className="flex items-center space-x-1.5 sm:space-x-3 md:space-x-4">
-          <p className="text-[10px] md:text-xs font-medium text-blue-200/80 hidden lg:block italic">{T.headerSubtitle}</p>
+          <p className="text-[10px] md:text-xs font-medium text-blue-100 hidden lg:block italic">{T.headerSubtitle}</p>
           
           <div className="h-6 w-px bg-white/10 hidden sm:block"></div>
 

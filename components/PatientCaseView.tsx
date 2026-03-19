@@ -45,6 +45,7 @@ import { MarkdownRenderer } from './MarkdownRenderer';
 import { SourceRenderer } from './SourceRenderer';
 import { ScientificGraph } from './ScientificGraph';
 import { AudioVisualizer } from './AudioVisualizer';
+import { useAnalytics } from '../contexts/analytics';
 
 const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
 const isSpeechRecognitionSupported = !!SpeechRecognition;
@@ -248,7 +249,7 @@ const Section: React.FC<{
       </div>
       {isExpanded && (
         <div className="p-4 sm:p-6 animate-fade-in">
-          <div className="text-sm sm:text-base text-gray-800 dark:text-slate-200 leading-relaxed font-serif">{children}</div>
+          <div className="text-sm sm:text-base text-gray-900 dark:text-slate-100 leading-relaxed font-serif">{children}</div>
           {groundingSources && groundingSources.length > 0 && (
             <div className="mt-6 pt-4 border-t border-gray-100 dark:border-dark-border">
               <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3">{T.groundingSourcesTitle}</h4>
@@ -312,6 +313,7 @@ const DiscussionBadge: React.FC<{ messages: ChatMessage[] | undefined }> = ({ me
 };
 
 export const PatientCaseView: React.FC<PatientCaseViewProps> = ({ patientCase: initialCase, isGeneratingDetails, onSave, language, T, onSaveSnippet, onOpenShare, onOpenDiscussion, onGetMapImage, mapData }) => {
+  const { logEvent } = useAnalytics();
   const { state: patientCase, setState: setPatientCase, undo, redo, canUndo, canRedo, resetState } = useHistoryState<PatientCase>(initialCase);
   const [isEditing, setIsEditing] = useState(false);
   const [activeImageGenerator, setActiveImageGenerator] = useState<{ content: EducationalContent; index: number } | null>(null);
@@ -324,12 +326,21 @@ export const PatientCaseView: React.FC<PatientCaseViewProps> = ({ patientCase: i
   useEffect(() => { resetState(initialCase); }, [initialCase, resetState]);
 
   const handleTextChange = (value: string, key: keyof PatientCase) => setPatientCase({ ...patientCase, [key]: value });
-  const handleSave = () => { onSave(patientCase); setIsEditing(false); };
+  const handleSave = () => { 
+    logEvent('save_case_edits');
+    onSave(patientCase); 
+    setIsEditing(false); 
+  };
   const handleCancel = () => { resetState(initialCase); setIsEditing(false); };
 
   const handleMicClick = useCallback((key: keyof PatientCase) => {
     if (!isSpeechRecognitionSupported) return;
-    if (isListening && recognitionRef.current) { recognitionRef.current.stop(); return; }
+    if (isListening && recognitionRef.current) { 
+      logEvent('stop_voice_input', { field: key });
+      recognitionRef.current.stop(); 
+      return; 
+    }
+    logEvent('start_voice_input', { field: key });
     const recognition = new SpeechRecognition();
     recognition.lang = getBCP47Language(language);
     recognition.continuous = true;
@@ -349,10 +360,12 @@ export const PatientCaseView: React.FC<PatientCaseViewProps> = ({ patientCase: i
   }, [isListening, language, patientCase]);
 
   const handleTriggerIllustration = (desc: string, sourceIndex: number) => { 
+    logEvent('trigger_illustration', { source_index: sourceIndex });
     setActiveImageGenerator({ content: { title: T.clinicalVisualization, description: desc, type: EducationalContentType.IMAGE, reference: T.aiSynthesizedEvidence }, index: sourceIndex }); 
   };
 
   const handleDownloadPdf = async () => {
+    logEvent('download_case_pdf');
     const { jsPDF } = (window as any).jspdf;
     const doc = new jsPDF();
     const margin = 20;
@@ -451,15 +464,17 @@ export const PatientCaseView: React.FC<PatientCaseViewProps> = ({ patientCase: i
   };
 
   const handleImageGenerated = useCallback((idx: number, img: string) => { 
+    logEvent('generate_image', { source_index: idx });
     setPatientCase(prev => { 
         const edu = [...(prev.educationalContent || [])]; 
         if (idx >= 0 && edu[idx]) { edu[idx] = { ...edu[idx], imageData: img }; } 
         return { ...prev, educationalContent: edu }; 
     }); 
     setActiveImageGenerator(null); 
-  }, [setPatientCase]);
+  }, [setPatientCase, logEvent]);
 
   const handleEnrichSources = async () => { 
+    logEvent('enrich_sources');
     setIsEnrichingEvidence(true); 
     try { 
         const { newEvidence, newReadings, groundingSources: gs } = await enrichCaseWithWebSources(patientCase, language); 

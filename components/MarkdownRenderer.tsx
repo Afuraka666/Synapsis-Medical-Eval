@@ -69,19 +69,20 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, cla
     const cleanContent = useMemo(() => sanitizeContent(content), [content]);
 
     return (
-        <div className={`prose prose-sm max-w-none text-gray-800 dark:text-slate-200 ${className || ''}`}>
+        <div className={`prose prose-sm max-w-none text-gray-900 dark:text-slate-100 ${className || ''}`}>
             <ReactMarkdown
                 remarkPlugins={[remarkMath, remarkGfm]}
                 rehypePlugins={[rehypeKatex]}
                 components={{
-                    a: ({ node, ...props }) => <a {...props} className="text-blue-600 dark:text-blue-400 hover:underline font-bold" target="_blank" rel="noopener noreferrer" />,
-                    p: ({ node, ...props }) => <p {...props} className="mb-4 last:mb-0 leading-relaxed font-serif" />,
-                    ul: ({ node, ...props }) => <ul {...props} className="list-disc pl-5 mb-4 space-y-2" />,
-                    ol: ({ node, ...props }) => <ol {...props} className="list-decimal pl-5 mb-4 space-y-2" />,
+                    a: ({ node, ...props }) => <a {...props} className="text-blue-700 dark:text-blue-300 hover:underline font-bold" target="_blank" rel="noopener noreferrer" />,
+                    p: ({ node, ...props }) => <p {...props} className="mb-4 last:mb-0 leading-relaxed font-serif text-gray-900 dark:text-slate-100" />,
+                    ul: ({ node, ...props }) => <ul {...props} className="list-disc pl-5 mb-4 space-y-2 text-gray-900 dark:text-slate-100" />,
+                    ol: ({ node, ...props }) => <ol {...props} className="list-decimal pl-5 mb-4 space-y-2 text-gray-900 dark:text-slate-100" />,
+                    li: ({ node, ...props }) => <li {...props} className="text-gray-900 dark:text-slate-100" />,
                     h1: ({ node, ...props }) => <h1 {...props} className="text-2xl font-black mt-6 mb-4 text-brand-blue dark:text-brand-blue-light" />,
                     h2: ({ node, ...props }) => <h2 {...props} className="text-xl font-black mt-5 mb-3 text-gray-900 dark:text-slate-100 border-b-2 border-slate-100 dark:border-dark-border pb-1" />,
-                    h3: ({ node, ...props }) => <h3 {...props} className="text-lg font-black mt-4 mb-2 text-gray-800 dark:text-slate-200" />,
-                    blockquote: ({ node, ...props }) => <blockquote {...props} className="border-l-4 border-brand-blue/20 pl-4 italic my-4 bg-slate-50 dark:bg-slate-800/40 py-3 pr-3 text-gray-600 dark:text-slate-400 rounded-r-xl" />,
+                    h3: ({ node, ...props }) => <h3 {...props} className="text-lg font-black mt-4 mb-2 text-gray-900 dark:text-slate-100" />,
+                    blockquote: ({ node, ...props }) => <blockquote {...props} className="border-l-4 border-brand-blue/20 pl-4 italic my-4 bg-slate-50 dark:bg-slate-800/40 py-3 pr-3 text-gray-700 dark:text-slate-300 rounded-r-xl" />,
                     table: ({ node, ...props }) => (
                         <div className="overflow-x-auto my-6 bg-white dark:bg-slate-900 shadow-sm border border-gray-200 dark:border-dark-border rounded-lg">
                             <table {...props} className="min-w-full border-collapse" />

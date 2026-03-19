@@ -17,6 +17,7 @@ import {
 import { Discipline } from '../types';
 import type { KnowledgeMapData, KnowledgeNode, KnowledgeLink } from '../types';
 import { ConceptCard } from './ConceptCard';
+import { useAnalytics } from '../contexts/analytics';
 
 declare const d3: any;
 
@@ -107,13 +108,14 @@ const LoadingSpinner: React.FC = () => (
 );
 
 function intersectRect(rect: any, point: any) {
-    const cx = rect.x;
-    const cy = rect.y;
-    const dx = point.x - cx;
-    const dy = point.y - cy;
-    const w = (rect.pillWidth || 0) / 2;
-    const h = (rect.pillHeight || 0) / 2;
-    if (w === 0 || h === 0) return { x: cx, y: cy }; 
+    const cx = rect.x || 0;
+    const cy = rect.y || 0;
+    const dx = (point.x || 0) - cx;
+    const dy = (point.y || 0) - cy;
+    const w = (rect.pillWidth || 120) / 2;
+    const h = (rect.pillHeight || 46) / 2;
+    
+    if (dx === 0 && dy === 0) return { x: cx, y: cy };
     
     if (Math.abs(dy * w) < Math.abs(dx * h)) {
         if (dx > 0) return { x: cx + w, y: cy + dy * w / dx };
@@ -167,11 +169,11 @@ const NodeTooltip: React.FC<{ node: KnowledgeNode | null; position: { x: number;
         >
             <div className="flex items-center justify-between mb-2">
                 <span className="text-[9px] font-black uppercase tracking-[0.2em] text-brand-blue dark:text-brand-blue-light bg-brand-blue/5 dark:bg-brand-blue-light/5 px-2 py-0.5 rounded-full">{node.discipline}</span>
-                <Info className="w-3 h-3 text-gray-300" />
+                <Info className="w-3 h-3 text-gray-500 dark:text-slate-400" />
             </div>
             <h4 className="font-black text-sm text-gray-900 dark:text-white mb-2 tracking-tight">{node.label}</h4>
             <div className="h-px w-full bg-gray-100 dark:bg-slate-700 mb-2"></div>
-            <p className="text-xs text-gray-500 dark:text-slate-400 leading-relaxed italic line-clamp-4">{node.summary}</p>
+            <p className="text-xs text-gray-700 dark:text-slate-300 leading-relaxed italic line-clamp-4">{node.summary}</p>
         </div>
     );
 };
@@ -191,6 +193,7 @@ interface KnowledgeMapProps {
 }
 
 export const KnowledgeMap = forwardRef<any, KnowledgeMapProps>(({ data, onNodeClick, selectedNodeInfo, onClearSelection, isMapFullscreen, setIsMapFullscreen, caseTitle, language, T, onDiscussNode, onSaveMap }, ref) => {
+    const { logEvent } = useAnalytics();
     const svgRef = useRef<SVGSVGElement | null>(null);
     const containerRef = useRef<HTMLDivElement | null>(null);
     const [isLoading, setIsLoading] = useState(true);
@@ -354,15 +357,16 @@ export const KnowledgeMap = forwardRef<any, KnowledgeMapProps>(({ data, onNodeCl
 
         simulationRef.current.on('tick', () => { 
             linkPaths.attr('d', (d: any) => {
-                if (!d.source.x || !d.target.x) return null;
+                if (d.source.x === undefined || d.target.x === undefined) return null;
                 const s = intersectRect(d.source, d.target);
                 const t = intersectRect(d.target, d.source);
                 const dx = t.x - s.x;
                 const dy = t.y - s.y;
                 const dr = Math.sqrt(dx * dx + dy * dy) * 1.5; 
+                if (dr === 0) return null;
                 return `M${s.x},${s.y}A${dr},${dr} 0 0,1 ${t.x},${t.y}`;
             }); 
-            node.attr('transform', (d: any) => `translate(${d.x}, ${d.y})`); 
+            node.attr('transform', (d: any) => `translate(${d.x || 0}, ${d.y || 0})`); 
         });
 
         return () => simulationRef.current.stop();
@@ -392,17 +396,25 @@ export const KnowledgeMap = forwardRef<any, KnowledgeMapProps>(({ data, onNodeCl
             <svg ref={svgRef} className="w-full h-full touch-none" onClick={onClearSelection}></svg>
             <MapControls 
                 onZoomIn={() => {
+                    logEvent('map_zoom_in');
                     if (typeof d3 !== 'undefined' && zoomRef.current && svgRef.current) {
                         d3.select(svgRef.current).transition().call(zoomRef.current.scaleBy, 1.3);
                     }
                 }} 
                 onZoomOut={() => {
+                    logEvent('map_zoom_out');
                     if (typeof d3 !== 'undefined' && zoomRef.current && svgRef.current) {
                         d3.select(svgRef.current).transition().call(zoomRef.current.scaleBy, 0.7);
                     }
                 }} 
-                onReset={resetZoom} 
-                onToggleFullscreen={() => setIsMapFullscreen(!isMapFullscreen)} 
+                onReset={() => {
+                    logEvent('map_reset_zoom');
+                    resetZoom();
+                }} 
+                onToggleFullscreen={() => {
+                    logEvent('map_toggle_fullscreen', { is_fullscreen: !isMapFullscreen });
+                    setIsMapFullscreen(!isMapFullscreen);
+                }} 
                 onSaveMap={onSaveMap} 
                 isFullscreen={isMapFullscreen} 
             />
@@ -410,8 +422,8 @@ export const KnowledgeMap = forwardRef<any, KnowledgeMapProps>(({ data, onNodeCl
             
             {hoveredLink && (
                 <div className="absolute bottom-4 right-4 bg-white/90 dark:bg-slate-800/90 p-2 px-3 rounded-lg shadow-lg border border-brand-blue/20 text-[10px] max-w-[200px] animate-fade-in pointer-events-none">
-                    <p className="font-black uppercase text-gray-400 mb-1">Relationship</p>
-                    <p className="text-gray-800 dark:text-slate-200 leading-tight italic font-medium">{hoveredLink.description}</p>
+                    <p className="font-black uppercase text-gray-600 dark:text-slate-400 mb-1">Relationship</p>
+                    <p className="text-gray-900 dark:text-slate-100 leading-tight italic font-medium">{hoveredLink.description}</p>
                 </div>
             )}
 

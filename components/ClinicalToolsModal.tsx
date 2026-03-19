@@ -1418,9 +1418,9 @@ const DoseCalculator: React.FC<{
                             )}
                             
                             {interactionResult && (
-                                <div className="text-sm text-slate-700 whitespace-pre-wrap leading-relaxed">
+                                <div className="text-sm text-slate-900 whitespace-pre-wrap leading-relaxed">
                                     <div 
-                                        className="prose prose-sm max-w-none prose-headings:text-indigo-900 prose-headings:font-black prose-headings:uppercase prose-headings:tracking-widest prose-headings:text-[10px] prose-headings:mb-2 prose-p:text-slate-600 prose-p:font-medium prose-strong:text-slate-900 prose-strong:font-bold prose-ul:list-disc prose-ul:pl-4 prose-li:mb-1"
+                                        className="prose prose-sm max-w-none prose-headings:text-indigo-900 prose-headings:font-black prose-headings:uppercase prose-headings:tracking-widest prose-headings:text-[10px] prose-headings:mb-2 prose-p:text-slate-800 prose-p:font-medium prose-strong:text-slate-900 prose-strong:font-bold prose-ul:list-disc prose-ul:pl-4 prose-li:mb-1"
                                         dangerouslySetInnerHTML={{
                                             __html: interactionResult
                                                 .replace(/### (.*)/g, '<h3 class="mt-4">$1</h3>')

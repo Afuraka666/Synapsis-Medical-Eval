@@ -16,18 +16,18 @@ export const Footer: React.FC<FooterProps> = ({ T, evaluationDaysRemaining, onOp
             <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6 md:gap-4">
                 <div className="flex flex-wrap items-center justify-center md:justify-start gap-4 sm:gap-6">
                     <div className="flex flex-col items-center md:items-start">
-                        <span className="text-[9px] sm:text-[10px] font-black text-gray-400 uppercase tracking-widest leading-none mb-1">Platform</span>
+                        <span className="text-[9px] sm:text-[10px] font-black text-gray-600 dark:text-slate-400 uppercase tracking-widest leading-none mb-1">Platform</span>
                         <span className="text-[11px] sm:text-xs font-bold text-gray-900 dark:text-slate-100">Ungana Medical Intelligence</span>
                     </div>
                     <div className="h-6 w-px bg-gray-100 dark:bg-slate-800 hidden sm:block"></div>
                     <div className="flex flex-col items-center md:items-start">
-                        <span className="text-[9px] sm:text-[10px] font-black text-gray-400 uppercase tracking-widest leading-none mb-1">Copyright</span>
-                        <span className="text-[11px] sm:text-xs font-medium text-gray-500 dark:text-gray-400">© {currentYear} Samuel Sibanda</span>
+                        <span className="text-[9px] sm:text-[10px] font-black text-gray-600 dark:text-slate-400 uppercase tracking-widest leading-none mb-1">Copyright</span>
+                        <span className="text-[11px] sm:text-xs font-medium text-gray-700 dark:text-slate-300">© {currentYear} Samuel Sibanda</span>
                     </div>
                     <div className="h-6 w-px bg-gray-100 dark:bg-slate-800 hidden sm:block"></div>
                     <div className="flex flex-col items-center md:items-start">
-                        <span className="text-[9px] sm:text-[10px] font-black text-gray-400 uppercase tracking-widest leading-none mb-1">Version</span>
-                        <span className="text-[11px] sm:text-xs font-medium text-gray-500 dark:text-gray-400">v1.0.32</span>
+                        <span className="text-[9px] sm:text-[10px] font-black text-gray-600 dark:text-slate-400 uppercase tracking-widest leading-none mb-1">Version</span>
+                        <span className="text-[11px] sm:text-xs font-medium text-gray-700 dark:text-slate-300">v1.0.32</span>
                     </div>
                 </div>
 

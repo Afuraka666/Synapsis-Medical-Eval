@@ -285,9 +285,9 @@ export const EcgInterpreter: React.FC<EcgInterpreterProps> = ({ T, language }) =
                         )}
                         
                         {interpretationResult && (
-                            <div className="text-sm text-slate-700 whitespace-pre-wrap leading-relaxed">
+                            <div className="text-sm text-slate-900 whitespace-pre-wrap leading-relaxed">
                                 <div 
-                                    className="prose prose-sm max-w-none prose-headings:text-brand-blue prose-headings:font-black prose-headings:uppercase prose-headings:tracking-widest prose-headings:text-[10px] prose-headings:mb-2 prose-p:text-slate-600 prose-p:font-medium prose-strong:text-slate-900 prose-strong:font-bold"
+                                    className="prose prose-sm max-w-none prose-headings:text-brand-blue prose-headings:font-black prose-headings:uppercase prose-headings:tracking-widest prose-headings:text-[10px] prose-headings:mb-2 prose-p:text-slate-800 prose-p:font-medium prose-strong:text-slate-900 prose-strong:font-bold"
                                     dangerouslySetInnerHTML={{ 
                                         __html: interpretationResult
                                             .replace(/## (.*)/g, '<h4 class="mt-4">$1</h4>')

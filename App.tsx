@@ -306,13 +306,12 @@ export const App: React.FC = () => {
 
     const handleNodeClick = useCallback(async (node: KnowledgeNode) => {
         logEvent('node_click', { node_label: node.label });
-        if (selectedNodeInfo?.node.id === node.id) {
-            setSelectedNodeInfo(null);
-            return;
-        }
-        setSelectedNodeInfo({ node, abstract: node.summary, loading: false });
+        setSelectedNodeInfo(prev => {
+            if (prev?.node.id === node.id) return null;
+            return { node, abstract: node.summary, loading: false };
+        });
         setInteractionState(prev => ({...prev, nodeClicks: prev.nodeClicks + 1}));
-    }, [selectedNodeInfo, logEvent]);
+    }, [logEvent]);
     
     const handleClearNodeSelection = useCallback(() => setSelectedNodeInfo(null), []);
     
@@ -371,7 +370,7 @@ export const App: React.FC = () => {
         }
     };
 
-    const handleSaveSnippet = (title: string, content: string, visualData?: Partial<Snippet>) => {
+    const handleSaveSnippet = useCallback((title: string, content: string, visualData?: Partial<Snippet>) => {
         logEvent('save_snippet', { snippet_title: title });
         const newSnippet: Snippet = {
             id: generateId(),
@@ -380,13 +379,15 @@ export const App: React.FC = () => {
             savedAt: new Date().toISOString(),
             ...visualData
         };
-        const updatedSnippets = [...savedSnippets, newSnippet];
-        setSavedSnippets(updatedSnippets);
-        localStorage.setItem('ungana_saved_snippets', JSON.stringify(updatedSnippets));
+        setSavedSnippets(prev => {
+            const updated = [...prev, newSnippet];
+            localStorage.setItem('ungana_saved_snippets', JSON.stringify(updated));
+            return updated;
+        });
         setInteractionState(prev => ({ ...prev, snippetSaved: true }));
-    };
+    }, [logEvent]);
 
-    const handleSaveMapSnippet = () => {
+    const handleSaveMapSnippet = useCallback(() => {
         if (!mapData || !patientCase) return;
         handleSaveSnippet(
             `Map: ${patientCase.title}`,
@@ -394,7 +395,7 @@ export const App: React.FC = () => {
             { mapData: mapData }
         );
         alert('Map saved to collection!');
-    };
+    }, [mapData, patientCase, handleSaveSnippet]);
 
     const handleDeleteSnippet = (snippetId: string) => {
         const updatedSnippets = savedSnippets.filter(s => s.id !== snippetId);
@@ -423,17 +424,19 @@ export const App: React.FC = () => {
         }
     };
 
-    const handleDiscussNode = (nodeInfo: { node: KnowledgeNode; abstract: string; loading: boolean }) => {
+    const handleDiscussNode = useCallback((nodeInfo: { node: KnowledgeNode; abstract: string; loading: boolean }) => {
         if (nodeInfo.loading || !nodeInfo.abstract) return;
+        logEvent('discuss_node', { node_label: nodeInfo.node.label });
         setActiveDiscussionTopic({
             aspect: `Concept: ${nodeInfo.node.label}`,
             consideration: `Discipline: ${nodeInfo.node.discipline}\n\n${nodeInfo.abstract}`
         });
-    };
+        setSelectedNodeInfo(null);
+    }, [logEvent]);
 
-    const getKnowledgeMapImage = async (): Promise<string | undefined> => {
+    const getKnowledgeMapImage = useCallback(async (): Promise<string | undefined> => {
         return await knowledgeMapRef.current?.captureAsImage();
-    };
+    }, []);
 
     if (showEvaluationScreen) return <EvaluationScreen T={T} onFeedbackSubmitted={handleFeedbackSubmitted} />;
     
@@ -487,7 +490,10 @@ export const App: React.FC = () => {
                                             T={T}
                                             onSaveSnippet={handleSaveSnippet}
                                             onOpenShare={() => setIsShareModalOpen(true)}
-                                            onOpenDiscussion={(topic) => setActiveDiscussionTopic(topic)}
+                                            onOpenDiscussion={(topic) => {
+                                                logEvent('open_discussion', { topic_aspect: topic.aspect });
+                                                setActiveDiscussionTopic(topic);
+                                            }}
                                             onGetMapImage={getKnowledgeMapImage}
                                             mapData={mapData}
                                         />

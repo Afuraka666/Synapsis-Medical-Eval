@@ -29,6 +29,7 @@ import { SourceRenderer } from './SourceRenderer';
 import { ScientificGraph } from './ScientificGraph';
 import { AudioVisualizer } from './AudioVisualizer';
 import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType, ImageRun, Table, TableRow, TableCell, WidthType, BorderStyle } from 'docx';
+import { useAnalytics } from '../contexts/analytics';
 
 const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
 const isSpeechRecognitionSupported = !!SpeechRecognition;
@@ -176,6 +177,7 @@ const LoadingSpinner: React.FC = () => (
 export const DiscussionModal: React.FC<DiscussionModalProps> = ({ 
     isOpen, onClose, topic, topicId, caseTitle, language, T, initialHistory, onSaveDiscussion 
 }) => {
+    const { logEvent } = useAnalytics();
     const [messages, setMessages] = useState<ChatMessage[]>([]);
     const [userInput, setUserInput] = useState('');
     const [isLoading, setIsLoading] = useState(false);
@@ -210,7 +212,7 @@ export const DiscussionModal: React.FC<DiscussionModalProps> = ({
             
             Language: ${language}.`;
             
-            const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+            const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || process.env.API_KEY });
             let chatHistory: Content[] | undefined = undefined;
             if (initialHistory && initialHistory.length > 0) {
                 setMessages(initialHistory);
@@ -232,7 +234,12 @@ export const DiscussionModal: React.FC<DiscussionModalProps> = ({
 
     const handleMicClick = () => {
         if (!isSpeechRecognitionSupported) return;
-        if (isListening) { recognitionRef.current?.stop(); return; }
+        if (isListening) { 
+            recognitionRef.current?.stop(); 
+            logEvent('stop_voice_input', { topic_id: topicId });
+            return; 
+        }
+        logEvent('start_voice_input', { topic_id: topicId });
         const recognition = new SpeechRecognition();
         recognition.lang = getBCP47Language(language);
         recognition.continuous = true;
@@ -260,6 +267,9 @@ export const DiscussionModal: React.FC<DiscussionModalProps> = ({
         if (e) e.preventDefault();
         const text = customMsg || userInput;
         if (!text.trim() || isLoading || !chatRef.current) return;
+        
+        logEvent('send_message', { topic_id: topicId });
+        
         const userMsg: ChatMessage = { role: 'user', text, timestamp: Date.now() };
         setMessages(prev => [...prev, userMsg]);
         setUserInput('');
@@ -283,6 +293,7 @@ export const DiscussionModal: React.FC<DiscussionModalProps> = ({
     };
 
     const handleGenerateDiagram = async (index: number, prompt: string) => {
+        logEvent('generate_diagram', { topic_id: topicId });
         const aiResponse = await generateDiagramForDiscussion(prompt, messages.slice(0, index).map(m => m.text).join('\n'), language);
         setMessages(prev => {
             const newMessages = [...prev];
@@ -293,6 +304,7 @@ export const DiscussionModal: React.FC<DiscussionModalProps> = ({
     };
 
     const handleImageGenerated = (index: number, imageData: string) => {
+        logEvent('generate_image', { topic_id: topicId });
         setMessages(prev => {
             const newMessages = [...prev];
             if (newMessages[index]) newMessages[index] = { ...newMessages[index], imageData };
@@ -303,6 +315,7 @@ export const DiscussionModal: React.FC<DiscussionModalProps> = ({
     };
 
     const handleDownloadWord = async () => {
+        logEvent('download_word', { topic_id: topicId });
         const sections: any[] = [];
         const brandColor = '1e3a8a';
 
@@ -414,6 +427,7 @@ export const DiscussionModal: React.FC<DiscussionModalProps> = ({
     };
 
     const handleDownloadPdf = async () => {
+        logEvent('download_pdf', { topic_id: topicId });
         const { jsPDF } = (window as any).jspdf;
         const doc = new jsPDF();
         const margin = 20;
@@ -663,7 +677,11 @@ export const DiscussionModal: React.FC<DiscussionModalProps> = ({
                             </div>
                             <button 
                                 type="button" 
-                                onClick={() => { onSaveDiscussion(topicId, messages); setIsSaved(true); }} 
+                                onClick={() => { 
+                                    logEvent('save_discussion', { topic_id: topicId });
+                                    onSaveDiscussion(topicId, messages); 
+                                    setIsSaved(true); 
+                                }} 
                                 disabled={isLoading || isSaved} 
                                 className={`text-[10px] font-black uppercase tracking-widest px-4 py-2 rounded-xl transition-all flex items-center gap-2 ${isSaved ? 'text-green-600 bg-green-50 border border-green-100' : 'text-brand-blue bg-brand-blue/5 border border-brand-blue/10 hover:bg-brand-blue/10'}`}
                             >
