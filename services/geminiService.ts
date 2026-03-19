@@ -50,12 +50,18 @@ const SYNTHESIS_GUIDELINE = `
 const EVIDENCE_GUIDELINE = `
 **VERIFICATION RULES:**
 1. **GOOGLE SEARCH:** You MUST use Google Search to verify clinical trials, PMIDs, and latest guidelines for the specific condition. 
-2. **ACADEMIC RIGOR:** All "traceableEvidence" and "furtherReadings" MUST be real, existing publications. DO NOT FABRICATE PMIDs, DOIs, OR URLs.
-3. **URL VERIFICATION:** The "url" field for each source MUST be a real, working link (preferably to PubMed, DOI.org, or official society guidelines) that you have found via the search tool.
-   - **CRITICAL:** The URL MUST lead directly to the article or its abstract. Do NOT use generic search result pages or homepage URLs.
-4. **QUIZ:** Generate exactly 5 high-yield MCQs with explanations.
-5. **LATEX JSON ESCAPING:** When outputting LaTeX in JSON strings, you MUST double-escape backslashes (e.g., use "\\\\times" for \\times, "\\\\frac" for \\frac).
-6. **COMPLETENESS:** Ensure all 5 questions are fully generated.
+2. **PREFERRED SOURCES:** Prioritize evidence from:
+   - Google Scholar
+   - Government/Public Health Databases: PubMed, Medline Plus, clinicaltrials.gov, CDC.
+   - Peer-Reviewed Medical Journals: JAMA Network, NEJM, The Lancet, Cochrane Library.
+   - Academic Medical Centers: Mayo Clinic, Johns Hopkins Medicine, Cleveland Clinic.
+3. **ACADEMIC RIGOR:** All "traceableEvidence" and "furtherReadings" MUST be real, existing publications. DO NOT FABRICATE PMIDs, DOIs, OR URLs.
+4. **URL VERIFICATION:** The "url" field for each source MUST be a real, working link that leads DIRECTLY to the specific article, abstract, or guideline mentioned.
+   - **CRITICAL:** You MUST verify that the article title at the URL matches your claim. Do NOT provide a URL if you are not 100% certain it leads to the correct material.
+   - Do NOT use generic search result pages or homepage URLs.
+5. **QUIZ:** Generate exactly 5 high-yield MCQs with explanations.
+6. **LATEX JSON ESCAPING:** When outputting LaTeX in JSON strings, you MUST double-escape backslashes (e.g., use "\\\\times" for \\times, "\\\\frac" for \\frac).
+7. **COMPLETENESS:** Ensure all 5 questions are fully generated.
 `;
 
 const diagramNodeSchema = {
@@ -590,8 +596,10 @@ export const enrichCaseWithWebSources = async (patientCase: PatientCase, languag
     **MANDATORY VERIFICATION:** 
     1. Use the Google Search tool to verify all clinical evidence.
     2. Every PMID or DOI MUST be factually verified for accuracy and relevance. 
-    3. YOU MUST INCLUDE A VALID, CLICKABLE URL (e.g., https://pubmed.ncbi.nlm.nih.gov/...) in the "url" field for each source and reference.
-    4. DO NOT FABRICATE URLs. Use the actual URLs found via the search tool.
+    3. PREFERRED SOURCES: Google Scholar, PubMed, clinicaltrials.gov, CDC, JAMA, NEJM, The Lancet, Cochrane Library, Mayo Clinic, Johns Hopkins.
+    4. YOU MUST INCLUDE A VALID, CLICKABLE URL (e.g., https://pubmed.ncbi.nlm.nih.gov/...) in the "url" field for each source and reference.
+    5. **CRITICAL:** The URL MUST lead directly to the article or abstract. You MUST verify that the article title at the URL matches your claim.
+    6. DO NOT FABRICATE URLs. Use the actual URLs found via the search tool.
     Language: ${language}.`;
     
     const response: GenerateContentResponse = await retryWithBackoff(() => ai.models.generateContent({

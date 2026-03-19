@@ -17,9 +17,13 @@ interface MarkdownRendererProps {
 const sanitizeContent = (text: string): string => {
     if (!text) return '';
     
+    // 0. Unescape \$ if AI over-escaped it (common in JSON responses)
+    let cleaned = text.replace(/\\\$/g, '$');
+
     // 1. Protect existing math blocks by temporarily replacing them
+    // We match both $$...$$ and $...$
     const mathBlocks: string[] = [];
-    let cleaned = text.replace(/(\$\$[\s\S]*?\$\$|\$[\s\S]*?\$)/g, (match) => {
+    cleaned = cleaned.replace(/(\$\$[\s\S]*?\$\$|\$[^\$\n]+?\$)/g, (match) => {
         mathBlocks.push(match);
         return `__MATH_BLOCK_${mathBlocks.length - 1}__`;
     });
@@ -60,37 +64,47 @@ const sanitizeContent = (text: string): string => {
         .replace(/\bt1\/2\b/gi, 'T½')
         .replace(/P\(A-a\)O2/g, 'P(A-a)O₂')
         
-        // 6. Recovery for lost backslashes in common LaTeX commands
-        .replace(/(?<!\\)\b(text|frac|sqrt|log|times|cdot|left|right|alpha|beta|gamma|delta|Delta|phi|pi|theta|mu|sigma|Sigma)\{/gi, (match, p1) => `\\${p1.toLowerCase()}{`)
+        // 6. Recovery for lost backslashes in common LaTeX commands (outside math blocks)
+        // Only do this if we still want to support some LaTeX, but the user wants Unicode.
+        // Actually, let's skip this if we want to move away from LaTeX.
         
-        // 7. Detect and wrap equations that look like LaTeX but aren't wrapped
-        // Matches things like: pH = pKa + \log_{10}... or E_k = ...
-        .replace(/(?<![\w$])([a-zA-Z]+(?:_[a-zA-Z0-9]+)?\s*=\s*[^$\n]*\\[a-zA-Z]+[^$\n]+)(?![$\w])/g, '$$$1$$')
-        // Matches standalone LaTeX commands like \frac{...}{...}
-        .replace(/(?<![\w$])(\\[a-zA-Z]+\{[^$\n]+\})(?![$\w])/g, '$$$1$$')
-        // Matches equations with subscripts/superscripts that might be LaTeX
-        .replace(/(?<![\w$])([a-zA-Z]+_[0-9]+\s*=\s*[^$\n]+)(?![$\w])/g, '$$$1$$');
-
-    // 8. Restore math blocks and fix Unicode subscripts inside them
-    cleaned = cleaned.replace(/__MATH_BLOCK_(\d+)__/g, (match, p1) => {
-        let block = mathBlocks[parseInt(p1)];
-        // Convert Unicode subscripts/superscripts back to LaTeX for KaTeX compatibility
-        return block
-            .replace(/₀/g, '_0').replace(/₁/g, '_1').replace(/₂/g, '_2').replace(/₃/g, '_3').replace(/₄/g, '_4')
-            .replace(/₅/g, '_5').replace(/₆/g, '_6').replace(/₇/g, '_7').replace(/₈/g, '_8').replace(/₉/g, '_9')
-            .replace(/ₐ/g, '_a').replace(/ₑ/g, '_e').replace(/ₕ/g, '_h').replace(/ᵢ/g, '_i').replace(/ⱼ/g, '_j')
-            .replace(/ₖ/g, '_k').replace(/ₗ/g, '_l').replace(/ₘ/g, '_m').replace(/ₙ/g, '_n').replace(/ₒ/g, '_o')
-            .replace(/ₚ/g, '_p').replace(/ᵣ/g, '_r').replace(/ₛ/g, '_s').replace(/ₜ/g, '_t').replace(/ᵤ/g, '_u')
-            .replace(/ᵥ/g, '_v').replace(/ₓ/g, '_x')
-            .replace(/⁺/g, '^+').replace(/⁻/g, '^-')
-            .replace(/⁰/g, '^0').replace(/¹/g, '^1').replace(/²/g, '^2').replace(/³/g, '^3').replace(/⁴/g, '^4')
-            .replace(/⁵/g, '^5').replace(/⁶/g, '^6').replace(/⁷/g, '^7').replace(/⁸/g, '^8').replace(/⁹/g, '^9');
-    });
+        // 7. REMOVED: Detect and wrap equations that look like LaTeX but aren't wrapped
+        // We no longer want to force LaTeX wrapping as the user wants plain text with Unicode.
+        
+        // 8. Restore math blocks and fix common issues inside them
+        cleaned = cleaned.replace(/__MATH_BLOCK_(\d+)__/g, (match, p1) => {
+            let block = mathBlocks[parseInt(p1)];
+            
+            // If the user wants NO $, we should probably strip them from the block
+            // but only if it's a simple equation.
+            // For now, let's just unwrap them if they are simple.
+            const unwrapped = block.replace(/^\$\$?|\$\$?$/g, '').trim();
+            
+            // Convert LaTeX subscripts/superscripts to Unicode for the "clean" look
+            return unwrapped
+                .replace(/_\{?([0-9a-z])\}?/g, (m, p1) => {
+                    const subs: Record<string, string> = {
+                        '0': '₀', '1': '₁', '2': '₂', '3': '₃', '4': '₄', '5': '₅', '6': '₆', '7': '₇', '8': '₈', '9': '₉',
+                        'a': 'ₐ', 'e': 'ₑ', 'h': 'ₕ', 'i': 'ᵢ', 'j': 'ⱼ', 'k': 'ₖ', 'l': 'ₗ', 'm': 'ₘ', 'n': 'ₙ', 'o': 'ₒ', 'p': 'ₚ', 'r': 'ᵣ', 's': 'ₛ', 't': 'ₜ', 'u': 'ᵤ', 'v': 'ᵥ', 'x': 'ₓ'
+                    };
+                    return subs[p1] || m;
+                })
+                .replace(/\^\{?([0-9a-z\+\-])\}?/g, (m, p1) => {
+                    const supers: Record<string, string> = {
+                        '0': '⁰', '1': '¹', '2': '²', '3': '³', '4': '⁴', '5': '⁵', '6': '⁶', '7': '⁷', '8': '⁸', '9': '⁹',
+                        '+': '⁺', '-': '⁻',
+                        'a': 'ᵃ', 'b': 'ᵇ', 'c': 'ᶜ', 'd': 'ᵈ', 'e': 'ᵉ', 'f': 'ᶠ', 'g': 'ᵍ', 'h': 'ʰ', 'i': 'ⁱ', 'j': 'ʲ', 'k': 'ᵏ', 'l': 'ˡ', 'm': 'ᵐ', 'n': 'ⁿ', 'o': 'ᵒ', 'p': 'ᵖ', 'r': 'ʳ', 's': 'ˢ', 't': 'ᵗ', 'u': 'ᵘ', 'v': 'ᵛ', 'w': 'ʷ', 'x': 'ˣ', 'y': 'ʸ', 'z': 'ᶻ'
+                    };
+                    return supers[p1] || m;
+                });
+        });
 
     // 9. Final cleanup
     cleaned = cleaned
         .replace(/[ \t]+/g, ' ')
-        .replace(/\n{3,}/g, '\n\n');
+        .replace(/\n{3,}/g, '\n\n')
+        .replace(/(^|\s)\$+(?!\d)(\s|$)/g, '$1$2') // Remove $ or $$ that are not followed by a digit
+        .replace(/\\\$/g, '$'); // Final unescape
 
     return cleaned.trim();
 };

@@ -193,9 +193,7 @@ export const DiscussionModal: React.FC<DiscussionModalProps> = ({
     const [isListening, setIsListening] = useState(false);
     const recognitionRef = useRef<any>(null);
 
-    useEffect(() => {
-        if (isOpen) {
-            const systemInstruction = `You are an expert medical tutor. Facilitate a deep Socratic discussion about "${topic.aspect}" for "${caseTitle}". 
+            const getSystemInstruction = () => `You are an expert medical tutor. Facilitate a deep Socratic discussion about "${topic.aspect}" for "${caseTitle}". 
             
             **VISUAL PREFERENCE & PHYSIOLOGICAL FIDELITY (MANDATORY):**
             Do NOT explain physiological curves in text. You MUST use visual triggers:
@@ -205,17 +203,28 @@ export const DiscussionModal: React.FC<DiscussionModalProps> = ({
             2. **CLINICAL ALGORITHMS:** Use [DIAGRAM: specific description] for treatment cascades or anatomical pathways.
             3. **DATA COMPARISON:** Use Markdown Tables for lab ranges, drug properties, or differential signs.
             
-            **STRICT FORMATTING:**
-            1. **LATEX EQUATIONS:** You MUST wrap complex mathematical equations, clinical formulas, and scientific notation in double dollar signs ($$ ... $$) for blocks or single dollar signs ($ ... $) for inline.
-               - Example: $$pH = pK_a + \log_{10}\left(\frac{[HCO_3^-]}{0.03 \times PaCO_2}\right)$$
-               - Example: $$E_k = 61.5 \times \log_{10}\left(\frac{[K^+]_{out}}{[K^+]_{in}}\right)$$
-            2. **MOLECULAR FORMULAS:** For simple molecular formulas in plain text (e.g., CO2, O2, H2O, PaO2), you MUST use Unicode subscripts: CO₂, O₂, H₂O, PaO₂, SaO₂, PvO₂, HCO₃⁻. Do NOT use LaTeX for these unless they are part of a larger LaTeX equation.
-            3. No LaTeX words (rightarrow, etc.) in plain text. Use Unicode: →, ←, Δ.
-            4. Ensure clear spacing between all words and symbols.
-            5. **ACADEMIC RIGOR:** All references MUST be real and traceable. Use PMIDs or DOIs. DO NOT FABRICATE URLs.
-            6. **GOOGLE SEARCH:** Use the search tool to verify any clinical claims or guidelines you mention.
+            **STRICT FORMATTING (CRITICAL):**
+            1. **NO LATEX:** Do NOT use LaTeX or dollar signs ($ or $$) for equations.
+            2. **UNICODE SUBSCRIPTS/SUPERSCRIPTS:** You MUST use Unicode characters for all subscripts and superscripts in equations and formulas.
+               - Example: pH = pKₐ + log₁₀ ( [HCO₃⁻] / (0.03 × PaCO₂) )
+               - Example: Eₖ = 61.5 × log₁₀ ( [K⁺]out / [K⁺]in )
+               - Subscripts: ₀₁₂₃₄₅₆₇₈₉ ₊ ₋ ₌ ₍ ₎ ₐ ₑ ₕ ᵢ ⱼ ₖ ₗ ₘ ₙ ₒ ₚ ᵣ ₛ ₜ ᵤ ᵥ ₓ
+               - Superscripts: ⁰¹²³⁴⁵⁶⁷⁸⁹ ⁺ ⁻ ₌ ⁽ ⁾ ᵃ ᵇ ᶜ ᵈ ᵉ ᶠ ᵍ ʰ ⁱ ʲ ᵏ ˡ ᵐ ⁿ ᵒ ᵖ ʳ ˢ ᵗ ᵘ ᵛ ʷ ˣ ʸ ᶻ
+            3. **MOLECULAR FORMULAS:** Use Unicode: CO₂, O₂, H₂O, PaO₂, SaO₂, PvO₂, HCO₃⁻.
+            4. Use Unicode for arrows and symbols: →, ←, Δ, ≈, ±, ×, ·.
+            5. Ensure clear spacing between all words and symbols.
+            
+            **ACADEMIC RIGOR & VERIFICATION:**
+            1. All references MUST be real and traceable. Use PMIDs or DOIs. DO NOT FABRICATE URLs.
+            2. **GOOGLE SEARCH:** Use the search tool to verify any clinical claims or guidelines you mention.
+            3. **PREFERRED SOURCES:** Prioritize evidence from Google Scholar, PubMed, Medline Plus, clinicaltrials.gov, CDC, JAMA, NEJM, The Lancet, Cochrane Library, Mayo Clinic, and Johns Hopkins.
+            4. **URL VERIFICATION:** Every URL you provide MUST lead directly to the specific article or abstract mentioned. You MUST verify that the article title at the URL matches your claim.
             
             Language: ${language}.`;
+
+    useEffect(() => {
+        if (isOpen) {
+            const systemInstruction = getSystemInstruction();
             
             const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || process.env.API_KEY });
             let chatHistory: Content[] | undefined = undefined;
@@ -301,24 +310,10 @@ export const DiscussionModal: React.FC<DiscussionModalProps> = ({
             
             // If chatRef is null, try to re-initialize it
             if (!chatRef.current) {
-                const systemInstruction = `You are a medical education assistant. 
-                Topic: ${topic.aspect}
-                Case: ${caseTitle}
-                
-                Context:
-                ${topic.consideration}
-                
-                Guidelines:
-                1. Provide evidence-based, multidisciplinary insights.
-                2. Use Unicode for variables and molecular formulas: PaO₂, SaO₂, PvO₂, CO₂, O₂, H₂O, HCO₃⁻. Do NOT use LaTeX for these.
-                3. Ensure clear spacing between all words and symbols.
-                
-                Language: ${language}.`;
-
                 chatRef.current = ai.chats.create({
                     model: 'gemini-3.1-pro-preview',
                     config: { 
-                        systemInstruction,
+                        systemInstruction: getSystemInstruction(),
                         tools: [{ googleSearch: {} }]
                     }
                 });
@@ -638,10 +633,12 @@ export const DiscussionModal: React.FC<DiscussionModalProps> = ({
                 <main ref={scrollContainerRef} className={`p-4 overflow-y-auto flex-grow bg-gray-50/50 dark:bg-slate-900/50 transition-colors ${isFullscreen ? 'max-w-4xl mx-auto w-full' : ''}`}>
                     <div className="space-y-6">
                         {messages.map((msg, index) => {
-                            const illustrationMatch = msg.text.match(/\[ILLUSTRATE: (.*?)\]/);
-                            const diagramMatch = msg.text.match(/\[DIAGRAM: (.*?)\]/);
-                            const graphMatches = [...msg.text.matchAll(/\[GRAPH: (.*?)\]/g)];
-                            const textWithoutTags = msg.text.replace(/\[ILLUSTRATE:.*?\]/g, '').replace(/\[DIAGRAM:.*?\]/g, '').replace(/\[GRAPH:.*?\]/g, '').trim();
+                            const illustrationMatch = msg.text.match(/\[\s*ILLUSTRATE:\s*(.*?)\s*\]/i);
+                            const diagramMatch = msg.text.match(/\[\s*DIAGRAM:\s*(.*?)\s*\]/i);
+                            const graphMatches = [...msg.text.matchAll(/\[\s*GRAPH:\s*(.*?)\s*\]/gi)];
+                            const textWithoutTags = msg.text
+                                .replace(/\[\s*(ILLUSTRATE|DIAGRAM|GRAPH):\s*.*?\s*\]/gi, '')
+                                .trim();
                             return (
                                 <div key={index} className={`msg-${index} flex items-start gap-3 ${msg.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
                                     {msg.role === 'model' && <div className="w-8 h-8 bg-brand-blue dark:bg-brand-blue-light text-white rounded-full flex items-center justify-center flex-shrink-0 text-xs font-bold shadow-sm">AI</div>}
@@ -681,8 +678,8 @@ export const DiscussionModal: React.FC<DiscussionModalProps> = ({
                                                     {graphMatches.map((m, i) => (
                                                         <ScientificGraph 
                                                             key={i} 
-                                                            type={m[1].trim() as any} 
-                                                            title={T[GRAPH_TITLES[m[1].trim()]] || "Model"} 
+                                                            type={m[1].trim().toLowerCase().replace(/[\s-]+/g, '_') as any} 
+                                                            title={T[GRAPH_TITLES[m[1].trim().toLowerCase().replace(/[\s-]+/g, '_')]] || "Model"} 
                                                             className="scale-100" 
                                                         />
                                                     ))}
