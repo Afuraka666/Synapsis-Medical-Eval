@@ -166,7 +166,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
                     autoComplete="off"
                     disabled={disabled} 
                     placeholder={T.conditionPlaceholder} 
-                    className="p-2.5 sm:p-3 pl-10 border border-gray-200 dark:border-dark-border rounded-xl focus:ring-2 focus:ring-brand-blue-light/30 focus:border-brand-blue-light w-full bg-gray-50 dark:bg-slate-800 text-gray-900 dark:text-white pr-10 transition-all outline-none font-medium text-sm sm:text-base" 
+                    className="p-2.5 sm:p-3 pl-12 border border-gray-200 dark:border-dark-border rounded-xl focus:ring-2 focus:ring-brand-blue-light/30 focus:border-brand-blue-light w-full bg-gray-50 dark:bg-slate-800 text-gray-900 dark:text-white pr-12 transition-all outline-none font-medium text-sm sm:text-base" 
                   />
                   {isSpeechRecognitionSupported && <MicButton onClick={() => handleMicClick('condition')} isListening={isListening && activeInput === 'condition'} disabled={disabled} title={T.voiceInputCondition} />}
               </div>
@@ -186,7 +186,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
                     autoComplete="off"
                     disabled={disabled} 
                     placeholder={T.disciplinePlaceholder} 
-                    className="p-2.5 sm:p-3 pl-10 border border-gray-200 dark:border-dark-border rounded-xl focus:ring-2 focus:ring-brand-blue-light/30 focus:border-brand-blue-light w-full bg-gray-50 dark:bg-slate-800 text-gray-900 dark:text-white pr-10 transition-all outline-none font-medium text-sm sm:text-base" 
+                    className="p-2.5 sm:p-3 pl-12 border border-gray-200 dark:border-dark-border rounded-xl focus:ring-2 focus:ring-brand-blue-light/30 focus:border-brand-blue-light w-full bg-gray-50 dark:bg-slate-800 text-gray-900 dark:text-white pr-12 transition-all outline-none font-medium text-sm sm:text-base" 
                   />
                   {isSpeechRecognitionSupported && <MicButton onClick={() => handleMicClick('discipline')} isListening={isListening && activeInput === 'discipline'} disabled={disabled} title={T.voiceInputDiscipline} />}
               </div>

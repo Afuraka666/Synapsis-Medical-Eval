@@ -14,7 +14,7 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ T, onOpenSavedWork
       <div className="max-w-2xl mx-auto animate-fade-in py-8 sm:py-0">
         <div className="relative mb-6 sm:mb-8">
             <div className="absolute inset-0 bg-brand-blue/10 rounded-full blur-3xl transform -translate-y-4 animate-pulse"></div>
-            <div className="relative mx-auto h-20 w-20 sm:h-24 sm:w-24 bg-white dark:bg-slate-800 rounded-2xl sm:rounded-3xl shadow-xl flex items-center justify-center border border-gray-100 dark:border-dark-border rotate-3 hover:rotate-0 transition-transform duration-500">
+            <div className="relative mx-auto h-20 w-20 sm:h-24 sm:w-24 bg-white dark:bg-slate-800 rounded-2xl sm:rounded-3xl shadow-xl flex items-center justify-center border border-gray-100 dark:border-dark-border transition-transform duration-500">
                 <Network className="h-10 w-10 sm:h-12 sm:w-12 text-brand-blue" />
             </div>
         </div>
