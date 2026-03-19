@@ -9,11 +9,18 @@ interface SourceRendererProps {
 export const SourceRenderer: React.FC<SourceRendererProps> = ({ text, onSearchClick }) => {
     const pmidRegex = /(\bPMID:?\s*\d{7,8}\b)/gi;
     const doiRegex = /(\b10\.\d{4,9}\/[-._;()/:A-Z0-9]+\b)/gi;
+    const urlRegex = /(https?:\/\/[^\s]+)/g;
 
     const pmids = text.match(pmidRegex) || [];
     const dois = text.match(doiRegex) || [];
+    
+    // Remove PMIDs and DOIs from text before matching URLs to avoid duplicates if a URL contains them
+    let remainingText = text;
+    pmids.forEach(p => remainingText = remainingText.replace(p, ''));
+    dois.forEach(d => remainingText = remainingText.replace(d, ''));
+    const urls = remainingText.match(urlRegex) || [];
 
-    if (pmids.length === 0 && dois.length === 0) return null;
+    if (pmids.length === 0 && dois.length === 0 && urls.length === 0) return null;
 
     return (
         <div className="flex flex-wrap items-center gap-2">
@@ -45,6 +52,22 @@ export const SourceRenderer: React.FC<SourceRendererProps> = ({ text, onSearchCl
                     DOI
                 </a>
             ))}
+            {urls.map((url, index) => {
+                // Clean up trailing punctuation
+                const cleanUrl = url.replace(/[.,;)]$/, '');
+                return (
+                    <a 
+                        key={`url-${index}`}
+                        href={cleanUrl} 
+                        target="_blank" 
+                        rel="noopener noreferrer" 
+                        className="bg-emerald-50 text-emerald-700 px-1.5 py-0.5 rounded border border-emerald-100 hover:bg-emerald-100 transition flex items-center gap-1"
+                    >
+                        <svg className="w-2.5 h-2.5" fill="currentColor" viewBox="0 0 20 20"><path d="M11 3a1 1 0 100 2h2.586l-6.293 6.293a1 1 0 101.414 1.414L15 6.414V9a1 1 0 102 0V4a1 1 0 00-1-1h-5z" /><path d="M5 5a2 2 0 00-2 2v8a2 2 0 002 2h8a2 2 0 002-2v-3a1 1 0 10-2 0v3H5V7h3a1 1 0 000-2H5z" /></svg>
+                        Link
+                    </a>
+                );
+            })}
             {onSearchClick && (
                 <button 
                     onClick={onSearchClick} 

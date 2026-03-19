@@ -73,11 +73,13 @@ export interface DisciplineSpecificConsideration {
 export interface TraceableEvidence {
   claim: string;
   source: string;
+  url?: string;
 }
 
 export interface FurtherReading {
   topic: string;
   reference: string;
+  url?: string;
 }
 
 export interface PatientOutcome {

@@ -149,6 +149,37 @@ const extendedDetailsSchema = {
     required: ["biochemicalPathway", "multidisciplinaryConnections", "disciplineSpecificConsiderations", "educationalContent"]
 };
 
+const sourcesSchema = {
+    type: Type.OBJECT,
+    properties: {
+        traceableEvidence: {
+            type: Type.ARRAY,
+            items: {
+                type: Type.OBJECT,
+                properties: {
+                    claim: { type: Type.STRING },
+                    source: { type: Type.STRING },
+                    url: { type: Type.STRING }
+                },
+                required: ["claim", "source", "url"]
+            }
+        },
+        furtherReadings: {
+            type: Type.ARRAY,
+            items: {
+                type: Type.OBJECT,
+                properties: {
+                    topic: { type: Type.STRING },
+                    reference: { type: Type.STRING },
+                    url: { type: Type.STRING }
+                },
+                required: ["topic", "reference", "url"]
+            }
+        }
+    },
+    required: ["traceableEvidence", "furtherReadings"]
+};
+
 const evidenceAndQuizSchema = {
     type: Type.OBJECT,
     properties: {
@@ -158,9 +189,10 @@ const evidenceAndQuizSchema = {
                 type: Type.OBJECT,
                 properties: {
                     claim: { type: Type.STRING },
-                    source: { type: Type.STRING }
+                    source: { type: Type.STRING },
+                    url: { type: Type.STRING }
                 },
-                required: ["claim", "source"]
+                required: ["claim", "source", "url"]
             }
         },
         furtherReadings: {
@@ -169,9 +201,10 @@ const evidenceAndQuizSchema = {
                 type: Type.OBJECT,
                 properties: {
                     topic: { type: Type.STRING },
-                    reference: { type: Type.STRING }
+                    reference: { type: Type.STRING },
+                    url: { type: Type.STRING }
                 },
-                required: ["topic", "reference"]
+                required: ["topic", "reference", "url"]
             }
         },
         educationalContent: {
@@ -216,7 +249,7 @@ const knowledgeMapSchema = {
     required: ["nodes", "links"]
 };
 
-const fullCaseSchema = {
+const coreCaseSchema = {
     type: Type.OBJECT,
     properties: {
         title: { 
@@ -262,13 +295,9 @@ const fullCaseSchema = {
                 required: ["aspect", "consideration"]
             },
             description: "Management and diagnostic considerations specific to the requested discipline."
-        },
-        knowledgeMap: {
-            ...knowledgeMapSchema,
-            description: "8-12 interconnected nodes showing the conceptual framework of the case."
         }
     },
-    required: ["title", "patientProfile", "presentingComplaint", "history", "biochemicalPathway", "multidisciplinaryConnections", "disciplineSpecificConsiderations", "knowledgeMap"]
+    required: ["title", "patientProfile", "presentingComplaint", "history", "biochemicalPathway", "multidisciplinaryConnections", "disciplineSpecificConsiderations"]
 };
 
 const extractJson = (text: string) => {
@@ -289,7 +318,8 @@ const extractJson = (text: string) => {
 
 export const generateFullCase = async (condition: string, discipline: string, difficulty: string, language: string): Promise<{ patientCase: PatientCase, knowledgeMap: KnowledgeMapData }> => {
     const ai = getAiClient();
-    const prompt = `Expert Medical Synthesis: Create a comprehensive, high-fidelity clinical case for "${condition}". 
+    
+    const corePrompt = `Expert Medical Synthesis: Create a comprehensive, high-fidelity clinical case for "${condition}". 
     Discipline: ${discipline}. Difficulty: ${difficulty}. Language: ${language}.
     
     CORE MISSION: Produce a detailed, professional-grade medical case study that covers all aspects from demographics to deep biochemistry.
@@ -301,44 +331,80 @@ export const generateFullCase = async (condition: string, discipline: string, di
     4. BIOCHEMICAL PATHWAY: Provide a rigorous explanation of the pathophysiology. Include specific enzymes, metabolites, and chemical reactions.
     5. MULTIDISCIPLINARY CONNECTIONS: Detail how at least 3 other specialties (e.g., Radiology, Pathology, Cardiology) intersect with this case.
     6. MANAGEMENT: Provide specific, evidence-based management steps relevant to ${discipline}.
-    7. KNOWLEDGE MAP: Design a network of 8-12 nodes showing how symptoms, labs, and mechanisms are linked.
     
     ${SYNTHESIS_GUIDELINE}`;
 
-    const data = await retryWithBackoff(async () => {
-        const response: GenerateContentResponse = await ai.models.generateContent({
-            model: PRO_MODEL,
-            contents: prompt,
-            config: { 
-                responseMimeType: "application/json", 
-                responseSchema: fullCaseSchema
-            },
-        });
-
-        const finishReason = response.candidates?.[0]?.finishReason;
-        if (finishReason !== 'STOP') {
-            console.warn("generateFullCase finished with reason:", finishReason);
-        }
-
-        const text = response.text || "{}";
-        try {
-            return JSON.parse(extractJson(text));
-        } catch (e) {
-            console.error("JSON Parse Error in generateFullCase retry:", e, text);
-            throw new Error("Failed to parse AI response. Retrying...");
-        }
-    });
-
-    const { knowledgeMap = { nodes: [], links: [] }, ...patientCaseData } = data;
+    const mapPrompt = `Expert Medical Synthesis: Create a comprehensive knowledge map for a clinical case of "${condition}". 
+    Discipline: ${discipline}. Difficulty: ${difficulty}. Language: ${language}.
     
+    CORE MISSION: Design a network of 8-12 interconnected nodes showing how symptoms, labs, pathophysiology, and management mechanisms are linked for this condition.
+    
+    REQUIREMENTS:
+    1. NODES: Create 8-12 nodes representing key concepts (e.g., specific symptoms, biomarkers, anatomical structures, drugs).
+    2. LINKS: Create meaningful connections between these nodes with clear descriptions of the relationship.
+    3. DISCIPLINE: Ensure the map highlights aspects relevant to ${discipline}.
+    
+    ${SYNTHESIS_GUIDELINE}`;
+
+    const [coreData, mapData] = await Promise.all([
+        retryWithBackoff(async () => {
+            const response: GenerateContentResponse = await ai.models.generateContent({
+                model: FAST_MODEL,
+                contents: corePrompt,
+                config: { 
+                    responseMimeType: "application/json", 
+                    responseSchema: coreCaseSchema,
+                    maxOutputTokens: 8192
+                },
+            });
+
+            const finishReason = response.candidates?.[0]?.finishReason;
+            if (finishReason !== 'STOP') {
+                console.warn("generateFullCase (core) finished with reason:", finishReason);
+            }
+
+            const text = response.text || "{}";
+            try {
+                return JSON.parse(extractJson(text));
+            } catch (e) {
+                console.error("JSON Parse Error in generateFullCase (core) retry:", e, text);
+                throw new Error("Failed to parse core case JSON. Retrying...");
+            }
+        }),
+        retryWithBackoff(async () => {
+            const response: GenerateContentResponse = await ai.models.generateContent({
+                model: FAST_MODEL,
+                contents: mapPrompt,
+                config: { 
+                    responseMimeType: "application/json", 
+                    responseSchema: knowledgeMapSchema,
+                    maxOutputTokens: 8192
+                },
+            });
+
+            const finishReason = response.candidates?.[0]?.finishReason;
+            if (finishReason !== 'STOP') {
+                console.warn("generateFullCase (map) finished with reason:", finishReason);
+            }
+
+            const text = response.text || "{}";
+            try {
+                return JSON.parse(extractJson(text));
+            } catch (e) {
+                console.error("JSON Parse Error in generateFullCase (map) retry:", e, text);
+                throw new Error("Failed to parse knowledge map JSON. Retrying...");
+            }
+        })
+    ]);
+
     // Validate knowledge map links
-    const nodes = knowledgeMap.nodes || [];
-    const links = knowledgeMap.links || [];
+    const nodes = mapData.nodes || [];
+    const links = mapData.links || [];
     const validNodeIds = new Set(nodes.map((n: any) => n.id));
     const validLinks = links.filter((l: any) => validNodeIds.has(l.source) && validNodeIds.has(l.target));
 
     const finalMap = { nodes, links: validLinks };
-    const patientCase = { ...patientCaseData, knowledgeMap: finalMap } as PatientCase;
+    const patientCase = { ...coreData, knowledgeMap: finalMap } as PatientCase;
 
     return { patientCase, knowledgeMap: finalMap as KnowledgeMapData };
 };
@@ -348,8 +414,8 @@ export const generateEvidenceAndQuiz = async (condition: string, discipline: str
     const prompt = `Generate high-yield clinical evidence and a medical quiz for "${condition}".
     Discipline: ${discipline}. Difficulty: ${difficulty}. Language: ${language}.
     
-    1. TRACEABLE EVIDENCE: Provide 3-5 verified clinical claims with sources (PMIDs or major guidelines).
-    2. FURTHER READINGS: Provide 2-3 relevant topics for deeper study.
+    1. TRACEABLE EVIDENCE: Provide 3-5 verified clinical claims with sources (PMIDs or major guidelines). YOU MUST INCLUDE A VALID, CLICKABLE URL (e.g., https://pubmed.ncbi.nlm.nih.gov/...) in the "url" field for each source.
+    2. FURTHER READINGS: Provide 2-3 relevant topics for deeper study. YOU MUST INCLUDE A VALID, CLICKABLE URL in the "url" field for each reference.
     3. EDUCATIONAL CONTENT: Create 3-5 high-yield teaching points. Each MUST have a detailed description and a diagram specification.
     4. QUIZ: Generate exactly 5 high-yield multiple-choice questions (MCQs).
        - Each question must have exactly 4 options.
@@ -362,7 +428,7 @@ export const generateEvidenceAndQuiz = async (condition: string, discipline: str
     try {
         const result = await retryWithBackoff(async () => {
             const response: GenerateContentResponse = await ai.models.generateContent({
-                model: PRO_MODEL,
+                model: FAST_MODEL,
                 contents: prompt,
                 config: { 
                     responseMimeType: "application/json", 
@@ -404,7 +470,7 @@ export const searchForSource = async (sourceQuery: string, language: string): Pr
     const ai = getAiClient();
     const prompt = `Verified technical research for "${sourceQuery}". Verify all associated academic IDs (PMID/DOI). Language: ${language}.`;
     const response: GenerateContentResponse = await retryWithBackoff(() => ai.models.generateContent({
-        model: PRO_MODEL,
+        model: FAST_MODEL,
         contents: prompt,
         config: { 
             tools: [{ googleSearch: {} }], 
@@ -486,7 +552,7 @@ export const getConceptConnectionExplanation = async (conceptA: string, conceptB
 export const generateDiagramForDiscussion = async (prompt: string, chatContext: string, language: string): Promise<DiagramData> => {
     const ai = getAiClient();
     const response: GenerateContentResponse = await retryWithBackoff(() => ai.models.generateContent({
-        model: PRO_MODEL,
+        model: FAST_MODEL,
         contents: `Diagram JSON for: "${prompt}". Context: ${chatContext}. Language: ${language}.`,
         config: { 
             responseMimeType: "application/json", 
@@ -508,13 +574,15 @@ export const enrichCaseWithWebSources = async (patientCase: PatientCase, languag
     const prompt = `Find 2 trials and 2 meta-analyses for "${patientCase.title}". 
     
     **MANDATORY VERIFICATION:** Use the Google Search tool to verify all clinical evidence.
-    Every PMID or DOI MUST be factually verified for accuracy and relevance. 
-    Language: ${language}. JSON.`;
+    Every PMID or DOI MUST be factually verified for accuracy and relevance. YOU MUST INCLUDE A VALID, CLICKABLE URL (e.g., https://pubmed.ncbi.nlm.nih.gov/...) in the "url" field for each source and reference.
+    Language: ${language}.`;
     
     const response: GenerateContentResponse = await retryWithBackoff(() => ai.models.generateContent({
-        model: PRO_MODEL,
+        model: FAST_MODEL,
         contents: prompt,
         config: { 
+            responseMimeType: "application/json",
+            responseSchema: sourcesSchema,
             tools: [{ googleSearch: {} }], 
             temperature: 0.2
         },

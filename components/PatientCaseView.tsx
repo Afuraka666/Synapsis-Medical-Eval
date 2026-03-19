@@ -29,7 +29,8 @@ import {
     Lightbulb,
     FileSearch,
     BrainCircuit,
-    FileType
+    FileType,
+    ExternalLink
 } from 'lucide-react';
 import { EducationalContentType, Discipline } from '../types';
 import type { PatientCase, EducationalContent, QuizQuestion, DisciplineSpecificConsideration, MultidisciplinaryConnection, TraceableEvidence, FurtherReading, ProcedureDetails, PatientOutcome, KnowledgeMapData, Snippet, ChatMessage } from '../types';
@@ -675,6 +676,12 @@ export const PatientCaseView: React.FC<PatientCaseViewProps> = ({ patientCase: i
                                         <li key={i} className="bg-slate-50 dark:bg-slate-800/20 p-3 rounded-xl border-l-4 border-green-500 shadow-xs">
                                             <span className="font-bold block text-[11px] text-gray-800 dark:text-slate-100 mb-1 leading-tight">"{e.claim}"</span>
                                             <span className="block text-[10px] text-gray-500 dark:text-gray-400"><SourceRenderer text={e.source} onSearchClick={() => setActiveSourceSearch(e.source)} /></span>
+                                            {e.url && (
+                                                <a href={e.url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 mt-1.5 text-[10px] font-bold text-blue-600 dark:text-blue-400 hover:underline">
+                                                    <ExternalLink className="w-3 h-3" />
+                                                    View Source
+                                                </a>
+                                            )}
                                         </li>
                                     ))}
                                 </ul>
@@ -695,6 +702,12 @@ export const PatientCaseView: React.FC<PatientCaseViewProps> = ({ patientCase: i
                                         <li key={i} className="bg-blue-50/50 dark:bg-blue-900/10 p-3 rounded-xl border border-blue-100 dark:border-blue-900/30">
                                             <span className="font-bold text-[11px] text-brand-blue dark:text-blue-300 block mb-1">{r.topic}</span>
                                             <p className="text-[10px] text-gray-600 dark:text-gray-400 leading-snug italic">{r.reference}</p>
+                                            {r.url && (
+                                                <a href={r.url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 mt-1.5 text-[10px] font-bold text-blue-600 dark:text-blue-400 hover:underline">
+                                                    <ExternalLink className="w-3 h-3" />
+                                                    Read More
+                                                </a>
+                                            )}
                                         </li>
                                     ))}
                                 </ul>
