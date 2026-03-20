@@ -258,6 +258,8 @@ export const KnowledgeMap = forwardRef<any, KnowledgeMapProps>(({ data, onNodeCl
     const [hoveredNode, setHoveredNode] = useState<{ node: KnowledgeNode; position: { x: number; y: number } } | null>(null);
     const [hoveredLink, setHoveredLink] = useState<KnowledgeLink | null>(null);
     
+    const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
+    
     const nodes = useMemo(() => (data?.nodes || []).map(n => ({ ...n })), [data?.nodes]);
     const links = useMemo(() => (data?.links || []).map(l => ({ ...l })), [data?.links]);
 
@@ -265,16 +267,32 @@ export const KnowledgeMap = forwardRef<any, KnowledgeMapProps>(({ data, onNodeCl
     
     const resetZoom = useCallback(() => {
         if (!svgRef.current || !gRef.current || !containerRef.current || !zoomRef.current || typeof d3 === 'undefined') return;
+        
         const svg = d3.select(svgRef.current);
         const g = gRef.current;
         const bounds = g.node().getBBox();
         const { width, height } = containerRef.current.getBoundingClientRect();
-        if (bounds.width === 0 || bounds.height === 0 || width === 0 || height === 0) return;
-        const scale = Math.min(1.2, 0.85 / Math.max(bounds.width / width, bounds.height / height));
+        
+        const effectiveWidth = width || dimensions.width || window.innerWidth;
+        const effectiveHeight = height || dimensions.height || window.innerHeight;
+        
+        if (effectiveWidth === 0 || effectiveHeight === 0) return;
+        
+        if (bounds.width === 0 || bounds.height === 0) {
+            const transform = d3.zoomIdentity.translate(effectiveWidth / 2, effectiveHeight / 2).scale(1);
+            svg.transition().duration(750).call(zoomRef.current.transform, transform);
+            return;
+        }
+
+        const scale = Math.min(1.2, 0.85 / Math.max(bounds.width / effectiveWidth, bounds.height / effectiveHeight));
         if (isNaN(scale) || !isFinite(scale)) return;
-        const transform = d3.zoomIdentity.translate(width / 2 - scale * (bounds.x + bounds.width / 2), height / 2 - scale * (bounds.y + bounds.height / 2)).scale(scale);
+        
+        const transform = d3.zoomIdentity
+            .translate(effectiveWidth / 2 - scale * (bounds.x + bounds.width / 2), effectiveHeight / 2 - scale * (bounds.y + bounds.height / 2))
+            .scale(scale);
+            
         svg.transition().duration(750).call(zoomRef.current.transform, transform);
-    }, []);
+    }, [dimensions]);
 
     useEffect(() => {
         // Safety timeout to ensure loading state is cleared even if D3 simulation hangs or fails to fire events
@@ -293,24 +311,28 @@ export const KnowledgeMap = forwardRef<any, KnowledgeMapProps>(({ data, onNodeCl
 
     useEffect(() => {
         if (!containerRef.current || typeof d3 === 'undefined') return;
-        const observer = new ResizeObserver(() => {
-            window.requestAnimationFrame(() => {
-                if (svgRef.current && gRef.current) {
-                    const { width, height } = containerRef.current!.getBoundingClientRect();
-                    if (width > 0 && height > 0) {
+        
+        const observer = new ResizeObserver((entries) => {
+            for (const entry of entries) {
+                const { width, height } = entry.contentRect;
+                if (width > 0 && height > 0) {
+                    setDimensions({ width, height });
+                    window.requestAnimationFrame(() => {
                         if (simulationRef.current) {
                             simulationRef.current.force('center', d3.forceCenter(width / 2, height / 2));
-                            simulationRef.current.alpha(0.1).restart();
+                            simulationRef.current.alpha(0.3).restart();
                         }
-                        // Always try to reset zoom when size changes and we have a valid size
-                        // especially if it was previously 0 or hidden
-                        if (!isLoading) {
-                            resetZoom();
+                        
+                        if (isLoading) {
+                            setIsLoading(false);
                         }
-                    }
+                        
+                        resetZoom();
+                    });
                 }
-            });
+            }
         });
+        
         observer.observe(containerRef.current);
         return () => observer.disconnect();
     }, [isLoading, resetZoom]);
@@ -341,8 +363,13 @@ export const KnowledgeMap = forwardRef<any, KnowledgeMapProps>(({ data, onNodeCl
             .attr('fill', '#94a3b8');
 
         const { width: initialWidth, height: initialHeight } = containerRef.current.getBoundingClientRect();
-        const width = initialWidth || window.innerWidth; // Fallback to window width if container is 0
-        const height = initialHeight || window.innerHeight; // Fallback to window height if container is 0
+        const width = initialWidth || dimensions.width || window.innerWidth; 
+        const height = initialHeight || dimensions.height || window.innerHeight; 
+        
+        if (initialWidth > 0 && initialHeight > 0) {
+            setDimensions({ width: initialWidth, height: initialHeight });
+        }
+
         console.log(`KnowledgeMap initializing with size: ${width}x${height} (initial: ${initialWidth}x${initialHeight})`);
         const isMobile = width < 640;
         
@@ -468,8 +495,10 @@ export const KnowledgeMap = forwardRef<any, KnowledgeMapProps>(({ data, onNodeCl
             node.attr('transform', (d: any) => `translate(${d.x || 0}, ${d.y || 0})`); 
         });
 
-        return () => simulationRef.current.stop();
-    }, [data, nodes, links, onNodeClick, resetZoom]);
+        return () => {
+            if (simulationRef.current) simulationRef.current.stop();
+        };
+    }, [data, nodes, links, onNodeClick, resetZoom, dimensions.width, dimensions.height]);
 
     if (typeof d3 === 'undefined') {
         return (

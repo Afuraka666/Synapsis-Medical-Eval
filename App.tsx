@@ -139,6 +139,15 @@ export const App: React.FC = () => {
     const [showEvaluationScreen, setShowEvaluationScreen] = useState(false);
     const [evaluationDaysRemaining, setEvaluationDaysRemaining] = useState<number | null>(null);
     const [mobileView, setMobileView] = useState<'case' | 'map'>('case');
+
+    useEffect(() => {
+        // Force a window resize event to trigger KnowledgeMap recalculation when switching views
+        // This is crucial for D3 simulations that depend on container dimensions
+        const timer = setTimeout(() => {
+            window.dispatchEvent(new Event('resize'));
+        }, 100);
+        return () => clearTimeout(timer);
+    }, [mobileView]);
     const caseScrollRef = useRef<HTMLDivElement>(null);
     const { density, isDesktop, size, orientation, isMobile } = useContentDensity();
 
@@ -589,7 +598,7 @@ export const App: React.FC = () => {
                                 className="flex flex-grow h-full w-full transition-transform duration-500 ease-in-out lg:transform-none lg:flex-row lg:gap-4 min-h-0"
                                 style={{ transform: `translateX(${mobileView === 'map' ? '-100%' : '0%'})` }}
                             >
-                                <div className="w-full flex-shrink-0 h-full lg:w-[62%] lg:flex-shrink min-h-0 flex flex-col">
+                                <div className={`w-full flex-shrink-0 h-full lg:w-[62%] lg:flex-shrink min-h-0 flex flex-col transition-opacity duration-300 ${mobileView === 'map' ? 'opacity-0 pointer-events-none lg:opacity-100 lg:pointer-events-auto' : 'opacity-100'}`}>
                                     <div ref={caseScrollRef} className="flex-grow overflow-y-auto bg-white dark:bg-dark-surface rounded-2xl shadow-lg border border-gray-200 dark:border-dark-border">
                                         <PatientCaseView
                                             patientCase={patientCase}
@@ -608,7 +617,7 @@ export const App: React.FC = () => {
                                         />
                                     </div>
                                 </div>
-                                <div className="w-full flex-shrink-0 h-full flex flex-col lg:w-[38%] lg:flex-shrink min-h-0 relative">
+                                <div className={`w-full flex-shrink-0 h-full flex flex-col lg:w-[38%] lg:flex-shrink min-h-0 relative transition-opacity duration-300 ${mobileView === 'case' ? 'opacity-0 pointer-events-none lg:opacity-100 lg:pointer-events-auto' : 'opacity-100'}`}>
                                     {/* Knowledge Map Label for Desktop */}
                                     <div className="hidden lg:flex absolute -top-6 left-0 items-center gap-2 text-[10px] font-black uppercase tracking-widest text-gray-400 dark:text-gray-500">
                                         <Network className="w-3 h-3" />
@@ -616,7 +625,7 @@ export const App: React.FC = () => {
                                     </div>
                                     
                                     {mapData ? (
-                                        <div className="flex-grow min-h-0 h-full">
+                                        <div className="flex-grow h-full min-h-0 flex flex-col">
                                             <KnowledgeMap
                                                 ref={knowledgeMapRef}
                                                 data={mapData}
@@ -636,7 +645,7 @@ export const App: React.FC = () => {
                                             />
                                         </div>
                                     ) : isGeneratingDetails ? (
-                                        <div className="w-full h-full flex items-center justify-center bg-white dark:bg-dark-surface rounded-2xl shadow-lg border border-gray-200 dark:border-dark-border p-8 text-center text-dark-text">
+                                        <div className="flex-grow h-full flex items-center justify-center bg-white dark:bg-dark-surface rounded-2xl shadow-lg border border-gray-200 dark:border-dark-border p-8 text-center text-dark-text">
                                             <LoadingOverlay message={T.buildingMapMessage} subMessages={[]} />
                                         </div>
                                     ) : null}
