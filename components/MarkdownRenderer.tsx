@@ -28,12 +28,24 @@ const sanitizeContent = (text: string): string => {
         .replace(/^#+\s*/gm, '')
         .trim();
 
-    // 1. Protect existing math blocks by temporarily replacing them
-    // We match both $$...$$ and $...$
-    const mathBlocks: string[] = [];
+    // 0.3 Ensure tables have a double newline before them to be correctly parsed
+    // We look for a line starting with | that is preceded by text on the previous line
+    cleaned = cleaned.replace(/([^\n])\n\|/g, '$1\n\n|');
+
+    // 1. Protect existing math blocks and tables by temporarily replacing them
+    const protectedBlocks: string[] = [];
+    
+    // Protect math blocks
     cleaned = cleaned.replace(/(\$\$[\s\S]*?\$\$|\$[^\$\n]+?\$)/g, (match) => {
-        mathBlocks.push(match);
-        return `__MATH_BLOCK_${mathBlocks.length - 1}__`;
+        protectedBlocks.push(match);
+        return `__PROTECTED_BLOCK_${protectedBlocks.length - 1}__`;
+    });
+
+    // Protect tables (lines starting with |)
+    // We look for blocks that look like tables: multiple lines starting with |
+    cleaned = cleaned.replace(/((\n|^)\|[\s\S]+?\|(\n|$)(?=\n|$|\s*\n))/g, (match) => {
+        protectedBlocks.push(match);
+        return `__PROTECTED_BLOCK_${protectedBlocks.length - 1}__`;
     });
 
     cleaned = cleaned
@@ -79,10 +91,23 @@ const sanitizeContent = (text: string): string => {
         // 7. REMOVED: Detect and wrap equations that look like LaTeX but aren't wrapped
         // We no longer want to force LaTeX wrapping as the user wants plain text with Unicode.
         
-    // 8. Restore math blocks and fix common issues inside them
-    cleaned = cleaned.replace(/__MATH_BLOCK_(\d+)__/g, (match, p1) => {
-        let block = mathBlocks[parseInt(p1)];
+    // 8. Final cleanup (BEFORE restoring blocks to avoid mangling them)
+    cleaned = cleaned
+        .replace(/[ \t]+/g, ' ')
+        .replace(/\n{3,}/g, '\n\n')
+        .replace(/(^|\s)\$+(?!\d)(\s|$)/g, '$1$2') // Remove $ or $$ that are not followed by a digit
+        .replace(/\\\$/g, '$'); // Final unescape
+
+    // 9. Restore protected blocks (math and tables)
+    cleaned = cleaned.replace(/__PROTECTED_BLOCK_(\d+)__/g, (match, p1) => {
+        let block = protectedBlocks[parseInt(p1)];
         
+        // If it's a table (starts with newline or |), return it as is
+        if (block.trim().startsWith('|')) {
+            return block;
+        }
+
+        // If it's a math block, fix common issues inside it
         // If the user wants NO $, we strip them and convert to plain text
         let unwrapped = block.replace(/^\$\$?|\$\$?$/g, '').trim();
         
@@ -146,13 +171,6 @@ const sanitizeContent = (text: string): string => {
             })
             .replace(/\\/g, ''); // Remove any remaining backslashes
     });
-
-    // 9. Final cleanup
-    cleaned = cleaned
-        .replace(/[ \t]+/g, ' ')
-        .replace(/\n{3,}/g, '\n\n')
-        .replace(/(^|\s)\$+(?!\d)(\s|$)/g, '$1$2') // Remove $ or $$ that are not followed by a digit
-        .replace(/\\\$/g, '$'); // Final unescape
 
     return cleaned.trim();
 };
