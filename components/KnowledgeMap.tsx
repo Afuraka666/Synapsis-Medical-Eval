@@ -277,6 +277,21 @@ export const KnowledgeMap = forwardRef<any, KnowledgeMapProps>(({ data, onNodeCl
     }, []);
 
     useEffect(() => {
+        // Safety timeout to ensure loading state is cleared even if D3 simulation hangs or fails to fire events
+        const timeout = setTimeout(() => {
+            if (isLoading) {
+                console.warn('KnowledgeMap loading timeout reached, forcing display.');
+                setIsLoading(false);
+                // Try a final reset zoom if we have data
+                if (nodes.length > 0) {
+                    resetZoom();
+                }
+            }
+        }, 3500);
+        return () => clearTimeout(timeout);
+    }, [isLoading, nodes.length, resetZoom]);
+
+    useEffect(() => {
         if (!containerRef.current || typeof d3 === 'undefined') return;
         const observer = new ResizeObserver(() => {
             window.requestAnimationFrame(() => {
@@ -328,6 +343,7 @@ export const KnowledgeMap = forwardRef<any, KnowledgeMapProps>(({ data, onNodeCl
         const { width: initialWidth, height: initialHeight } = containerRef.current.getBoundingClientRect();
         const width = initialWidth || window.innerWidth; // Fallback to window width if container is 0
         const height = initialHeight || window.innerHeight; // Fallback to window height if container is 0
+        console.log(`KnowledgeMap initializing with size: ${width}x${height} (initial: ${initialWidth}x${initialHeight})`);
         const isMobile = width < 640;
         
         const g = svg.append('g'); gRef.current = g;
@@ -476,12 +492,17 @@ export const KnowledgeMap = forwardRef<any, KnowledgeMapProps>(({ data, onNodeCl
     }
 
     return (
-        <div ref={containerRef} className={`w-full h-full bg-slate-50 dark:bg-slate-900 shadow-inner border border-gray-200 dark:border-dark-border overflow-hidden transition-colors duration-300 ${isMapFullscreen ? 'fixed inset-0 z-40' : 'relative rounded-xl'}`}>
+        <div ref={containerRef} className={`w-full h-full min-h-[400px] bg-slate-50 dark:bg-slate-900 shadow-inner border border-gray-200 dark:border-dark-border overflow-hidden transition-colors duration-300 ${isMapFullscreen ? 'fixed inset-0 z-40' : 'relative rounded-xl'}`}>
             <div className="absolute inset-0 pointer-events-none opacity-50 dark:opacity-20" style={{ backgroundImage: 'radial-gradient(circle at 1px 1px, #94a3b8 1px, transparent 0)', backgroundSize: '24px 24px' }}></div>
-            {isLoading && <div className="absolute inset-0 z-20 flex items-center justify-center bg-slate-50/50 dark:bg-dark-bg/50 backdrop-blur-sm"><LoadingSpinner T={T} /></div>}
+            {isLoading && (
+                <div className="absolute inset-0 z-20 flex items-center justify-center bg-slate-50/80 dark:bg-dark-bg/80 backdrop-blur-sm">
+                    <LoadingSpinner T={T} />
+                </div>
+            )}
             <svg 
                 ref={svgRef} 
-                className="w-full h-full touch-none relative z-0" 
+                className="w-full h-full touch-none relative z-0 block" 
+                style={{ minHeight: '400px' }}
                 onClick={onClearSelection}
                 onMouseMove={(e) => {
                     const rect = e.currentTarget.getBoundingClientRect();

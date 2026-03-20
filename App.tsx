@@ -586,7 +586,7 @@ export const App: React.FC = () => {
                     {patientCase ? (
                         <div className="flex-grow min-h-0 relative flex flex-col overflow-hidden">
                             <div 
-                                className="flex flex-grow w-full transition-transform duration-500 ease-in-out lg:transform-none lg:flex-row lg:gap-4 min-h-0"
+                                className="flex flex-grow h-full w-full transition-transform duration-500 ease-in-out lg:transform-none lg:flex-row lg:gap-4 min-h-0"
                                 style={{ transform: `translateX(${mobileView === 'map' ? '-100%' : '0%'})` }}
                             >
                                 <div className="w-full flex-shrink-0 h-full lg:w-[62%] lg:flex-shrink min-h-0 flex flex-col">
@@ -616,7 +616,7 @@ export const App: React.FC = () => {
                                     </div>
                                     
                                     {mapData ? (
-                                        <div className="flex-grow min-h-0">
+                                        <div className="flex-grow min-h-0 h-full">
                                             <KnowledgeMap
                                                 ref={knowledgeMapRef}
                                                 data={mapData}
