@@ -28,11 +28,11 @@ export const Header: React.FC<HeaderProps> = ({
   isCompact = false
 }) => {
   return (
-    <header className={`bg-brand-blue/95 dark:bg-slate-900/95 backdrop-blur-md shadow-lg text-white border-b border-white/10 transition-all duration-300 ${isCompact ? 'py-1' : ''} ${className || ''}`}>
-      <div className={`container mx-auto px-3 sm:px-4 md:px-6 flex items-center justify-between transition-all duration-300 ${isCompact ? 'py-1' : 'py-2.5 sm:py-3'}`}>
-        <div className="flex items-center space-x-2 sm:space-x-3 group cursor-pointer min-w-0">
-          <div className={`bg-white p-1 rounded-xl shadow-inner group-hover:scale-110 transition-transform flex-shrink-0 ${isCompact ? 'sm:p-1' : 'sm:p-1.5'}`}>
-            <svg width="24" height="24" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" className={`${isCompact ? 'w-4 h-4 sm:w-5 sm:h-5' : 'w-5 h-5 sm:w-6 sm:h-6'}`}>
+    <header className={`bg-brand-blue/95 dark:bg-slate-900/95 backdrop-blur-md shadow-lg text-white border-b border-white/10 transition-all duration-300 ${isCompact ? 'py-0.5 sm:py-1' : ''} ${className || ''}`}>
+      <div className={`container mx-auto px-2 sm:px-4 md:px-6 flex items-center justify-between transition-all duration-300 ${isCompact ? 'py-0.5 sm:py-1' : 'py-2.5 sm:py-3'}`}>
+        <div className="flex items-center space-x-1.5 sm:space-x-3 group cursor-pointer min-w-0">
+          <div className={`bg-white p-1 rounded-lg sm:rounded-xl shadow-inner group-hover:scale-110 transition-transform flex-shrink-0 ${isCompact ? 'p-0.5 sm:p-1' : 'sm:p-1.5'}`}>
+            <svg width="24" height="24" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" className={`${isCompact ? 'w-3.5 h-3.5 sm:w-5 sm:h-5' : 'w-5 h-5 sm:w-6 sm:h-6'}`}>
               <rect width="100" height="100" rx="20" fill="#1e3a8a"/>
               <g stroke="white" strokeWidth="4" strokeLinecap="round">
                 <line x1="50" y1="50" x2="50" y2="20"/>
@@ -59,12 +59,12 @@ export const Header: React.FC<HeaderProps> = ({
               <line x1="50" y1="42" x2="50" y2="58" stroke="#1e3a8a" strokeWidth="5" strokeLinecap="round"/>
             </svg>
           </div>
-          <div className="flex flex-col min-w-0">
+          <div className={`flex flex-col min-w-0 ${isCompact ? 'hidden sm:flex' : 'flex'}`}>
             <h1 className="text-base sm:text-lg md:text-xl font-black tracking-tighter leading-none truncate">Ungana Medical</h1>
           </div>
         </div>
         
-        <div className="flex items-center space-x-1.5 sm:space-x-3 md:space-x-4">
+        <div className="flex items-center space-x-1 sm:space-x-3 md:space-x-4">
           <p className="text-[10px] md:text-xs font-medium text-blue-100 hidden lg:block italic">{T.headerSubtitle}</p>
           
           <div className="h-6 w-px bg-white/10 hidden sm:block"></div>
@@ -72,9 +72,9 @@ export const Header: React.FC<HeaderProps> = ({
           <button 
             onClick={onCollaborate}
             className={`p-2 rounded-xl transition-all active:scale-90 flex items-center gap-2 ${isCollaborating ? 'bg-green-500/20 text-green-300' : 'hover:bg-white/10 text-blue-100'}`}
-            title="Collaborate"
+            title={T.collaborateButton}
           >
-            <span title="Collaborate">
+            <span title={T.collaborateButton}>
               <Users className="h-4.5 w-4.5 sm:h-5 sm:w-5" />
             </span>
             {isCollaborating && <span className="text-[10px] font-black uppercase tracking-widest hidden sm:inline">Live</span>}
@@ -98,7 +98,7 @@ export const Header: React.FC<HeaderProps> = ({
 
           <div className="relative group">
             <div className="absolute inset-y-0 left-2 flex items-center pointer-events-none">
-              <span title="Language">
+              <span title={T.languageButton}>
                 <Globe className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-blue-200" />
               </span>
             </div>

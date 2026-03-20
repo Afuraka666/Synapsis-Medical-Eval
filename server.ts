@@ -3,10 +3,13 @@ import { createServer } from "http";
 import { Server } from "socket.io";
 import path from "path";
 import { fileURLToPath } from "url";
-import { createServer as createViteServer } from "vite";
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+// Support both ESM and CJS for __dirname
+// @ts-ignore
+const isESM = typeof import.meta !== 'undefined' && import.meta.url;
+const __dirname = isESM 
+  ? path.dirname(fileURLToPath(import.meta.url)) 
+  : (globalThis as any).__dirname || '.';
 
 async function startServer() {
   const app = express();
@@ -45,6 +48,7 @@ async function startServer() {
 
   // Vite middleware for development
   if (process.env.NODE_ENV !== "production") {
+    const { createServer: createViteServer } = await import("vite");
     const vite = await createViteServer({
       server: { middlewareMode: true },
       appType: "spa",
@@ -53,7 +57,8 @@ async function startServer() {
   } else {
     const distPath = path.join(process.cwd(), 'dist');
     app.use(express.static(distPath));
-    app.get('*', (req, res) => {
+    // Express 5 requires named parameters for wildcards
+    app.get('*all', (req, res) => {
       res.sendFile(path.join(distPath, 'index.html'));
     });
   }

@@ -43,7 +43,7 @@ const getBCP47Language = (lang: string): string => {
     return map[lang] || 'en-US';
 };
 
-const MicButton: React.FC<{ onClick: () => void, isListening: boolean, disabled: boolean, title: string }> = ({ onClick, isListening, disabled, title }) => {
+const MicButton: React.FC<{ onClick: () => void, isListening: boolean, disabled: boolean, title: string, T: Record<string, any> }> = ({ onClick, isListening, disabled, title, T }) => {
     return (
         <button 
             type="button" 
@@ -56,7 +56,7 @@ const MicButton: React.FC<{ onClick: () => void, isListening: boolean, disabled:
             {isListening ? (
                  <div className="flex items-center gap-2">
                     <MicOff className="h-4 w-4 text-red-500 animate-pulse" />
-                    <span className="text-[10px] font-black uppercase tracking-tighter text-red-500 animate-pulse hidden sm:inline">Listening...</span>
+                    <span className="text-[10px] font-black uppercase tracking-tighter text-red-500 animate-pulse hidden sm:inline">{T.listeningLabel}</span>
                  </div>
             ) : (
                 <Mic className="h-4 w-4" />
@@ -211,7 +211,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
                       placeholder={T.conditionPlaceholder} 
                       className="p-2.5 sm:p-3 border border-gray-200 dark:border-dark-border rounded-xl focus:ring-2 focus:ring-brand-blue-light/30 focus:border-brand-blue-light w-full bg-gray-50 dark:bg-slate-800 text-gray-900 dark:text-white transition-all outline-none font-medium text-sm sm:text-base" 
                     />
-                  {isSpeechRecognitionSupported && <MicButton onClick={() => handleMicClick('condition')} isListening={isListening && activeInput === 'condition'} disabled={disabled} title={T.voiceInputCondition} />}
+                  {isSpeechRecognitionSupported && <MicButton onClick={() => handleMicClick('condition')} isListening={isListening && activeInput === 'condition'} disabled={disabled} title={T.voiceInputCondition} T={T} />}
               </div>
           </div>
           <div className="flex flex-col flex-1">
@@ -227,7 +227,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
                       placeholder={T.disciplinePlaceholder} 
                       className="p-2.5 sm:p-3 border border-gray-200 dark:border-dark-border rounded-xl focus:ring-2 focus:ring-brand-blue-light/30 focus:border-brand-blue-light w-full bg-gray-50 dark:bg-slate-800 text-gray-900 dark:text-white transition-all outline-none font-medium text-sm sm:text-base" 
                     />
-                  {isSpeechRecognitionSupported && <MicButton onClick={() => handleMicClick('discipline')} isListening={isListening && activeInput === 'discipline'} disabled={disabled} title={T.voiceInputDiscipline} />}
+                  {isSpeechRecognitionSupported && <MicButton onClick={() => handleMicClick('discipline')} isListening={isListening && activeInput === 'discipline'} disabled={disabled} title={T.voiceInputDiscipline} T={T} />}
               </div>
           </div>
           <div className="flex flex-row gap-2 w-full lg:w-auto">

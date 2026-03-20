@@ -96,17 +96,17 @@ const svgToDataURL = async (svgEl: SVGSVGElement): Promise<string> => {
     });
 };
 
-const LoadingSpinner: React.FC = () => (
+const LoadingSpinner: React.FC<{ T: Record<string, any> }> = ({ T }) => (
     <div className="flex flex-col items-center justify-center h-full p-4 text-brand-blue dark:text-brand-blue-light">
         <div className="relative">
-            <span title="Activity">
+            <span title={T.iconLabelActivity}>
                 <Activity className="h-12 w-12 animate-pulse" />
             </span>
             <div className="absolute inset-0 flex items-center justify-center">
                 <div className="h-4 w-4 bg-brand-blue rounded-full animate-ping"></div>
             </div>
         </div>
-        <p className="mt-4 text-xs font-black uppercase tracking-widest animate-pulse">Mapping Connections...</p>
+        <p className="mt-4 text-xs font-black uppercase tracking-widest animate-pulse">{T.mappingConnections}</p>
     </div>
 );
 
@@ -139,35 +139,36 @@ interface MapControlsProps {
     onAddNode?: () => void;
     onAddLink?: () => void;
     isFullscreen: boolean;
+    T: Record<string, any>;
 }
 
-const MapControls: React.FC<MapControlsProps> = ({ onZoomIn, onZoomOut, onReset, onToggleFullscreen, onSaveMap, onDownloadMap, onAddNode, onAddLink, isFullscreen }) => {
+const MapControls: React.FC<MapControlsProps> = ({ onZoomIn, onZoomOut, onReset, onToggleFullscreen, onSaveMap, onDownloadMap, onAddNode, onAddLink, isFullscreen, T }) => {
     const buttonClasses = "bg-white dark:bg-slate-800 hover:bg-gray-50 dark:hover:bg-slate-700 text-gray-700 dark:text-slate-200 rounded-xl w-10 h-10 flex items-center justify-center transition-all hover:scale-105 active:scale-95";
     return (
         <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex flex-row gap-2 z-10 bg-white/90 dark:bg-slate-800/90 backdrop-blur-md p-1.5 rounded-2xl shadow-2xl border border-gray-200/50 dark:border-slate-700/50">
-            <button onClick={onZoomIn} title="Zoom In" className={buttonClasses}>
-                 <span title="Zoom In">
+            <button onClick={onZoomIn} title={T.zoomInButton} className={buttonClasses}>
+                 <span title={T.zoomInButton}>
                     <ZoomIn className="h-5 w-5" />
                  </span>
             </button>
-            <button onClick={onZoomOut} title="Zoom Out" className={buttonClasses}>
-                <span title="Zoom Out">
+            <button onClick={onZoomOut} title={T.zoomOutButton} className={buttonClasses}>
+                <span title={T.zoomOutButton}>
                     <ZoomOut className="h-5 w-5" />
                 </span>
             </button>
             <div className="w-px h-6 bg-gray-200 dark:bg-slate-700 self-center mx-1"></div>
-            <button onClick={onReset} title="Reset View" className={buttonClasses}>
-                 <span title="Reset View">
+            <button onClick={onReset} title={T.resetViewButton} className={buttonClasses}>
+                 <span title={T.resetViewButton}>
                     <RotateCcw className="h-5 w-5" />
                  </span>
             </button>
-             <button onClick={onToggleFullscreen} title={isFullscreen ? "Exit Fullscreen" : "Enter Fullscreen"} className={buttonClasses}>
+             <button onClick={onToggleFullscreen} title={isFullscreen ? T.exitFullscreenButton : T.enterFullscreenButton} className={buttonClasses}>
                 {isFullscreen ? (
-                    <span title="Exit Fullscreen">
+                    <span title={T.exitFullscreenButton}>
                         <Minimize className="h-5 w-5" />
                     </span>
                 ) : (
-                    <span title="Enter Fullscreen">
+                    <span title={T.enterFullscreenButton}>
                         <Maximize className="h-5 w-5" />
                     </span>
                 )}
@@ -176,12 +177,12 @@ const MapControls: React.FC<MapControlsProps> = ({ onZoomIn, onZoomOut, onReset,
                 <>
                     <div className="w-px h-6 bg-gray-200 dark:bg-slate-700 self-center mx-1"></div>
                     {onAddNode && (
-                        <button onClick={onAddNode} title="Add Node" className={buttonClasses}>
+                        <button onClick={onAddNode} title={T.addNodeButton} className={buttonClasses}>
                             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
                         </button>
                     )}
                     {onAddLink && (
-                        <button onClick={onAddLink} title="Add Link" className={buttonClasses}>
+                        <button onClick={onAddLink} title={T.addLinkButton} className={buttonClasses}>
                             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
                         </button>
                     )}
@@ -191,14 +192,14 @@ const MapControls: React.FC<MapControlsProps> = ({ onZoomIn, onZoomOut, onReset,
                 <>
                     <div className="w-px h-6 bg-gray-200 dark:bg-slate-700 self-center mx-1"></div>
                     {onSaveMap && (
-                        <button onClick={onSaveMap} title="Save Map to Collection" className={`${buttonClasses} text-brand-blue dark:text-brand-blue-light`}>
-                            <span title="Save Map">
+                        <button onClick={onSaveMap} title={T.saveMapToCollection} className={`${buttonClasses} text-brand-blue dark:text-brand-blue-light`}>
+                            <span title={T.saveMapButton}>
                                 <Save className="h-5 w-5" />
                             </span>
                         </button>
                     )}
                     {onDownloadMap && (
-                        <button onClick={onDownloadMap} title="Download Map as Image" className={`${buttonClasses} text-brand-blue dark:text-brand-blue-light`}>
+                        <button onClick={onDownloadMap} title={T.downloadMapAsImage} className={`${buttonClasses} text-brand-blue dark:text-brand-blue-light`}>
                             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-download"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
                         </button>
                     )}
@@ -208,7 +209,7 @@ const MapControls: React.FC<MapControlsProps> = ({ onZoomIn, onZoomOut, onReset,
     );
 };
 
-const NodeTooltip: React.FC<{ node: KnowledgeNode | null; position: { x: number; y: number } | null }> = ({ node, position }) => {
+const NodeTooltip: React.FC<{ node: KnowledgeNode | null; position: { x: number; y: number } | null; T: Record<string, any> }> = ({ node, position, T }) => {
     if (!node || !position) return null;
     return (
         <div 
@@ -217,7 +218,7 @@ const NodeTooltip: React.FC<{ node: KnowledgeNode | null; position: { x: number;
         >
             <div className="flex items-center justify-between mb-2">
                 <span className="text-[9px] font-black uppercase tracking-[0.2em] text-brand-blue dark:text-brand-blue-light bg-brand-blue/5 dark:bg-brand-blue-light/5 px-2 py-0.5 rounded-full">{node.discipline}</span>
-                <span title="Information">
+                <span title={T.iconLabelInformation}>
                     <Info className="w-3 h-3 text-gray-500 dark:text-slate-400" />
                 </span>
             </div>
@@ -448,18 +449,18 @@ export const KnowledgeMap = forwardRef<any, KnowledgeMapProps>(({ data, onNodeCl
     if (typeof d3 === 'undefined') {
         return (
             <div className="w-full h-full flex flex-col items-center justify-center bg-slate-50 dark:bg-slate-900 p-8 text-center">
-                <span title="Network Error">
+                <span title={T.networkErrorLabel}>
                     <Network className="h-12 w-12 text-red-400 mb-4" />
                 </span>
-                <h3 className="font-black text-gray-900 dark:text-white mb-2">Visualization Error</h3>
+                <h3 className="font-black text-gray-900 dark:text-white mb-2">{T.visualizationError}</h3>
                 <p className="text-sm text-gray-500 dark:text-slate-400 max-w-xs">
-                    The knowledge map engine (D3.js) failed to load. Please check your internet connection and refresh the page.
+                    {T.visualizationErrorDetail}
                 </p>
                 <button 
                     onClick={() => window.location.reload()}
                     className="mt-6 px-6 py-2 bg-brand-blue text-white rounded-xl font-bold text-sm hover:bg-blue-800 transition-all"
                 >
-                    Refresh Page
+                    {T.refreshPage}
                 </button>
             </div>
         );
@@ -468,7 +469,7 @@ export const KnowledgeMap = forwardRef<any, KnowledgeMapProps>(({ data, onNodeCl
     return (
         <div ref={containerRef} className={`w-full h-full bg-slate-50 dark:bg-slate-900 shadow-inner border border-gray-200 dark:border-dark-border overflow-hidden transition-colors duration-300 ${isMapFullscreen ? 'fixed inset-0 z-40' : 'relative rounded-xl'}`}>
             <div className="absolute inset-0 pointer-events-none opacity-50 dark:opacity-20" style={{ backgroundImage: 'radial-gradient(circle at 1px 1px, #94a3b8 1px, transparent 0)', backgroundSize: '24px 24px' }}></div>
-            {isLoading && <div className="absolute inset-0 z-20 flex items-center justify-center bg-slate-50/50 dark:bg-dark-bg/50 backdrop-blur-sm"><LoadingSpinner /></div>}
+            {isLoading && <div className="absolute inset-0 z-20 flex items-center justify-center bg-slate-50/50 dark:bg-dark-bg/50 backdrop-blur-sm"><LoadingSpinner T={T} /></div>}
             <svg 
                 ref={svgRef} 
                 className="w-full h-full touch-none relative z-0" 
@@ -518,34 +519,35 @@ export const KnowledgeMap = forwardRef<any, KnowledgeMapProps>(({ data, onNodeCl
                 onSaveMap={onSaveMap} 
                 onDownloadMap={onDownloadMap}
                 onAddNode={onAddNode ? () => {
-                    const label = prompt('Node Label:');
+                    const label = prompt(T.nodeLabelPrompt);
                     if (label) {
                         onAddNode({
                             id: Math.random().toString(36).substring(7),
                             label,
                             discipline: Discipline.PHYSIOLOGY, // Default
-                            summary: 'Manually added concept.'
+                            summary: T.manuallyAddedConcept
                         });
                     }
                 } : undefined}
                 onAddLink={onAddLink ? () => {
-                    const source = prompt('Source Node ID:');
-                    const target = prompt('Target Node ID:');
+                    const source = prompt(T.sourceNodeIdPrompt);
+                    const target = prompt(T.targetNodeIdPrompt);
                     if (source && target) {
                         onAddLink({
                             source,
                             target,
-                            description: 'Manually added connection.'
+                            description: T.manuallyAddedConnection
                         });
                     }
                 } : undefined}
                 isFullscreen={isMapFullscreen} 
+                T={T}
             />
-            <NodeTooltip node={hoveredNode?.node || null} position={hoveredNode?.position || null} />
+            <NodeTooltip node={hoveredNode?.node || null} position={hoveredNode?.position || null} T={T} />
             
             {hoveredLink && (
                 <div className="absolute bottom-4 right-4 bg-white/90 dark:bg-slate-800/90 p-2 px-3 rounded-lg shadow-lg border border-brand-blue/20 text-[10px] max-w-[200px] animate-fade-in pointer-events-none">
-                    <p className="font-black uppercase text-gray-600 dark:text-slate-400 mb-1">Relationship</p>
+                    <p className="font-black uppercase text-gray-600 dark:text-slate-400 mb-1">{T.relationshipLabel}</p>
                     <p className="text-gray-900 dark:text-slate-100 leading-tight italic font-medium">{hoveredLink.description}</p>
                 </div>
             )}

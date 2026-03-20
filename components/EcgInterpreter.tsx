@@ -97,20 +97,20 @@ export const EcgInterpreter: React.FC<EcgInterpreterProps> = ({ T, language }) =
             <div className="medical-card p-5 space-y-6">
                 <div className="flex items-center gap-2 mb-2">
                     <div className="p-2 bg-brand-blue/10 rounded-lg">
-                        <span title="Activity">
+                        <span title={T.iconLabelActivity}>
                             <Activity className="w-5 h-5 text-brand-blue" />
                         </span>
                     </div>
                     <div>
                         <h3 className="text-md font-bold text-slate-900 leading-tight">{T.ecgInterpreterTitle || 'ECG Analysis Assistant'}</h3>
-                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">AI-Powered Interpretation</p>
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{T.ecgAnalysisAssistant}</p>
                     </div>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-1.5">
                         <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-1.5">
-                            <span title="Activity">
+                            <span title={T.iconLabelActivity}>
                                 <Zap className="w-3 h-3" />
                             </span>
                             {T.ecgRateLabel}
@@ -126,7 +126,7 @@ export const EcgInterpreter: React.FC<EcgInterpreterProps> = ({ T, language }) =
                     </div>
                     <div className="space-y-1.5">
                         <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-1.5">
-                            <span title="Heart">
+                            <span title={T.iconLabelHeart}>
                                 <Heart className="w-3 h-3" />
                             </span>
                             {T.ecgRhythmLabel}
@@ -150,7 +150,7 @@ export const EcgInterpreter: React.FC<EcgInterpreterProps> = ({ T, language }) =
 
                 <div className="space-y-1.5">
                     <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-1.5">
-                        <span title="Information">
+                        <span title={T.iconLabelInformation}>
                             <Info className="w-3 h-3" />
                         </span>
                         {T.ecgIntervals}
@@ -185,7 +185,7 @@ export const EcgInterpreter: React.FC<EcgInterpreterProps> = ({ T, language }) =
 
                 <div className="space-y-1.5">
                     <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-1.5">
-                        <span title="Activity">
+                        <span title={T.iconLabelActivity}>
                             <Activity className="w-3 h-3" />
                         </span>
                         {T.ecgStSegment}
@@ -205,7 +205,7 @@ export const EcgInterpreter: React.FC<EcgInterpreterProps> = ({ T, language }) =
 
                 <div className="space-y-1.5">
                     <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-1.5">
-                        <span title="Results">
+                        <span title={T.iconLabelResults}>
                             <FileText className="w-3 h-3" />
                         </span>
                         {T.ecgOtherFindings}
@@ -222,7 +222,7 @@ export const EcgInterpreter: React.FC<EcgInterpreterProps> = ({ T, language }) =
 
                 <div className="space-y-1.5">
                     <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-1.5">
-                        <span title="Upload">
+                        <span title={T.iconLabelUpload}>
                             <Upload className="w-3 h-3" />
                         </span>
                         {T.uploadEcgLabel}
@@ -243,18 +243,18 @@ export const EcgInterpreter: React.FC<EcgInterpreterProps> = ({ T, language }) =
                                 <div className="relative inline-block">
                                     <img src={file.url} alt="ECG Preview" className="max-h-32 rounded-lg shadow-md border border-slate-200" />
                                     <div className="absolute -top-2 -right-2 p-1 bg-brand-blue text-white rounded-full shadow-lg">
-                                        <span title="Selected">
+                                        <span title={T.iconLabelSelected}>
                                             <CheckCircle2 className="w-4 h-4" />
                                         </span>
                                     </div>
                                 </div>
                                 <p className="mt-3 text-xs font-bold text-slate-600 truncate max-w-[200px] mx-auto">{file.name}</p>
-                                <p className="text-[10px] font-black text-brand-blue uppercase tracking-widest mt-1">Click to change</p>
+                                <p className="text-[10px] font-black text-brand-blue uppercase tracking-widest mt-1">{T.ecgClickToChange}</p>
                             </div>
                         ) : (
                             <div className="text-center space-y-3">
                                 <div className="p-3 bg-white rounded-full shadow-sm border border-slate-100 inline-block">
-                                    <span title="Upload">
+                                    <span title={T.iconLabelUpload}>
                                         <Upload className="w-6 h-6 text-slate-400" />
                                     </span>
                                 </div>
@@ -274,11 +274,11 @@ export const EcgInterpreter: React.FC<EcgInterpreterProps> = ({ T, language }) =
                     className="w-full flex items-center justify-center gap-2 bg-brand-blue hover:bg-blue-800 text-white font-black py-4 px-6 rounded-xl transition-all shadow-md disabled:bg-slate-200 disabled:text-slate-400 disabled:shadow-none uppercase tracking-widest text-xs"
                 >
                     {isInterpreting ? (
-                        <span title="Activity">
+                        <span title={T.iconLabelActivity}>
                             <Activity className="w-5 h-5 animate-pulse" />
                         </span>
                     ) : (
-                        <span title="Activity">
+                        <span title={T.iconLabelActivity}>
                             <Zap className="w-5 h-5" />
                         </span>
                     )}
@@ -288,7 +288,7 @@ export const EcgInterpreter: React.FC<EcgInterpreterProps> = ({ T, language }) =
                 {(isInterpreting || interpretationResult || error) && (
                     <div className="mt-6 p-5 bg-white border border-slate-200 rounded-2xl animate-fade-in shadow-sm">
                         <div className="flex items-center gap-2 mb-4 border-b border-slate-100 pb-3">
-                            <span title="Results">
+                            <span title={T.iconLabelResults}>
                                 <FileText className="w-4 h-4 text-brand-blue" />
                             </span>
                             <h4 className="text-[10px] font-black text-brand-blue uppercase tracking-widest">{T.interpretationResultTitle}</h4>
@@ -303,7 +303,7 @@ export const EcgInterpreter: React.FC<EcgInterpreterProps> = ({ T, language }) =
                         
                         {error && (
                             <div className="p-3 bg-red-50 border border-red-100 rounded-xl flex items-center gap-2">
-                                <span title="Alert">
+                                <span title={T.iconLabelAlert}>
                                     <AlertCircle className="w-4 h-4 text-red-500" />
                                 </span>
                                 <p className="text-xs font-bold text-red-600">{error}</p>

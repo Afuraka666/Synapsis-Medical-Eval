@@ -1229,7 +1229,7 @@ const DoseCalculator: React.FC<{
                             onChange={(e) => setSelectedDrug(database.find(d => d.name === e.target.value) || null)} 
                             className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-900 focus:ring-2 focus:ring-brand-blue/20 focus:border-brand-blue transition-all outline-none appearance-none"
                         >
-                            <option value="">-- Select Drug --</option>
+                            <option value="">{T.selectDrugOption}</option>
                             {database.map(d => <option key={d.name} value={d.name}>{d.name}</option>)}
                         </select>
                     </div>
@@ -1270,7 +1270,7 @@ const DoseCalculator: React.FC<{
                                                 <Zap className="w-3 h-3 text-brand-blue" />
                                             </span>
                                         </div>
-                                        <h4 className="text-[10px] font-black text-brand-blue uppercase tracking-widest">{T.calculatedDoseLabel || 'Bolus Dose'}</h4>
+                                        <h4 className="text-[10px] font-black text-brand-blue uppercase tracking-widest">{T.bolusDoseLabel}</h4>
                                     </div>
                                     <div className="flex flex-wrap items-baseline gap-4">
                                         {bolusResult.dose !== undefined && bolusResult.dose > 0 && (
@@ -1317,7 +1317,7 @@ const DoseCalculator: React.FC<{
                                                 <Clock className="w-3 h-3 text-indigo-600" />
                                             </span>
                                         </div>
-                                        <h4 className="text-[10px] font-black text-indigo-600 uppercase tracking-widest">Infusion Rate</h4>
+                                        <h4 className="text-[10px] font-black text-indigo-600 uppercase tracking-widest">{T.infusionRateLabel}</h4>
                                     </div>
                                     <div>
                                         <p className="text-3xl font-black text-slate-900 leading-none tracking-tight">{infusionResult.rate}</p>
@@ -1343,7 +1343,7 @@ const DoseCalculator: React.FC<{
                                             <ShieldAlert className="w-3.5 h-3.5 text-red-600" />
                                         </span>
                                     </div>
-                                    <h4 className="text-[10px] font-black text-red-600 uppercase tracking-widest">Safety Watch: Adverse Effects</h4>
+                                    <h4 className="text-[10px] font-black text-red-600 uppercase tracking-widest">{T.safetyWatchAdverseEffectsLabel}</h4>
                                 </div>
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                     {selectedDrug.adverseEvents.slice(0, 4).map((effect, idx) => (
@@ -1363,13 +1363,13 @@ const DoseCalculator: React.FC<{
             <div className="medical-card p-5 space-y-6">
                 <div className="flex items-center gap-2 mb-2">
                     <div className="p-2 bg-indigo-100 rounded-lg">
-                        <span title="Alert">
+                        <span title={T.iconLabelAlert}>
                             <ShieldAlert className="w-5 h-5 text-indigo-600" />
                         </span>
                     </div>
                     <div>
                         <h3 className="text-md font-bold text-slate-900 leading-tight">{T.drugInteractionCheckerTitle}</h3>
-                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Multi-Drug Safety Analysis</p>
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{T.multiDrugSafetyAnalysisLabel}</p>
                     </div>
                 </div>
 
@@ -1392,7 +1392,7 @@ const DoseCalculator: React.FC<{
                                             : 'bg-slate-50 border-slate-200'
                                     }`}>
                                         {selectedInteractionDrugs.includes(drug.name) && (
-                                            <span title="Selected">
+                                            <span title={T.iconLabelSelected}>
                                                 <CheckCircle2 className="w-3 h-3" />
                                             </span>
                                         )}
@@ -1417,11 +1417,11 @@ const DoseCalculator: React.FC<{
                         className="w-full flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-black py-3 px-4 rounded-xl transition-all shadow-md disabled:bg-slate-200 disabled:text-slate-400 disabled:shadow-none uppercase tracking-widest text-xs"
                     >
                         {isCheckingInteractions ? (
-                            <span title="Activity">
+                            <span title={T.iconLabelActivity}>
                                 <Activity className="w-4 h-4 animate-pulse" />
                             </span>
                         ) : (
-                            <span title="Search">
+                            <span title={T.iconLabelSearch}>
                                 <Search className="w-4 h-4" />
                             </span>
                         )}
@@ -1431,7 +1431,7 @@ const DoseCalculator: React.FC<{
                     {(isCheckingInteractions || interactionResult || interactionError) && (
                         <div className="mt-4 p-5 bg-white border border-slate-200 rounded-2xl animate-fade-in shadow-sm">
                             <div className="flex items-center gap-2 mb-4 border-b border-slate-100 pb-3">
-                                <span title="Results">
+                                <span title={T.iconLabelResults}>
                                     <FileText className="w-4 h-4 text-indigo-600" />
                                 </span>
                                 <h4 className="text-[10px] font-black text-indigo-600 uppercase tracking-widest">{T.interactionResultsTitle}</h4>
@@ -1446,7 +1446,7 @@ const DoseCalculator: React.FC<{
                             
                             {interactionError && (
                                 <div className="p-3 bg-red-50 border border-red-100 rounded-xl flex items-center gap-2">
-                                    <span title="Alert">
+                                    <span title={T.iconLabelAlert}>
                                         <AlertCircle className="w-4 h-4 text-red-500" />
                                     </span>
                                     <p className="text-xs font-bold text-red-600">{interactionError}</p>
@@ -1522,7 +1522,7 @@ const FluidManagementCalculator: React.FC<{ T: Record<string, any> }> = ({ T }) 
             <div className="medical-card p-5 space-y-6">
                 <div className="flex items-center gap-2 mb-2">
                     <div className="p-2 bg-brand-blue/10 rounded-lg">
-                        <span title="Fluids">
+                        <span title={T.iconLabelFluids}>
                             <Droplets className="w-5 h-5 text-brand-blue" />
                         </span>
                     </div>
@@ -1534,7 +1534,7 @@ const FluidManagementCalculator: React.FC<{ T: Record<string, any> }> = ({ T }) 
 
                 <div className="space-y-1.5">
                     <label htmlFor="fluid-weight-input" className="block text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-1.5">
-                        <span title="Weight">
+                        <span title={T.iconLabelWeight}>
                             <Scale className="w-3 h-3" />
                         </span>
                         {T.weightKgLabel}
@@ -1555,13 +1555,13 @@ const FluidManagementCalculator: React.FC<{ T: Record<string, any> }> = ({ T }) 
                     <div className="mt-4 animate-fade-in space-y-6">
                         <div className="p-6 bg-emerald-50 border border-emerald-100 rounded-2xl relative overflow-hidden group">
                             <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-                                <span title="Fluids">
+                                <span title={T.iconLabelFluids}>
                                     <Droplets className="w-16 h-16 text-emerald-600" />
                                 </span>
                             </div>
                             <h4 className="text-[10px] font-black text-emerald-600 uppercase tracking-widest mb-4 flex items-center gap-2">
                                 <div className="w-5 h-5 rounded-full bg-emerald-100 flex items-center justify-center">
-                                    <span title="Activity">
+                                    <span title={T.iconLabelActivity}>
                                         <Activity className="w-3 h-3 text-emerald-600" />
                                     </span>
                                 </div>
@@ -1572,21 +1572,21 @@ const FluidManagementCalculator: React.FC<{ T: Record<string, any> }> = ({ T }) 
                                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{T.dailyRequirementLabel}</p>
                                     <p className="text-3xl font-black text-slate-900 leading-none tracking-tight">
                                         {maintenance.daily} 
-                                        <span className="text-sm font-bold text-slate-400 ml-1.5">mL/day</span>
+                                        <span className="text-sm font-bold text-slate-400 ml-1.5">{T.mlDay}</span>
                                     </p>
                                 </div>
                                 <div className="space-y-1 sm:pl-8 sm:border-l sm:border-emerald-100">
                                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{T.hourlyRateLabel}</p>
                                     <p className="text-3xl font-black text-slate-900 leading-none tracking-tight">
                                         {maintenance.hourly} 
-                                        <span className="text-sm font-bold text-slate-400 ml-1.5">mL/hr</span>
+                                        <span className="text-sm font-bold text-slate-400 ml-1.5">{T.mlHr}</span>
                                     </p>
                                 </div>
                             </div>
                             
                             <div className="mt-8 pt-6 border-t border-emerald-100 space-y-4">
                                 <p className="text-[10px] font-black text-emerald-700 uppercase tracking-widest flex items-center gap-2">
-                                    <span title="Checklist">
+                                    <span title={T.iconLabelChecklist}>
                                         <ClipboardList className="w-3.5 h-3.5" />
                                     </span>
                                     {T.fluidBreakdownTitle}
@@ -1606,13 +1606,13 @@ const FluidManagementCalculator: React.FC<{ T: Record<string, any> }> = ({ T }) 
 
                         <div className="p-6 bg-amber-50 border border-amber-100 rounded-2xl relative overflow-hidden group">
                             <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-                                <span title="Bolus">
+                                <span title={T.iconLabelBolus}>
                                     <Zap className="w-16 h-16 text-amber-600" />
                                 </span>
                             </div>
                             <div className="flex items-center gap-2 mb-4">
                                 <div className="w-6 h-6 rounded-full bg-amber-100 flex items-center justify-center">
-                                    <span title="Bolus">
+                                    <span title={T.iconLabelBolus}>
                                         <Zap className="w-3.5 h-3.5 text-amber-600" />
                                     </span>
                                 </div>
@@ -1624,7 +1624,7 @@ const FluidManagementCalculator: React.FC<{ T: Record<string, any> }> = ({ T }) 
                             </div>
                             <div className="mt-4 p-3 bg-white/40 rounded-xl border border-amber-100/50">
                                 <p className="text-xs font-bold text-slate-600 flex items-start gap-2">
-                                    <span title="Information">
+                                    <span title={T.iconLabelInformation}>
                                         <Info className="w-3.5 h-3.5 text-amber-500 shrink-0 mt-0.5" />
                                     </span>
                                     Standard bolus for initial resuscitation. Adjust based on clinical status and response.
@@ -1676,7 +1676,7 @@ const GcsCalculator: React.FC<{ T: Record<string, any> }> = ({ T }) => {
         <div className="medical-card p-5 space-y-6">
             <div className="flex items-center gap-2 mb-2">
                 <div className="p-2 bg-brand-blue/10 rounded-lg">
-                    <span title="Calculator">
+                    <span title={T.iconLabelCalculator}>
                         <Calculator className="w-5 h-5 text-brand-blue" />
                     </span>
                 </div>
@@ -1690,7 +1690,7 @@ const GcsCalculator: React.FC<{ T: Record<string, any> }> = ({ T }) => {
                 <div className="grid grid-cols-1 gap-4">
                     <div className="space-y-1.5">
                         <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-1.5">
-                            <span title="Activity">
+                            <span title={T.iconLabelActivity}>
                                 <Activity className="w-3 h-3" />
                             </span>
                             {T.gcsEyeResponse}
@@ -1706,7 +1706,7 @@ const GcsCalculator: React.FC<{ T: Record<string, any> }> = ({ T }) => {
                     </div>
                     <div className="space-y-1.5">
                         <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-1.5">
-                            <span title="Activity">
+                            <span title={T.iconLabelActivity}>
                                 <Activity className="w-3 h-3" />
                             </span>
                             {T.gcsVerbalResponse}
@@ -1722,7 +1722,7 @@ const GcsCalculator: React.FC<{ T: Record<string, any> }> = ({ T }) => {
                     </div>
                     <div className="space-y-1.5">
                         <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-1.5">
-                            <span title="Activity">
+                            <span title={T.iconLabelActivity}>
                                 <Activity className="w-3 h-3" />
                             </span>
                             {T.gcsMotorResponse}
@@ -1744,7 +1744,7 @@ const GcsCalculator: React.FC<{ T: Record<string, any> }> = ({ T }) => {
                     <h4 className="text-[10px] font-black text-brand-blue uppercase tracking-widest mb-1">{T.gcsResultTitle}</h4>
                     <p className="text-3xl font-black text-slate-900 leading-none">{totalScore} <span className="text-sm font-bold text-slate-400">/ 15</span></p>
                     <p className="text-xs font-bold text-slate-600 mt-3 flex items-center gap-1.5">
-                        <span title="Information">
+                        <span title={T.iconLabelInformation}>
                             <Info className="w-3.5 h-3.5 text-brand-blue" />
                         </span>
                         {interpretation}
@@ -1784,7 +1784,7 @@ const PonvCalculator: React.FC<{ T: Record<string, any> }> = ({ T }) => {
         <div className="medical-card p-5 space-y-6">
             <div className="flex items-center gap-2 mb-2">
                 <div className="p-2 bg-brand-blue/10 rounded-lg">
-                    <span title="Activity">
+                    <span title={T.iconLabelActivity}>
                         <Activity className="w-5 h-5 text-brand-blue" />
                     </span>
                 </div>
@@ -1810,7 +1810,7 @@ const PonvCalculator: React.FC<{ T: Record<string, any> }> = ({ T }) => {
                                 : 'bg-white border-slate-300'
                         }`}>
                             {riskFactors[key as keyof typeof riskFactors] && (
-                                <span title="Selected">
+                                <span title={T.iconLabelSelected}>
                                     <CheckCircle2 className="w-3.5 h-3.5" />
                                 </span>
                             )}
@@ -1837,7 +1837,7 @@ const PonvCalculator: React.FC<{ T: Record<string, any> }> = ({ T }) => {
                 </div>
                 <div className="mt-4 pt-4 border-t border-brand-blue/10">
                     <p className="text-sm font-bold text-slate-700 flex items-center gap-2">
-                        <span title="Risk Level">
+                        <span title={T.iconLabelRiskLevel}>
                             <Zap className="w-4 h-4 text-amber-500" />
                         </span>
                         {T.ponvRiskPercentage(riskPercentage)}
@@ -1882,7 +1882,7 @@ const StopBangCalculator: React.FC<{ T: Record<string, any> }> = ({ T }) => {
         <div className="medical-card p-5 space-y-6">
             <div className="flex items-center gap-2 mb-2">
                 <div className="p-2 bg-brand-blue/10 rounded-lg">
-                    <span title="Stethoscope">
+                    <span title={T.iconLabelStethoscope}>
                         <Stethoscope className="w-5 h-5 text-brand-blue" />
                     </span>
                 </div>
@@ -1908,7 +1908,7 @@ const StopBangCalculator: React.FC<{ T: Record<string, any> }> = ({ T }) => {
                                 : 'bg-white border-slate-300'
                         }`}>
                             {answers[key] && (
-                                <span title="Selected">
+                                <span title={T.iconLabelSelected}>
                                     <CheckCircle2 className="w-3.5 h-3.5" />
                                 </span>
                             )}
@@ -1947,7 +1947,7 @@ const StopBangCalculator: React.FC<{ T: Record<string, any> }> = ({ T }) => {
                 </div>
                 <div className="mt-4 pt-4 border-t border-slate-200/50">
                     <p className="text-xs font-bold text-slate-600 flex items-start gap-2 leading-relaxed">
-                        <span title="Information">
+                        <span title={T.iconLabelInformation}>
                             <Info className="w-4 h-4 text-slate-400 mt-0.5 shrink-0" />
                         </span>
                         {recommendation}
@@ -1987,7 +1987,7 @@ const AnionGapCalculator: React.FC<{ T: Record<string, any> }> = ({ T }) => {
         <div className="medical-card p-5 space-y-6">
             <div className="flex items-center gap-2 mb-2">
                 <div className="p-2 bg-brand-blue/10 rounded-lg">
-                    <span title="Calculator">
+                    <span title={T.iconLabelCalculator}>
                         <Calculator className="w-5 h-5 text-brand-blue" />
                     </span>
                 </div>
@@ -2000,7 +2000,7 @@ const AnionGapCalculator: React.FC<{ T: Record<string, any> }> = ({ T }) => {
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div className="space-y-1.5">
                     <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-1.5">
-                        <span title="Activity">
+                        <span title={T.iconLabelActivity}>
                             <Activity className="w-3 h-3" />
                         </span>
                         {T.sodiumLabel}
@@ -2015,7 +2015,7 @@ const AnionGapCalculator: React.FC<{ T: Record<string, any> }> = ({ T }) => {
                 </div>
                 <div className="space-y-1.5">
                     <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-1.5">
-                        <span title="Activity">
+                        <span title={T.iconLabelActivity}>
                             <Activity className="w-3 h-3" />
                         </span>
                         {T.chlorideLabel}
@@ -2030,7 +2030,7 @@ const AnionGapCalculator: React.FC<{ T: Record<string, any> }> = ({ T }) => {
                 </div>
                 <div className="space-y-1.5">
                     <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-1.5">
-                        <span title="Activity">
+                        <span title={T.iconLabelActivity}>
                             <Activity className="w-3 h-3" />
                         </span>
                         {T.bicarbonateLabel}
@@ -2051,7 +2051,7 @@ const AnionGapCalculator: React.FC<{ T: Record<string, any> }> = ({ T }) => {
                     <p className="text-3xl font-black text-slate-900 leading-none">{result.value} <span className="text-sm font-bold text-slate-400">mEq/L</span></p>
                     <div className="mt-4 pt-4 border-t border-emerald-100">
                         <p className="text-sm font-bold text-slate-600 flex items-center gap-2">
-                            <span title="Information">
+                            <span title={T.iconLabelInformation}>
                                 <Info className="w-4 h-4 text-emerald-500" />
                             </span>
                             {result.interpretation}
@@ -2086,7 +2086,7 @@ const CorrectedSodiumCalculator: React.FC<{ T: Record<string, any> }> = ({ T }) 
         <div className="medical-card p-5 space-y-6">
             <div className="flex items-center gap-2 mb-2">
                 <div className="p-2 bg-brand-blue/10 rounded-lg">
-                    <span title="Calculator">
+                    <span title={T.iconLabelCalculator}>
                         <Calculator className="w-5 h-5 text-brand-blue" />
                     </span>
                 </div>
@@ -2099,7 +2099,7 @@ const CorrectedSodiumCalculator: React.FC<{ T: Record<string, any> }> = ({ T }) 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
                     <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-1.5">
-                        <span title="Activity">
+                        <span title={T.iconLabelActivity}>
                             <Activity className="w-3 h-3" />
                         </span>
                         {T.measuredSodiumLabel}
@@ -2114,7 +2114,7 @@ const CorrectedSodiumCalculator: React.FC<{ T: Record<string, any> }> = ({ T }) 
                 </div>
                 <div className="space-y-1.5">
                     <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-1.5">
-                        <span title="Fluids">
+                        <span title={T.iconLabelFluids}>
                             <Droplets className="w-3 h-3" />
                         </span>
                         {T.glucoseLabel}
@@ -2146,7 +2146,7 @@ const CorrectedSodiumCalculator: React.FC<{ T: Record<string, any> }> = ({ T }) 
                     {result.note && (
                         <div className="mt-4 pt-4 border-t border-emerald-100">
                             <p className="text-sm font-bold text-slate-600 flex items-center gap-2">
-                                <span title="Information">
+                                <span title={T.iconLabelInformation}>
                                     <Info className="w-4 h-4 text-emerald-500" />
                                 </span>
                                 {result.note}
@@ -2182,7 +2182,7 @@ const FreeWaterDeficitCalculator: React.FC<{ T: Record<string, any> }> = ({ T })
         <div className="medical-card p-5 space-y-6">
             <div className="flex items-center gap-2 mb-2">
                 <div className="p-2 bg-brand-blue/10 rounded-lg">
-                    <span title="Fluids">
+                    <span title={T.iconLabelFluids}>
                         <Droplets className="w-5 h-5 text-brand-blue" />
                     </span>
                 </div>
@@ -2195,7 +2195,7 @@ const FreeWaterDeficitCalculator: React.FC<{ T: Record<string, any> }> = ({ T })
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div className="space-y-1.5">
                     <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-1.5">
-                        <span title="Weight">
+                        <span title={T.iconLabelWeight}>
                             <Scale className="w-3 h-3" />
                         </span>
                         {T.weightKgLabel}
@@ -2210,7 +2210,7 @@ const FreeWaterDeficitCalculator: React.FC<{ T: Record<string, any> }> = ({ T })
                 </div>
                 <div className="space-y-1.5">
                     <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-1.5">
-                        <span title="Activity">
+                        <span title={T.iconLabelActivity}>
                             <Activity className="w-3 h-3" />
                         </span>
                         {T.currentSodiumLabel}
@@ -2225,7 +2225,7 @@ const FreeWaterDeficitCalculator: React.FC<{ T: Record<string, any> }> = ({ T })
                 </div>
                 <div className="space-y-1.5">
                     <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-1.5">
-                        <span title="Checklist">
+                        <span title={T.iconLabelChecklist}>
                             <ClipboardList className="w-3 h-3" />
                         </span>
                         {T.patientTypeLabel}
@@ -2249,26 +2249,26 @@ const FreeWaterDeficitCalculator: React.FC<{ T: Record<string, any> }> = ({ T })
                     {!result.isNormal && (
                         <div className="mt-6 pt-4 border-t border-emerald-100 space-y-3">
                             <p className="text-[10px] font-black text-emerald-700 uppercase tracking-widest flex items-center gap-1.5">
-                                <span title="Checklist">
+                                <span title={T.iconLabelChecklist}>
                                     <ClipboardList className="w-3 h-3" />
                                 </span>
                                 {T.correctionGuidance}
                             </p>
                             <div className="space-y-2">
                                 <p className="text-xs font-bold text-slate-700 flex items-center gap-2">
-                                    <span title="Next">
+                                    <span title={T.iconLabelArrowRight}>
                                         <ArrowRight className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
                                     </span>
                                     {T.correctionGuidance1(result.halfDeficit)}
                                 </p>
                                 <p className="text-xs font-bold text-slate-700 flex items-center gap-2">
-                                    <span title="Next">
+                                    <span title={T.iconLabelArrowRight}>
                                         <ArrowRight className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
                                     </span>
                                     {T.correctionGuidance2}
                                 </p>
                                 <p className="text-xs font-bold text-slate-700 flex items-center gap-2">
-                                    <span title="Next">
+                                    <span title={T.iconLabelArrowRight}>
                                         <ArrowRight className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
                                     </span>
                                     {T.correctionGuidance3(result.maxRate)}
@@ -2293,7 +2293,7 @@ const PotassiumReplacementGuide: React.FC<{ T: Record<string, any> }> = ({ T }) 
         <div className="medical-card p-5 space-y-6">
             <div className="flex items-center gap-2 mb-2">
                 <div className="p-2 bg-brand-blue/10 rounded-lg">
-                    <span title="Checklist">
+                    <span title={T.iconLabelChecklist}>
                         <ClipboardList className="w-5 h-5 text-brand-blue" />
                     </span>
                 </div>
@@ -2326,7 +2326,7 @@ const PotassiumReplacementGuide: React.FC<{ T: Record<string, any> }> = ({ T }) 
 
             <div className="mt-6 p-5 bg-red-50 border border-red-100 rounded-2xl shadow-sm">
                 <div className="flex items-center gap-2 mb-4">
-                    <span title="Warning">
+                    <span title={T.iconLabelWarning}>
                         <AlertTriangle className="w-4 h-4 text-red-600" />
                     </span>
                     <h4 className="text-[10px] font-black text-red-600 uppercase tracking-widest">{T.importantSafetyNotes}</h4>

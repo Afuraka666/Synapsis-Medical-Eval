@@ -3,10 +3,11 @@ import React from 'react';
 
 interface SourceRendererProps {
     text: string;
+    groundingSources?: any[];
     onSearchClick?: () => void;
 }
 
-export const SourceRenderer: React.FC<SourceRendererProps> = ({ text, onSearchClick }) => {
+export const SourceRenderer: React.FC<SourceRendererProps> = ({ text, groundingSources, onSearchClick }) => {
     const pmidRegex = /(\bPMID:?\s*\d{7,8}\b)/gi;
     const doiRegex = /(\b10\.\d{4,9}\/[-._;()/:A-Z0-9]+\b)/gi;
     const urlRegex = /(https?:\/\/[^\s]+)/g;
@@ -20,7 +21,11 @@ export const SourceRenderer: React.FC<SourceRendererProps> = ({ text, onSearchCl
     dois.forEach(d => remainingText = remainingText.replace(d, ''));
     const urls = remainingText.match(urlRegex) || [];
 
-    if (pmids.length === 0 && dois.length === 0 && urls.length === 0) return null;
+    // Extract URLs from groundingSources
+    const groundingUrls = (groundingSources || []).map(gs => gs.web?.uri).filter(Boolean);
+    const allUrls = Array.from(new Set([...urls, ...groundingUrls]));
+
+    if (pmids.length === 0 && dois.length === 0 && allUrls.length === 0) return null;
 
     return (
         <div className="flex flex-wrap items-center gap-2">
@@ -52,7 +57,7 @@ export const SourceRenderer: React.FC<SourceRendererProps> = ({ text, onSearchCl
                     DOI
                 </a>
             ))}
-            {urls.map((url, index) => {
+            {allUrls.map((url, index) => {
                 // Clean up trailing punctuation
                 const cleanUrl = url.replace(/[.,;)]$/, '');
                 return (

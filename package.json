@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "tsx server.ts",
     "build": "vite build",
+    "start": "node server.ts",
     "preview": "vite preview",
     "lint": "tsc --noEmit"
   },
@@ -17,6 +18,7 @@
     "dexie": "^4.3.0",
     "dexie-react-hooks": "^4.2.0",
     "docx": "8.5.0",
+    "esbuild": "^0.27.4",
     "express": "^5.2.1",
     "framer-motion": "^12.35.2",
     "lucide-react": "^0.577.0",

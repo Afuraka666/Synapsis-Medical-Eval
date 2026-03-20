@@ -20,7 +20,7 @@ import {
 } from 'lucide-react';
 import type { DisciplineSpecificConsideration, ChatMessage, DiagramData, EducationalContent } from '../types';
 import { EducationalContentType } from '../types';
-import { GoogleGenAI, Chat, GenerateContentResponse, Content } from "@google/genai";
+import { GoogleGenAI, GenerateContentResponse, ThinkingLevel } from "@google/genai";
 import { retryWithBackoff, generateDiagramForDiscussion } from '../services/geminiService';
 import { InteractiveDiagram } from './InteractiveDiagram';
 import { MarkdownRenderer } from './MarkdownRenderer';
@@ -186,7 +186,7 @@ export const DiscussionModal: React.FC<DiscussionModalProps> = ({
     const [isMinimised, setIsMinimised] = useState(false);
     const [showShareMenu, setShowShareMenu] = useState(false);
     const [activeImagePrompt, setActiveImagePrompt] = useState<{prompt: string, index: number} | null>(null);
-    const chatRef = useRef<Chat | null>(null);
+    const chatRef = useRef<any>(null);
     const messagesEndRef = useRef<HTMLDivElement | null>(null);
     const scrollContainerRef = useRef<HTMLDivElement | null>(null);
     const shareMenuRef = useRef<HTMLDivElement | null>(null);
@@ -227,14 +227,14 @@ export const DiscussionModal: React.FC<DiscussionModalProps> = ({
             const systemInstruction = getSystemInstruction();
             
             const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || process.env.API_KEY });
-            let chatHistory: Content[] | undefined = undefined;
+            let chatHistory: any[] | undefined = undefined;
             if (initialHistory && initialHistory.length > 0) {
                 setMessages(initialHistory);
                 // Ensure roles are strictly 'user' or 'model' for Gemini SDK
                 chatHistory = initialHistory
-                    .filter(m => m.role === 'user' || m.role === 'model')
+                    .filter(m => m.role === 'user' || m.role === 'ai')
                     .map(m => ({ 
-                        role: m.role as 'user' | 'model', 
+                        role: (m.role === 'ai' ? 'model' : m.role) as 'user' | 'model', 
                         parts: [{ text: m.text }] 
                     }));
                 setIsSaved(true);
@@ -245,7 +245,7 @@ export const DiscussionModal: React.FC<DiscussionModalProps> = ({
             
             try {
                 chatRef.current = ai.chats.create({
-                  model: 'gemini-3.1-pro-preview',
+                  model: 'gemini-3-flash-preview',
                   config: { 
                       systemInstruction,
                       tools: [{ googleSearch: {} }]
@@ -299,65 +299,85 @@ export const DiscussionModal: React.FC<DiscussionModalProps> = ({
         
         logEvent('send_message', { topic_id: topicId });
         
-        const userMsg: ChatMessage = { role: 'user', text, timestamp: Date.now() };
+        const userMsg: ChatMessage = { id: Date.now().toString(), role: 'user', text, timestamp: new Date() };
         setMessages(prev => [...prev, userMsg]);
         setUserInput('');
         setIsLoading(true);
         setIsSaved(false); 
+        
+        let aiMessageId = (Date.now() + 1).toString();
+        
         try {
             // Re-initialize AI client to ensure we have the latest API key
             const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || process.env.API_KEY });
             
-            // If chatRef is null, try to re-initialize it
-            if (!chatRef.current) {
-                chatRef.current = ai.chats.create({
-                    model: 'gemini-3.1-pro-preview',
-                    config: { 
-                        systemInstruction: getSystemInstruction(),
-                        tools: [{ googleSearch: {} }]
-                    },
-                    history: messages
-                        .filter(m => m.role === 'user' || m.role === 'model')
-                        .map(m => ({ 
-                            role: m.role as 'user' | 'model', 
-                            parts: [{ text: m.text }] 
-                        }))
-                });
-            }
+            // Always create a fresh chat instance with current history to avoid stale client issues
+            // and ensure we use the most up-to-date API key as per platform guidelines.
+            const history = messages
+                .filter(m => m.role === 'user' || m.role === 'ai')
+                .map(m => ({ 
+                    role: (m.role === 'ai' ? 'model' : m.role) as 'user' | 'model', 
+                    parts: [{ text: m.text }] 
+                }));
+
+            chatRef.current = ai.chats.create({
+                model: 'gemini-3-flash-preview',
+                config: { 
+                    systemInstruction: getSystemInstruction(),
+                    tools: [{ googleSearch: {} }],
+                    thinkingConfig: { thinkingLevel: ThinkingLevel.LOW }
+                },
+                history
+            });
 
             let result;
             try {
                 result = await retryWithBackoff(() => chatRef.current!.sendMessageStream({ message: text })) as AsyncIterable<GenerateContentResponse>;
-            } catch (streamErr) {
-                console.warn("Initial stream failed, re-initializing chat session...", streamErr);
-                // Re-initialize chat session on failure
+            } catch (streamErr: any) {
+                console.warn("Initial stream failed, retrying with fresh session...", streamErr);
+                // One more attempt with a completely fresh session if the first one failed
                 chatRef.current = ai.chats.create({
-                    model: 'gemini-3.1-pro-preview',
+                    model: 'gemini-3-flash-preview',
                     config: { 
                         systemInstruction: getSystemInstruction(),
-                        tools: [{ googleSearch: {} }]
+                        tools: [{ googleSearch: {} }],
+                        thinkingConfig: { thinkingLevel: ThinkingLevel.LOW }
                     },
-                    history: messages
-                        .filter(m => m.role === 'user' || m.role === 'model')
-                        .map(m => ({ 
-                            role: m.role as 'user' | 'model', 
-                            parts: [{ text: m.text }] 
-                        }))
+                    history
                 });
                 result = await retryWithBackoff(() => chatRef.current!.sendMessageStream({ message: text })) as AsyncIterable<GenerateContentResponse>;
             }
 
             let currentResponse = '';
-            setMessages(prev => [...prev, { role: 'model', text: '', timestamp: Date.now() }]);
+            let groundingSources: any[] = [];
+            
+            // Add the AI message placeholder only after the stream starts successfully
+            setMessages(prev => [...prev, { id: aiMessageId, role: 'ai', text: '', timestamp: new Date() }]);
             
             for await (const chunk of result) {
-                const chunkText = chunk.text || '';
-                currentResponse += chunkText;
-                setMessages(prev => {
-                    const newMessages = [...prev];
-                    newMessages[newMessages.length - 1] = { ...newMessages[newMessages.length - 1], text: currentResponse };
-                    return newMessages;
-                });
+                try {
+                    const chunkText = chunk.text || '';
+                    currentResponse += chunkText;
+                    if (chunk.candidates?.[0]?.groundingMetadata?.groundingChunks) {
+                        groundingSources = [...groundingSources, ...chunk.candidates[0].groundingMetadata.groundingChunks];
+                    }
+                    setMessages(prev => {
+                        const newMessages = [...prev];
+                        const aiMsgIndex = newMessages.findIndex(m => m.id === aiMessageId);
+                        if (aiMsgIndex !== -1) {
+                            newMessages[aiMsgIndex] = { 
+                                ...newMessages[aiMsgIndex], 
+                                text: currentResponse,
+                                groundingSources: groundingSources.length > 0 ? groundingSources : undefined
+                            };
+                        }
+                        return newMessages;
+                    });
+                } catch (chunkErr) {
+                    console.error("Error processing stream chunk:", chunkErr);
+                    // If we already have some text, we might want to keep it, but we should still signal an error
+                    if (!currentResponse) throw chunkErr;
+                }
             }
         } catch (error: any) {
             console.error('Chat error details:', {
@@ -365,18 +385,24 @@ export const DiscussionModal: React.FC<DiscussionModalProps> = ({
                 status: error.status,
                 stack: error.stack,
                 apiKeyPresent: !!(process.env.GEMINI_API_KEY || process.env.API_KEY),
-                model: 'gemini-3.1-pro-preview'
+                model: 'gemini-3-flash-preview'
             });
+            
+            // Restore user input so they don't lose their message
+            setUserInput(text);
             
             // Clear chatRef so it re-initializes on next attempt
             chatRef.current = null;
 
-            // If it's a 404, the model might not be available, try falling back to flash in the next attempt
+            // Remove the empty or partial AI message if it exists
+            setMessages(prev => {
+                const filtered = prev.filter(m => m.id !== aiMessageId);
+                return [...filtered, { id: Date.now().toString(), role: 'system', text: T.errorChat, timestamp: new Date() }];
+            });
+
             if (error.status === 404) {
                 console.warn("Model not found, might need to check model name availability.");
             }
-
-            setMessages(prev => [...prev, { role: 'system', text: T.errorChat }]);
         } finally { setIsLoading(false); }
     };
 
@@ -678,7 +704,7 @@ export const DiscussionModal: React.FC<DiscussionModalProps> = ({
                                                 <div className="space-y-2">
                                                     <MarkdownRenderer content={textWithoutTags} />
                                                     <div className="pt-2 mt-2 border-t border-gray-50 dark:border-dark-border">
-                                                        <SourceRenderer text={msg.text} />
+                                                        <SourceRenderer text={msg.text} groundingSources={msg.groundingSources} />
                                                     </div>
                                                 </div>
                                             ) : <p className="whitespace-pre-wrap">{msg.text}</p>}

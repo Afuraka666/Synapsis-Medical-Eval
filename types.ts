@@ -103,11 +103,13 @@ export interface ProcedureDetails {
 }
 
 export interface ChatMessage {
-    role: 'user' | 'model' | 'system';
+    role: 'user' | 'model' | 'system' | 'ai';
     text: string;
     diagramData?: DiagramData;
     imageData?: string;
-    timestamp?: number;
+    timestamp?: number | Date;
+    id?: string;
+    groundingSources?: any[];
 }
 
 export interface PatientCase {

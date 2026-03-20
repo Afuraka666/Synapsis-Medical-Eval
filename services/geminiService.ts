@@ -350,13 +350,18 @@ export const generateFullCaseStream = async function* (condition: string, discip
             responseMimeType: "application/json", 
             responseSchema: coreCaseSchema,
             maxOutputTokens: 4096,
-            thinkingConfig: { thinkingLevel: ThinkingLevel.LOW }
+            thinkingConfig: { thinkingLevel: ThinkingLevel.LOW },
+            tools: [{ googleSearch: {} }]
         },
     });
 
     let fullText = "";
+    let groundingSources: any[] = [];
     for await (const chunk of stream) {
         fullText += chunk.text;
+        if (chunk.candidates?.[0]?.groundingMetadata?.groundingChunks) {
+            groundingSources = [...groundingSources, ...chunk.candidates[0].groundingMetadata.groundingChunks];
+        }
         try {
             // Try to parse partial JSON if possible (this is hard for nested objects)
             // For now, we yield the full text so the UI can show progress
@@ -365,6 +370,7 @@ export const generateFullCaseStream = async function* (condition: string, discip
     }
 
     const finalJson = JSON.parse(extractJson(fullText));
+    finalJson.groundingSources = groundingSources;
     yield { finalCase: finalJson };
 };
 

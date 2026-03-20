@@ -255,7 +255,7 @@ const Section: React.FC<{
           {groundingSources && groundingSources.length > 0 && (
             <div className="mt-6 pt-4 border-t border-gray-100 dark:border-dark-border">
               <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3">{T.groundingSourcesTitle}</h4>
-              <SourceRenderer text={JSON.stringify(groundingSources)} />
+              <SourceRenderer text="" groundingSources={groundingSources} />
             </div>
           )}
         </div>
