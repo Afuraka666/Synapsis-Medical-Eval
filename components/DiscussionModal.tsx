@@ -133,19 +133,17 @@ function splitMessageContent(text: string) {
     let inTable = false;
     let tableLines: string[] = [];
 
+    const isTableLine = (line: string) => line.trim().includes('|');
+    const isSeparator = (line: string) => line.trim().match(/^[|:\s-]*$/) && line.trim().includes('-') && line.trim().includes('|');
+
     for (let i = 0; i < lines.length; i++) {
         const line = lines[i];
-        const isTableRow = line.trim().startsWith('|');
-        const isPossibleTableLine = line.trim().includes('|');
-        const isSeparator = line.trim().match(/^[|:\s-]*$/) && line.trim().includes('-') && line.trim().includes('|');
-
-        if (isTableRow || (inTable && isPossibleTableLine)) {
+        
+        if (isTableLine(line)) {
             if (!inTable) {
-                // Check if this is likely a header row followed by a separator
+                // Check if this is a header followed by a separator
                 const nextLine = lines[i+1];
-                const nextIsSeparator = nextLine && nextLine.trim().match(/^[|:\s-]*$/) && nextLine.trim().includes('-') && nextLine.trim().includes('|');
-                
-                if (nextIsSeparator || isTableRow) {
+                if (nextLine && isSeparator(nextLine)) {
                     if (currentText.trim()) parts.push({type: 'text', content: currentText.trim()});
                     currentText = '';
                     inTable = true;
@@ -331,7 +329,11 @@ export const DiscussionModal: React.FC<DiscussionModalProps> = ({
         
         try {
             // Re-initialize AI client to ensure we have the latest API key
-            const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || process.env.API_KEY });
+            const apiKey = process.env.GEMINI_API_KEY || process.env.API_KEY;
+            if (!apiKey) {
+                throw new Error("API key is missing. Please check your environment variables.");
+            }
+            const ai = new GoogleGenAI({ apiKey });
             
             // Always create a fresh chat instance with current history to avoid stale client issues
             // and ensure we use the most up-to-date API key as per platform guidelines.
@@ -342,8 +344,11 @@ export const DiscussionModal: React.FC<DiscussionModalProps> = ({
                     parts: [{ text: m.text }] 
                 }));
 
-            chatRef.current = ai.chats.create({
-                model: 'gemini-3-flash-preview',
+            const modelName = 'gemini-3-flash-preview';
+            const fallbackModelName = 'gemini-3.1-pro-preview';
+
+            const createChat = (model: string) => ai.chats.create({
+                model,
                 config: { 
                     systemInstruction: getSystemInstruction(),
                     tools: [{ googleSearch: {} }],
@@ -352,22 +357,30 @@ export const DiscussionModal: React.FC<DiscussionModalProps> = ({
                 history
             });
 
+            chatRef.current = createChat(modelName);
+
             let result;
             try {
                 result = await retryWithBackoff(() => chatRef.current!.sendMessageStream({ message: text })) as AsyncIterable<GenerateContentResponse>;
             } catch (streamErr: any) {
-                console.warn("Initial stream failed, retrying with fresh session...", streamErr);
-                // One more attempt with a completely fresh session if the first one failed
-                chatRef.current = ai.chats.create({
-                    model: 'gemini-3-flash-preview',
-                    config: { 
-                        systemInstruction: getSystemInstruction(),
-                        tools: [{ googleSearch: {} }],
-                        thinkingConfig: { thinkingLevel: ThinkingLevel.LOW }
-                    },
-                    history
-                });
-                result = await retryWithBackoff(() => chatRef.current!.sendMessageStream({ message: text })) as AsyncIterable<GenerateContentResponse>;
+                console.warn(`Initial stream with ${modelName} failed, retrying with ${fallbackModelName}...`, streamErr);
+                try {
+                    // One more attempt with a completely fresh session and fallback model if the first one failed
+                    chatRef.current = createChat(fallbackModelName);
+                    result = await retryWithBackoff(() => chatRef.current!.sendMessageStream({ message: text })) as AsyncIterable<GenerateContentResponse>;
+                } catch (fallbackErr: any) {
+                    console.warn(`Fallback stream with ${fallbackModelName} failed, retrying without tools...`, fallbackErr);
+                    // Final attempt without tools
+                    chatRef.current = ai.chats.create({
+                        model: modelName,
+                        config: { 
+                            systemInstruction: getSystemInstruction(),
+                            thinkingConfig: { thinkingLevel: ThinkingLevel.LOW }
+                        },
+                        history
+                    });
+                    result = await retryWithBackoff(() => chatRef.current!.sendMessageStream({ message: text })) as AsyncIterable<GenerateContentResponse>;
+                }
             }
 
             let currentResponse = '';
@@ -724,36 +737,7 @@ export const DiscussionModal: React.FC<DiscussionModalProps> = ({
                                         <div className={`px-3 py-2.5 sm:px-4 sm:py-3 rounded-2xl text-sm shadow-sm transition-colors ${msg.role === 'user' ? 'bg-brand-blue dark:bg-brand-blue-light text-white rounded-tr-none' : msg.role === 'model' ? 'bg-white dark:bg-dark-surface text-brand-text dark:text-slate-200 border border-gray-200 dark:border-dark-border rounded-tl-none' : 'text-center w-full text-gray-500 italic bg-transparent shadow-none'}`}>
                                             {msg.role === 'model' ? (
                                                 <div className="space-y-4">
-                                                    {splitMessageContent(textWithoutTags).map((block, bIdx) => (
-                                                        block.type === 'table' && block.table ? (
-                                                            <div key={bIdx} className="overflow-x-auto my-4 bg-white dark:bg-slate-900 shadow-sm border border-gray-200 dark:border-dark-border rounded-lg">
-                                                                <table className="min-w-full border-collapse">
-                                                                    <thead className="bg-gray-50 dark:bg-slate-800 border-b border-gray-200 dark:border-dark-border">
-                                                                        <tr>
-                                                                            {block.table.header.map((h, i) => (
-                                                                                <th key={i} className="px-4 py-2 text-left text-xs font-black text-gray-700 dark:text-gray-200 uppercase tracking-tight border-r border-gray-100 dark:border-dark-border last:border-0">
-                                                                                    {h}
-                                                                                </th>
-                                                                            ))}
-                                                                        </tr>
-                                                                    </thead>
-                                                                    <tbody>
-                                                                        {block.table.data.map((row, i) => (
-                                                                            <tr key={i} className="transition-colors hover:bg-gray-50 dark:hover:bg-slate-800/30">
-                                                                                {row.map((cell, j) => (
-                                                                                    <td key={j} className="px-4 py-2 text-sm text-gray-600 dark:text-slate-300 border-t border-r border-gray-100 dark:border-dark-border last:border-r-0 font-medium">
-                                                                                        <MarkdownRenderer content={cell} compact />
-                                                                                    </td>
-                                                                                ))}
-                                                                            </tr>
-                                                                        ))}
-                                                                    </tbody>
-                                                                </table>
-                                                            </div>
-                                                        ) : (
-                                                            <MarkdownRenderer key={bIdx} content={block.content || ''} />
-                                                        )
-                                                    ))}
+                                                    <MarkdownRenderer content={msg.text} />
                                                     <div className="pt-2 mt-2 border-t border-gray-50 dark:border-dark-border">
                                                         <SourceRenderer text={msg.text} groundingSources={msg.groundingSources} />
                                                     </div>

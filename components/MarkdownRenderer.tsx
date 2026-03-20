@@ -19,7 +19,11 @@ const sanitizeContent = (text: string): string => {
     if (!text) return '';
     
     // 0. Unescape \$ if AI over-escaped it (common in JSON responses)
-    let cleaned = text.replace(/\\\$/g, '$');
+    let cleaned = text
+        .replace(/\\\$/g, '$')
+        // 0.1 Strip out custom visual tags that are handled by the UI
+        .replace(/\[\s*(ILLUSTRATE|DIAGRAM|GRAPH):\s*.*?\s*\]/gi, '')
+        .trim();
 
     // 1. Protect existing math blocks by temporarily replacing them
     // We match both $$...$$ and $...$
