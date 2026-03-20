@@ -8,6 +8,7 @@ import rehypeKatex from 'rehype-katex';
 interface MarkdownRendererProps {
     content: string;
     className?: string;
+    compact?: boolean;
 }
 
 /**
@@ -149,7 +150,7 @@ const sanitizeContent = (text: string): string => {
     return cleaned.trim();
 };
 
-export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, className }) => {
+export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, className, compact }) => {
     const cleanContent = useMemo(() => sanitizeContent(content), [content]);
 
     return (
@@ -159,9 +160,9 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, cla
                 rehypePlugins={[rehypeKatex]}
                 components={{
                     a: ({ node, ...props }) => <a {...props} className="text-blue-700 dark:text-blue-300 hover:underline font-bold" target="_blank" rel="noopener noreferrer" />,
-                    p: ({ node, ...props }) => <p {...props} className="mb-4 last:mb-0 leading-relaxed font-sans text-gray-900 dark:text-slate-100" />,
-                    ul: ({ node, ...props }) => <ul {...props} className="list-disc pl-5 mb-4 space-y-2 text-gray-900 dark:text-slate-100" />,
-                    ol: ({ node, ...props }) => <ol {...props} className="list-decimal pl-5 mb-4 space-y-2 text-gray-900 dark:text-slate-100" />,
+                    p: ({ node, ...props }) => <p {...props} className={`${compact ? 'mb-0' : 'mb-4 last:mb-0'} leading-relaxed font-sans text-gray-900 dark:text-slate-100`} />,
+                    ul: ({ node, ...props }) => <ul {...props} className={`list-disc pl-5 ${compact ? 'mb-0' : 'mb-4'} space-y-2 text-gray-900 dark:text-slate-100`} />,
+                    ol: ({ node, ...props }) => <ol {...props} className={`list-decimal pl-5 ${compact ? 'mb-0' : 'mb-4'} space-y-2 text-gray-900 dark:text-slate-100`} />,
                     li: ({ node, ...props }) => <li {...props} className="text-gray-900 dark:text-slate-100" />,
                     h1: ({ node, ...props }) => <h1 {...props} className="text-2xl font-black mt-6 mb-4 text-brand-blue dark:text-brand-blue-light" />,
                     h2: ({ node, ...props }) => <h2 {...props} className="text-xl font-black mt-5 mb-3 text-gray-900 dark:text-slate-100 border-b-2 border-slate-100 dark:border-dark-border pb-1" />,

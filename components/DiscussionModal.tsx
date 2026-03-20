@@ -104,12 +104,24 @@ const cleanTextForDownload = (text: string): string => {
 function parseMarkdownTable(text: string) {
     const lines = text.trim().split('\n');
     if (lines.length < 3) return null;
+    
+    // Improved parsing to handle empty cells and varying pipe configurations
     const rows = lines
         .filter(line => line.trim().startsWith('|'))
-        .map(line => line.split('|').filter(cell => cell.trim() !== '').map(cell => cell.trim()));
+        .map(line => {
+            const parts = line.trim().split('|');
+            // Remove first and last empty parts if they exist (due to leading/trailing pipes)
+            if (parts[0] === '') parts.shift();
+            if (parts[parts.length - 1] === '') parts.pop();
+            return parts.map(cell => cell.trim());
+        });
+        
     if (rows.length < 2) return null;
+    
     const header = rows[0];
+    // rows[1] is the separator row
     const data = rows.slice(2);
+    
     if (header.length === 0) return null;
     return { header, data };
 }
@@ -124,13 +136,23 @@ function splitMessageContent(text: string) {
     for (let i = 0; i < lines.length; i++) {
         const line = lines[i];
         const isTableRow = line.trim().startsWith('|');
+        const isPossibleTableLine = line.trim().includes('|');
+        const isSeparator = line.trim().match(/^[|:\s-]*$/) && line.trim().includes('-') && line.trim().includes('|');
 
-        if (isTableRow) {
+        if (isTableRow || (inTable && isPossibleTableLine)) {
             if (!inTable) {
-                if (currentText.trim()) parts.push({type: 'text', content: currentText.trim()});
-                currentText = '';
-                inTable = true;
-                tableLines = [line];
+                // Check if this is likely a header row followed by a separator
+                const nextLine = lines[i+1];
+                const nextIsSeparator = nextLine && nextLine.trim().match(/^[|:\s-]*$/) && nextLine.trim().includes('-') && nextLine.trim().includes('|');
+                
+                if (nextIsSeparator || isTableRow) {
+                    if (currentText.trim()) parts.push({type: 'text', content: currentText.trim()});
+                    currentText = '';
+                    inTable = true;
+                    tableLines = [line];
+                } else {
+                    currentText += (currentText ? '\n' : '') + line;
+                }
             } else {
                 tableLines.push(line);
             }
@@ -701,8 +723,37 @@ export const DiscussionModal: React.FC<DiscussionModalProps> = ({
                                     <div className={`max-w-[92%] sm:max-w-[85%] space-y-3 ${msg.role === 'user' ? 'items-end' : 'items-start'}`}>
                                         <div className={`px-3 py-2.5 sm:px-4 sm:py-3 rounded-2xl text-sm shadow-sm transition-colors ${msg.role === 'user' ? 'bg-brand-blue dark:bg-brand-blue-light text-white rounded-tr-none' : msg.role === 'model' ? 'bg-white dark:bg-dark-surface text-brand-text dark:text-slate-200 border border-gray-200 dark:border-dark-border rounded-tl-none' : 'text-center w-full text-gray-500 italic bg-transparent shadow-none'}`}>
                                             {msg.role === 'model' ? (
-                                                <div className="space-y-2">
-                                                    <MarkdownRenderer content={textWithoutTags} />
+                                                <div className="space-y-4">
+                                                    {splitMessageContent(textWithoutTags).map((block, bIdx) => (
+                                                        block.type === 'table' && block.table ? (
+                                                            <div key={bIdx} className="overflow-x-auto my-4 bg-white dark:bg-slate-900 shadow-sm border border-gray-200 dark:border-dark-border rounded-lg">
+                                                                <table className="min-w-full border-collapse">
+                                                                    <thead className="bg-gray-50 dark:bg-slate-800 border-b border-gray-200 dark:border-dark-border">
+                                                                        <tr>
+                                                                            {block.table.header.map((h, i) => (
+                                                                                <th key={i} className="px-4 py-2 text-left text-xs font-black text-gray-700 dark:text-gray-200 uppercase tracking-tight border-r border-gray-100 dark:border-dark-border last:border-0">
+                                                                                    {h}
+                                                                                </th>
+                                                                            ))}
+                                                                        </tr>
+                                                                    </thead>
+                                                                    <tbody>
+                                                                        {block.table.data.map((row, i) => (
+                                                                            <tr key={i} className="transition-colors hover:bg-gray-50 dark:hover:bg-slate-800/30">
+                                                                                {row.map((cell, j) => (
+                                                                                    <td key={j} className="px-4 py-2 text-sm text-gray-600 dark:text-slate-300 border-t border-r border-gray-100 dark:border-dark-border last:border-r-0 font-medium">
+                                                                                        <MarkdownRenderer content={cell} compact />
+                                                                                    </td>
+                                                                                ))}
+                                                                            </tr>
+                                                                        ))}
+                                                                    </tbody>
+                                                                </table>
+                                                            </div>
+                                                        ) : (
+                                                            <MarkdownRenderer key={bIdx} content={block.content || ''} />
+                                                        )
+                                                    ))}
                                                     <div className="pt-2 mt-2 border-t border-gray-50 dark:border-dark-border">
                                                         <SourceRenderer text={msg.text} groundingSources={msg.groundingSources} />
                                                     </div>
