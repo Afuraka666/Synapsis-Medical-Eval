@@ -8,29 +8,62 @@ const getAiClient = () => {
 };
 
 export async function retryWithBackoff<T>(
-    fn: () => Promise<T>,
-    maxRetries: number = 3,
-    initialDelay: number = 1000
+    fn: (model?: string) => Promise<T>,
+    maxRetries: number = 5,
+    initialDelay: number = 2000
 ): Promise<T> {
     let lastError: any;
+    let currentModel = FAST_MODEL;
+
     for (let i = 0; i < maxRetries; i++) {
         try {
-            return await fn();
+            return await fn(currentModel);
         } catch (error: any) {
             console.error(`Attempt ${i + 1} failed:`, error);
             lastError = error;
-            const status = error?.status || error?.response?.status;
-            if (status !== 429 && (status < 500 || status >= 600)) {
+            
+            // Extract status code and message
+            const status = error?.status || error?.response?.status || error?.code;
+            const message = (error?.message || "").toLowerCase();
+            
+            const isRateLimit = status === 429 || 
+                               message.includes("429") || 
+                               message.includes("resource has been exhausted") ||
+                               message.includes("quota") ||
+                               message.includes("rate limit");
+
+            const isServerError = (status >= 500 && status < 600);
+
+            // If it's not a retryable error, throw immediately
+            if (!isRateLimit && !isServerError) {
                 throw error;
             }
-            const delay = initialDelay * Math.pow(2, i);
+
+            // If it's a rate limit on the fast model, try the fallback model on next attempt
+            if (isRateLimit && currentModel === FAST_MODEL && i < maxRetries - 1) {
+                console.warn("Fast model exhausted, switching to fallback model for next attempt...");
+                currentModel = FALLBACK_MODEL;
+            }
+
+            // Exponential backoff with jitter
+            const baseDelay = isRateLimit ? 3000 : initialDelay;
+            const delay = baseDelay * Math.pow(2, i) + Math.random() * 1000;
+            
+            console.warn(`Retrying in ${Math.round(delay)}ms due to ${isRateLimit ? 'rate limit' : 'server error'}...`);
             await new Promise(resolve => setTimeout(resolve, delay));
         }
     }
+
+    // If we've exhausted all retries, try to provide a more user-friendly message
+    if (lastError && (lastError.status === 429 || lastError.code === 429)) {
+        throw new Error("The medical intelligence service is currently experiencing high demand. Please wait a few minutes and try again.");
+    }
+    
     throw lastError;
 }
 
 const FAST_MODEL = "gemini-3-flash-preview";
+const FALLBACK_MODEL = "gemini-3.1-flash-lite-preview";
 const PRO_MODEL = "gemini-3.1-pro-preview";
 const VISION_MODEL = "gemini-2.5-flash-image";
 
@@ -343,16 +376,18 @@ export const generateFullCaseStream = async function* (condition: string, discip
     
     IMPORTANT: You MUST output ONLY the JSON object.`;
 
-    const stream = await ai.models.generateContentStream({
-        model: FAST_MODEL,
-        contents: corePrompt,
-        config: { 
-            responseMimeType: "application/json", 
-            responseSchema: coreCaseSchema,
-            maxOutputTokens: 4096,
-            thinkingConfig: { thinkingLevel: ThinkingLevel.LOW },
-            tools: [{ googleSearch: {} }]
-        },
+    const stream = await retryWithBackoff(async (model) => {
+        return await ai.models.generateContentStream({
+            model: model || FAST_MODEL,
+            contents: corePrompt,
+            config: { 
+                responseMimeType: "application/json", 
+                responseSchema: coreCaseSchema,
+                maxOutputTokens: 4096,
+                thinkingConfig: { thinkingLevel: ThinkingLevel.LOW },
+                tools: [{ googleSearch: {} }]
+            },
+        });
     });
 
     let fullText = "";
@@ -405,9 +440,9 @@ export const generateFullCase = async (condition: string, discipline: string, di
     ${SYNTHESIS_GUIDELINE}`;
 
     const [coreData, mapData] = await Promise.all([
-        retryWithBackoff(async () => {
+        retryWithBackoff(async (model) => {
             const response: GenerateContentResponse = await ai.models.generateContent({
-                model: FAST_MODEL,
+                model: model || FAST_MODEL,
                 contents: corePrompt,
                 config: { 
                     responseMimeType: "application/json", 
@@ -430,9 +465,9 @@ export const generateFullCase = async (condition: string, discipline: string, di
                 throw new Error("Failed to parse core case JSON. Retrying...");
             }
         }),
-        retryWithBackoff(async () => {
+        retryWithBackoff(async (model) => {
             const response: GenerateContentResponse = await ai.models.generateContent({
-                model: FAST_MODEL,
+                model: model || FAST_MODEL,
                 contents: mapPrompt,
                 config: { 
                     responseMimeType: "application/json", 
@@ -483,9 +518,9 @@ export const generateKnowledgeMap = async (condition: string, discipline: string
     
     ${SYNTHESIS_GUIDELINE}`;
 
-    const mapData = await retryWithBackoff(async () => {
+    const mapData = await retryWithBackoff(async (model) => {
         const response: GenerateContentResponse = await ai.models.generateContent({
-            model: FAST_MODEL,
+            model: model || FAST_MODEL,
             contents: mapPrompt,
             config: { 
                 responseMimeType: "application/json", 
@@ -540,9 +575,9 @@ export const generateEvidenceAndQuiz = async (condition: string, discipline: str
     ${EVIDENCE_GUIDELINE}`;
     
     try {
-        const result = await retryWithBackoff(async () => {
+        const result = await retryWithBackoff(async (model) => {
             const response: GenerateContentResponse = await ai.models.generateContent({
-                model: FAST_MODEL,
+                model: model || FAST_MODEL,
                 contents: prompt,
                 config: { 
                     responseMimeType: "application/json", 
@@ -583,8 +618,8 @@ export const generateEvidenceAndQuiz = async (condition: string, discipline: str
 export const searchForSource = async (sourceQuery: string, language: string): Promise<{ summary: string; sources: any[] }> => {
     const ai = getAiClient();
     const prompt = `Verified technical research for "${sourceQuery}". Verify all associated academic IDs (PMID/DOI). Language: ${language}.`;
-    const response: GenerateContentResponse = await retryWithBackoff(() => ai.models.generateContent({
-        model: FAST_MODEL,
+    const response: GenerateContentResponse = await retryWithBackoff((model) => ai.models.generateContent({
+        model: model || FAST_MODEL,
         contents: prompt,
         config: { 
             tools: [{ googleSearch: {} }], 
@@ -599,8 +634,8 @@ export const interpretEcg = async (findings: EcgFindings, imageBase64: string | 
     const prompt = `ECG Report. Findings: ${JSON.stringify(findings)}. Language: ${language}.`;
     const contentParts: any[] = [{ text: prompt }];
     if (imageBase64 && imageMimeType) contentParts.push({ inlineData: { data: imageBase64, mimeType: imageMimeType } });
-    const response: GenerateContentResponse = await retryWithBackoff(() => ai.models.generateContent({
-        model: FAST_MODEL,
+    const response: GenerateContentResponse = await retryWithBackoff((model) => ai.models.generateContent({
+        model: model || FAST_MODEL,
         contents: { parts: contentParts }
     }));
     return response.text || "";
@@ -621,8 +656,8 @@ export const generateVisualAid = async (prompt: string): Promise<string> => {
 export const checkDrugInteractions = async (drugNames: string[], language: string): Promise<string> => {
     const ai = getAiClient();
     const prompt = `Drug interactions for: ${drugNames.join(', ')}. Language: ${language}.`;
-    const response: GenerateContentResponse = await retryWithBackoff(() => ai.models.generateContent({
-        model: FAST_MODEL,
+    const response: GenerateContentResponse = await retryWithBackoff((model) => ai.models.generateContent({
+        model: model || FAST_MODEL,
         contents: prompt
     }));
     return response.text || "";
@@ -662,8 +697,8 @@ export const getConceptAbstract = async (concept: string, caseContext: string, l
 
     const ai = getAiClient();
     const prompt = `Significance: "${concept}" in context of "${caseContext}". 50 words. Language: ${language}.`;
-    const response: GenerateContentResponse = await retryWithBackoff(() => ai.models.generateContent({
-        model: FAST_MODEL,
+    const response: GenerateContentResponse = await retryWithBackoff((model) => ai.models.generateContent({
+        model: model || FAST_MODEL,
         contents: prompt
     }));
     const result = response.text || "";
@@ -687,8 +722,8 @@ export const getConceptAbstract = async (concept: string, caseContext: string, l
 export const getConceptConnectionExplanation = async (conceptA: string, conceptB: string, caseContext: string, language: string): Promise<string> => {
     const ai = getAiClient();
     const prompt = `Connection: "${conceptA}" and "${conceptB}" in "${caseContext}". 3 sentences. Language: ${language}.`;
-    const response: GenerateContentResponse = await retryWithBackoff(() => ai.models.generateContent({
-        model: FAST_MODEL,
+    const response: GenerateContentResponse = await retryWithBackoff((model) => ai.models.generateContent({
+        model: model || FAST_MODEL,
         contents: prompt
     }));
     return response.text || "";
@@ -696,8 +731,8 @@ export const getConceptConnectionExplanation = async (conceptA: string, conceptB
 
 export const generateDiagramForDiscussion = async (prompt: string, chatContext: string, language: string): Promise<DiagramData> => {
     const ai = getAiClient();
-    const response: GenerateContentResponse = await retryWithBackoff(() => ai.models.generateContent({
-        model: FAST_MODEL,
+    const response: GenerateContentResponse = await retryWithBackoff((model) => ai.models.generateContent({
+        model: model || FAST_MODEL,
         contents: `Diagram JSON for: "${prompt}". Context: ${chatContext}. Language: ${language}.`,
         config: { 
             responseMimeType: "application/json", 
@@ -727,8 +762,8 @@ export const enrichCaseWithWebSources = async (patientCase: PatientCase, languag
     6. DO NOT FABRICATE URLs. Use the actual URLs found via the search tool.
     Language: ${language}.`;
     
-    const response: GenerateContentResponse = await retryWithBackoff(() => ai.models.generateContent({
-        model: FAST_MODEL,
+    const response: GenerateContentResponse = await retryWithBackoff((model) => ai.models.generateContent({
+        model: model || FAST_MODEL,
         contents: prompt,
         config: { 
             responseMimeType: "application/json",
