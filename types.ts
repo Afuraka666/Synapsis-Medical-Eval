@@ -82,6 +82,15 @@ export interface FurtherReading {
   url?: string;
 }
 
+export type ToastType = 'success' | 'error' | 'info' | 'warning';
+
+export interface Toast {
+  id: string;
+  message: string;
+  type: ToastType;
+  duration?: number;
+}
+
 export interface PatientOutcome {
   icuAdmission: boolean;
   lengthOfStayDays: number;
@@ -118,8 +127,10 @@ export interface PatientCase {
   quiz?: QuizQuestion[];
   groundingSources?: any[];
   knowledgeMap?: KnowledgeMapData;
+  savedAt?: string;
   // Map of discussion topic IDs to array of chat messages
   discussions?: Record<string, ChatMessage[]>;
+  timestamp?: number;
 }
 
 export interface KnowledgeNode {

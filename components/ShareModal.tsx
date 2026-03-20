@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import type { PatientCase, ChatMessage } from '../types';
 import { Document, Packer, Paragraph, HeadingLevel, AlignmentType, ImageRun, Table, TableRow, TableCell, WidthType, TextRun } from 'docx';
+import { useToast } from '../contexts/ToastContext';
 
 interface ShareModalProps {
     isOpen: boolean;
@@ -88,6 +89,7 @@ const formatCaseForTextFile = (patientCase: PatientCase, T: Record<string, any>)
 };
 
 export const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, patientCase, T }) => {
+    const { addToast } = useToast();
     const [shareLink, setShareLink] = useState('');
     const [isGeneratingLink, setIsGeneratingLink] = useState(true);
     const [isCopied, setIsCopied] = useState(false);
@@ -185,7 +187,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, patient
             a.download = `${patientCase.title.replace(/ /g, '_')}.docx`;
             a.click();
         } else if (format === 'pdf') {
-            alert("Please use the Export menu in the main case view to generate a high-quality PDF with diagrams.");
+            addToast("Please use the Export menu in the main case view to generate a high-quality PDF with diagrams.", "info");
         }
     };
 

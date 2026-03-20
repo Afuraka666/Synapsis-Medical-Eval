@@ -17,7 +17,9 @@ interface ConceptCardProps {
 
 const LoadingSpinner: React.FC = () => (
     <div className="flex flex-col items-center justify-center h-24 text-brand-blue">
-        <Activity className="h-8 w-8 animate-pulse mb-2" />
+        <span title="Activity">
+            <Activity className="h-8 w-8 animate-pulse mb-2" />
+        </span>
         <p className="text-[10px] font-black uppercase tracking-widest animate-pulse">Analyzing...</p>
     </div>
 );
@@ -47,7 +49,9 @@ export const ConceptCard: React.FC<ConceptCardProps> = ({ nodeInfo, onClose, onD
           aria-label="Close"
           title="Dismiss concept detail"
         >
-          <X className="w-5 h-5" />
+          <span title="Close">
+            <X className="w-5 h-5" />
+          </span>
         </button>
       </div>
 
@@ -60,7 +64,9 @@ export const ConceptCard: React.FC<ConceptCardProps> = ({ nodeInfo, onClose, onD
             <div className="space-y-3">
               <p className="whitespace-pre-wrap font-medium">{abstract}</p>
               <div className="flex items-start gap-2 p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-100 dark:border-slate-700">
-                <Info className="w-4 h-4 text-brand-blue mt-0.5 flex-shrink-0" />
+                <span title="Information">
+                  <Info className="w-4 h-4 text-brand-blue mt-0.5 flex-shrink-0" />
+                </span>
                 <p className="text-[11px] text-gray-700 dark:text-slate-300 italic">
                   This concept is a key node in the biochemical pathway for this case.
                 </p>
@@ -77,7 +83,9 @@ export const ConceptCard: React.FC<ConceptCardProps> = ({ nodeInfo, onClose, onD
               title="Initiate deep-dive medical discussion on this concept"
               className="w-full bg-brand-blue hover:bg-brand-blue-dark text-white font-black py-3 px-4 rounded-xl transition-all text-xs uppercase tracking-widest flex items-center justify-center gap-2 shadow-lg shadow-brand-blue/20 disabled:opacity-50 disabled:shadow-none hover:scale-[1.02] active:scale-[0.98]"
           >
-              <MessageSquare className="w-4 h-4" />
+              <span title="Discuss">
+                <MessageSquare className="w-4 h-4" />
+              </span>
               {T.discussButton}
           </button>
       </div>

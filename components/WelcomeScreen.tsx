@@ -15,7 +15,9 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ T, onOpenSavedWork
         <div className="relative mb-6 sm:mb-8">
             <div className="absolute inset-0 bg-brand-blue/10 rounded-full blur-3xl transform -translate-y-4"></div>
             <div className="relative mx-auto h-20 w-20 sm:h-24 sm:w-24 bg-white dark:bg-slate-800 rounded-2xl sm:rounded-3xl shadow-xl flex items-center justify-center border border-gray-100 dark:border-dark-border transition-transform duration-500">
-                <Network className="h-10 w-10 sm:h-12 sm:w-12 text-brand-blue" />
+                <span title={T.knowledgeMapTitle || 'Knowledge Map'}>
+                    <Network className="h-10 w-10 sm:h-12 sm:w-12 text-brand-blue" />
+                </span>
             </div>
         </div>
         
@@ -33,12 +35,14 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ T, onOpenSavedWork
                 className="medical-card group flex flex-col items-center p-6 sm:p-8 hover:border-brand-blue hover:shadow-2xl hover:shadow-brand-blue/10 transition-all duration-500 hover:-translate-y-1"
             >
                 <div className="w-12 h-12 sm:w-14 sm:h-14 bg-blue-50 dark:bg-blue-900/20 text-brand-blue rounded-xl sm:rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-500">
-                    <Library className="h-6 w-6 sm:h-7 sm:w-7" />
+                    <span title={T.savedWorkButton}>
+                        <Library className="h-6 w-6 sm:h-7 sm:w-7" />
+                    </span>
                 </div>
                 <h3 className="font-black text-gray-900 dark:text-white uppercase tracking-widest text-[10px] sm:text-xs mb-2">{T.savedWorkButton}</h3>
                 <p className="text-xs sm:text-sm text-gray-700 dark:text-slate-300 mb-4">{T.viewSavedWorkButton}</p>
                 <div className="flex items-center text-brand-blue text-[10px] sm:text-xs font-black uppercase tracking-tighter opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity">
-                    {T.openCollection} <ArrowRight className="ml-1 w-3 h-3" />
+                    {T.openCollection} <span title={T.openCollection}><ArrowRight className="ml-1 w-3 h-3" /></span>
                 </div>
             </button>
 
@@ -47,18 +51,22 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ T, onOpenSavedWork
                 className="medical-card group flex flex-col items-center p-6 sm:p-8 hover:border-indigo-500 hover:shadow-2xl hover:shadow-indigo-500/10 transition-all duration-500 hover:-translate-y-1"
             >
                 <div className="w-12 h-12 sm:w-14 sm:h-14 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 rounded-xl sm:rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-500">
-                    <Calculator className="h-6 w-6 sm:h-7 sm:w-7" />
+                    <span title={T.clinicalToolsButton}>
+                        <Calculator className="h-6 w-6 sm:h-7 sm:w-7" />
+                    </span>
                 </div>
                 <h3 className="font-black text-gray-900 dark:text-white uppercase tracking-widest text-[10px] sm:text-xs mb-2">{T.clinicalToolsButton}</h3>
                 <p className="text-xs sm:text-sm text-gray-700 dark:text-slate-300 mb-4">{T.clinicalToolsTitle}</p>
                 <div className="flex items-center text-indigo-600 dark:text-indigo-400 text-[10px] sm:text-xs font-black uppercase tracking-tighter opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity">
-                    {T.openTools} <ArrowRight className="ml-1 w-3 h-3" />
+                    {T.openTools} <span title={T.openTools}><ArrowRight className="ml-1 w-3 h-3" /></span>
                 </div>
             </button>
         </div>
 
         <div className="mt-8 sm:mt-12 flex items-center justify-center gap-2 text-gray-600 dark:text-slate-400 text-[10px] sm:text-xs font-black uppercase tracking-widest">
-            <Sparkles className="w-4 h-4" />
+            <span title="AI Powered">
+                <Sparkles className="w-4 h-4" />
+            </span>
             {T.poweredByAi}
         </div>
       </div>

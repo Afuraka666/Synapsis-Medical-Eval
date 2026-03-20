@@ -45,6 +45,43 @@
     @apply bg-white dark:bg-dark-surface border border-gray-200 dark:border-dark-border rounded-xl shadow-sm hover:shadow-md transition-all duration-300;
   }
 
+  /* Content Density Utilities */
+  .density-compact {
+    @apply p-1.5 sm:p-2 gap-1.5 sm:gap-2 text-sm;
+  }
+  .density-compact .prose {
+    @apply text-sm leading-tight;
+  }
+  .density-compact h1, .density-compact h2 {
+    @apply text-base sm:text-lg mb-1;
+  }
+  .density-compact .medical-card {
+    @apply p-2 sm:p-3;
+  }
+
+  .density-normal {
+    @apply p-3 sm:p-4 gap-3 sm:gap-4 text-base;
+  }
+  .density-normal .prose {
+    @apply text-base leading-normal;
+  }
+  .density-normal h1, .density-normal h2 {
+    @apply text-xl sm:text-2xl mb-3;
+  }
+
+  .density-relaxed {
+    @apply p-6 sm:p-8 gap-6 sm:gap-8 text-lg;
+  }
+  .density-relaxed .prose {
+    @apply text-lg leading-relaxed;
+  }
+  .density-relaxed h1, .density-relaxed h2 {
+    @apply text-2xl sm:text-3xl mb-4;
+  }
+  .density-relaxed .medical-card {
+    @apply p-6 sm:p-8;
+  }
+
   .glass-panel {
     @apply bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border border-white/20 dark:border-slate-800/20;
   }

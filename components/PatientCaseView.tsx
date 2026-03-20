@@ -47,6 +47,7 @@ import { SourceRenderer } from './SourceRenderer';
 import { ScientificGraph } from './ScientificGraph';
 import { AudioVisualizer } from './AudioVisualizer';
 import { useAnalytics } from '../contexts/analytics';
+import { useContentDensity } from '../contexts/ContentDensityContext';
 
 const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
 const isSpeechRecognitionSupported = !!SpeechRecognition;
@@ -315,6 +316,7 @@ const DiscussionBadge: React.FC<{ messages: ChatMessage[] | undefined }> = ({ me
 
 export const PatientCaseView: React.FC<PatientCaseViewProps> = ({ patientCase: initialCase, isGeneratingDetails, onSave, language, T, onSaveSnippet, onOpenShare, onOpenDiscussion, onGetMapImage, mapData }) => {
   const { logEvent } = useAnalytics();
+  const { density } = useContentDensity();
   const { state: patientCase, setState: setPatientCase, undo, redo, canUndo, canRedo, resetState } = useHistoryState<PatientCase>(initialCase);
   const [isEditing, setIsEditing] = useState(false);
   const [activeImageGenerator, setActiveImageGenerator] = useState<{ content: EducationalContent; index: number } | null>(null);
@@ -516,8 +518,16 @@ export const PatientCaseView: React.FC<PatientCaseViewProps> = ({ patientCase: i
   }, [!!patientCase.quiz, isGeneratingDetails]);
 
   return (
-    <div ref={containerRef} className="p-2 sm:p-5 pb-40 relative bg-white dark:bg-dark-surface transition-colors duration-300">
-      <header className="sticky top-0 -mx-2 sm:-mx-5 -mt-2 sm:-mt-5 p-2 sm:p-3 bg-white/95 dark:bg-dark-surface/95 backdrop-blur-md border-b border-gray-100 dark:border-dark-border z-20 shadow-sm mb-4">
+    <div ref={containerRef} className={`relative bg-white dark:bg-dark-surface transition-colors duration-300 ${
+        density === 'compact' ? 'p-1 sm:p-3 pb-24' : 
+        density === 'relaxed' ? 'p-4 sm:p-8 pb-48' : 
+        'p-2 sm:p-5 pb-40'
+    } density-${density}`}>
+      <header className={`sticky top-0 -mx-2 sm:-mx-5 -mt-2 sm:-mt-5 bg-white/95 dark:bg-dark-surface/95 backdrop-blur-md border-b border-gray-100 dark:border-dark-border z-20 shadow-sm mb-4 ${
+          density === 'compact' ? 'p-1.5 sm:p-2' : 
+          density === 'relaxed' ? 'p-3 sm:p-4' : 
+          'p-2 sm:p-3'
+      }`}>
         <div className="flex justify-between items-center max-w-5xl mx-auto">
           <h2 className="text-base sm:text-xl font-black text-brand-text dark:text-dark-text truncate tracking-tight pr-4">{patientCase.title}</h2>
           <div className="flex items-center gap-1">

@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { Network } from 'lucide-react';
 
 // Components
 import { Header } from './components/Header';
@@ -21,18 +22,28 @@ import { DiscussionModal } from './components/DiscussionModal';
 // Services
 import { 
     generateFullCase,
+    generateFullCaseStream,
     generateEvidenceAndQuiz,
+    generateKnowledgeMap,
     getConceptAbstract
 } from './services/geminiService';
 
+// DB
+import { db } from './db';
+import { useLiveQuery } from 'dexie-react-hooks';
+
 // Types
-import type { PatientCase, KnowledgeMapData, KnowledgeNode, SavedCase, Snippet, InteractionState, DisciplineSpecificConsideration, ChatMessage } from './types';
+import type { PatientCase, KnowledgeMapData, KnowledgeNode, KnowledgeLink, SavedCase, Snippet, InteractionState, DisciplineSpecificConsideration, ChatMessage } from './types';
 
 // i18n
 import { translations, supportedLanguages } from './i18n';
 
 // Hooks
 import { useAnalytics } from './contexts/analytics';
+import { ContentDensityProvider, useContentDensity } from './contexts/ContentDensityContext';
+import { useCollaboration } from './contexts/CollaborationContext';
+import { useResponsive } from './hooks/useResponsive';
+import { useToast } from './contexts/ToastContext';
 
 // Helper: Decompresses a URL-safe Base64 string back into a JSON object
 async function decodeAndDecompress(encodedString: string): Promise<any | null> {
@@ -63,6 +74,9 @@ async function decodeAndDecompress(encodedString: string): Promise<any | null> {
 
 export const App: React.FC = () => {
     const { logEvent } = useAnalytics();
+    const { isMobile: isMobileResp, isTablet, isDesktop: isDesktopResp } = useResponsive();
+    const { joinRoom, broadcastUpdate, remoteUpdate, isConnected, roomId } = useCollaboration();
+    const { addToast } = useToast();
 
     // Core App State
     const [isLoading, setIsLoading] = useState(false);
@@ -94,9 +108,23 @@ export const App: React.FC = () => {
     const [isFeedbackModalOpen, setIsFeedbackModalOpen] = useState(false);
     const [activeDiscussionTopic, setActiveDiscussionTopic] = useState<DisciplineSpecificConsideration | null>(null);
 
-    // Saved Data State
-    const [savedCases, setSavedCases] = useState<SavedCase[]>([]);
-    const [savedSnippets, setSavedSnippets] = useState<Snippet[]>([]);
+    // Saved Data State from IndexedDB
+    const savedCasesRaw = useLiveQuery(() => db.patientCases.toArray());
+    const savedCases = useMemo(() => {
+        if (!savedCasesRaw) return [];
+        return savedCasesRaw.map(c => ({
+            id: c.id?.toString() || '',
+            title: c.title,
+            savedAt: c.savedAt || new Date().toISOString(),
+            caseData: c,
+            mapData: c.knowledgeMap || { nodes: [], links: [] }
+        }));
+    }, [savedCasesRaw]);
+
+    const savedSnippetsRaw = useLiveQuery(() => db.snippets.toArray());
+    const savedSnippets = useMemo(() => {
+        return savedSnippetsRaw || [];
+    }, [savedSnippetsRaw]);
 
     // User Interaction Tracking
     const [interactionState, setInteractionState] = useState<InteractionState>({
@@ -112,22 +140,23 @@ export const App: React.FC = () => {
     const [evaluationDaysRemaining, setEvaluationDaysRemaining] = useState<number | null>(null);
     const [mobileView, setMobileView] = useState<'case' | 'map'>('case');
     const caseScrollRef = useRef<HTMLDivElement>(null);
+    const { density, isDesktop, size, orientation, isMobile } = useContentDensity();
 
     // Automatically detect screen size and adjust layout state
     useEffect(() => {
-        const handleResize = () => {
-            if (window.innerWidth >= 1024) {
-                setMobileView('case');
-                setIsMapFullscreen(false);
-            }
-        };
-        
-        // Initial check
-        handleResize();
-        
-        window.addEventListener('resize', handleResize);
-        return () => window.removeEventListener('resize', handleResize);
-    }, []);
+        if (isDesktopResp) {
+            setMobileView('case');
+            setIsMapFullscreen(false);
+        }
+    }, [isDesktopResp]);
+
+    // Handle mobile orientation changes for better layout
+    useEffect(() => {
+        if (isMobile && orientation === 'landscape') {
+            // In landscape mobile, maybe we want a different default? 
+            // For now, just ensuring consistency
+        }
+    }, [isMobile, orientation]);
 
     const T = useMemo(() => {
         const selectedTranslation = translations[language];
@@ -136,6 +165,23 @@ export const App: React.FC = () => {
     }, [language]);
     
     // -- EFFECTS --
+
+    // Sync with remote updates
+    useEffect(() => {
+        if (remoteUpdate) {
+            setPatientCase(remoteUpdate);
+            if (remoteUpdate.knowledgeMap) {
+                setMapData(remoteUpdate.knowledgeMap);
+            }
+        }
+    }, [remoteUpdate]);
+
+    // Broadcast local updates
+    useEffect(() => {
+        if (patientCase && roomId) {
+            broadcastUpdate(patientCase);
+        }
+    }, [patientCase, roomId, broadcastUpdate]);
 
     useEffect(() => {
         if (theme === 'dark') {
@@ -198,11 +244,7 @@ export const App: React.FC = () => {
         const urlParams = new URLSearchParams(window.location.search);
         if (urlParams.has('case')) return;
         try {
-            const cases = JSON.parse(localStorage.getItem('ungana_saved_cases') || '[]');
-            const snippets = JSON.parse(localStorage.getItem('ungana_saved_snippets') || '[]');
             const count = parseInt(localStorage.getItem('ungana_generation_count') || '0', 10);
-            setSavedCases(cases);
-            setSavedSnippets(snippets);
             setGenerationCount(count);
         } catch (e) { console.error("Failed to load data from localStorage", e); }
     }, []);
@@ -254,17 +296,42 @@ export const App: React.FC = () => {
         setMobileView('case');
 
         try {
-            // Start both in parallel for maximum speed
-            const casePromise = generateFullCase(condition, discipline, difficulty, language);
-            const evidencePromise = generateEvidenceAndQuiz(condition, discipline, difficulty, language);
-
-            // Wait for core case first to show UI immediately
-            const { patientCase: fullCase, knowledgeMap: fullMap } = await casePromise;
+            // Use Streaming for the core case
+            const stream = generateFullCaseStream(condition, discipline, difficulty, language);
             
-            setPatientCase(fullCase);
-            setMapData(fullMap);
-            setIsLoading(false);
-            setIsGeneratingDetails(true); // Keep this for evidence/quiz loading state
+            for await (const update of stream) {
+                if (update.partialText) {
+                    // We could show partial text if we had a dedicated "Live Feed" component
+                    // For now, we just wait for the final case to be parsed
+                }
+                if (update.finalCase) {
+                    const fullCase = update.finalCase as PatientCase;
+                    setPatientCase(fullCase);
+                    setIsLoading(false);
+                    setIsGeneratingDetails(true);
+                    
+                    // Start evidence generation in background
+                    generateEvidenceAndQuiz(condition, discipline, difficulty, language).then(evidenceRes => {
+                        if (evidenceRes) {
+                            setPatientCase(prev => prev ? { ...prev, ...evidenceRes } : null);
+                        }
+                    }).catch(err => {
+                        console.error("Evidence generation error:", err);
+                    });
+
+                    // Start knowledge map generation in background
+                    generateKnowledgeMap(condition, discipline, difficulty, language).then(mapRes => {
+                        if (mapRes) {
+                            setMapData(mapRes);
+                            setPatientCase(prev => prev ? { ...prev, knowledgeMap: mapRes } : null);
+                        }
+                        setIsGeneratingDetails(false);
+                    }).catch(err => {
+                        console.error("Knowledge map generation error:", err);
+                        setIsGeneratingDetails(false);
+                    });
+                }
+            }
             
             setGenerationCount(prev => {
                 const count = prev + 1;
@@ -272,26 +339,11 @@ export const App: React.FC = () => {
                 return count;
             });
             
-            // Wait for evidence and quiz (already running in parallel)
-            try {
-                const evidenceRes = await evidencePromise;
-                if (evidenceRes && (evidenceRes.traceableEvidence || evidenceRes.quiz || evidenceRes.educationalContent)) {
-                    setPatientCase(prev => prev ? { ...prev, ...evidenceRes } : null);
-                } else {
-                    // Fallback to empty arrays so sections at least show "No data" or are handled
-                    setPatientCase(prev => prev ? { ...prev, traceableEvidence: [], educationalContent: [], quiz: [] } : null);
-                }
-            } catch (err) {
-                console.error("Error generating evidence/quiz:", err);
-                setPatientCase(prev => prev ? { ...prev, traceableEvidence: [], educationalContent: [], quiz: [] } : null);
-            }
-            
             setInteractionState(prev => ({ ...prev, caseGenerated: true, caseEdited: false, caseSaved: false, nodeClicks: 0, snippetSaved: false }));
         } catch (err: any) {
             console.error("Error generating case:", err);
             setError(T.errorService + " Details: " + (err.message || err.toString()));
             setIsLoading(false);
-        } finally {
             setIsGeneratingDetails(false);
         }
     };
@@ -322,33 +374,25 @@ export const App: React.FC = () => {
         return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
     };
 
-    const handleSaveCase = () => {
-        if (!patientCase || !mapData) return;
+    const handleSaveCase = async () => {
+        if (!patientCase) return;
         logEvent('save_case', { case_title: patientCase.title });
         
         const caseId = patientCase.id || generateId();
-        const newSavedCase: SavedCase = {
+        const caseToSave = {
+            ...patientCase,
             id: caseId,
-            title: patientCase.title,
-            savedAt: new Date().toISOString(),
-            caseData: { ...patientCase, id: caseId },
-            mapData: mapData,
+            timestamp: Date.now(),
+            knowledgeMap: mapData || patientCase.knowledgeMap
         };
 
-        const existingIdx = savedCases.findIndex(c => c.id === caseId);
-        let updatedCases;
-        if (existingIdx >= 0) {
-            updatedCases = [...savedCases];
-            updatedCases[existingIdx] = newSavedCase;
-        } else {
-            updatedCases = [...savedCases, newSavedCase];
+        try {
+            await db.patientCases.put(caseToSave);
+            setPatientCase(caseToSave);
+            setInteractionState(prev => ({...prev, caseSaved: true }));
+        } catch (e) {
+            console.error("Save error:", e);
         }
-
-        setSavedCases(updatedCases);
-        localStorage.setItem('ungana_saved_cases', JSON.stringify(updatedCases));
-        setPatientCase(newSavedCase.caseData);
-        setInteractionState(prev => ({...prev, caseSaved: true }));
-        alert('Case saved successfully!');
     };
     
     const handleLoadCase = (caseId: string) => {
@@ -361,16 +405,18 @@ export const App: React.FC = () => {
         }
     };
     
-    const handleDeleteCase = (caseId: string) => {
-        const updatedCases = savedCases.filter(c => c.id !== caseId);
-        setSavedCases(updatedCases);
-        localStorage.setItem('ungana_saved_cases', JSON.stringify(updatedCases));
-        if (patientCase?.id === caseId) {
-            setPatientCase(prev => prev ? { ...prev, id: undefined } : null);
+    const handleDeleteCase = async (caseId: string) => {
+        try {
+            await db.patientCases.delete(caseId);
+            if (patientCase?.id === caseId) {
+                setPatientCase(prev => prev ? { ...prev, id: undefined } : null);
+            }
+        } catch (e) {
+            console.error("Delete error:", e);
         }
     };
 
-    const handleSaveSnippet = useCallback((title: string, content: string, visualData?: Partial<Snippet>) => {
+    const handleSaveSnippet = useCallback(async (title: string, content: string, visualData?: Partial<Snippet>) => {
         logEvent('save_snippet', { snippet_title: title });
         const newSnippet: Snippet = {
             id: generateId(),
@@ -379,12 +425,12 @@ export const App: React.FC = () => {
             savedAt: new Date().toISOString(),
             ...visualData
         };
-        setSavedSnippets(prev => {
-            const updated = [...prev, newSnippet];
-            localStorage.setItem('ungana_saved_snippets', JSON.stringify(updated));
-            return updated;
-        });
-        setInteractionState(prev => ({ ...prev, snippetSaved: true }));
+        try {
+            await db.snippets.add(newSnippet);
+            setInteractionState(prev => ({ ...prev, snippetSaved: true }));
+        } catch (e) {
+            console.error("Save snippet error:", e);
+        }
     }, [logEvent]);
 
     const handleSaveMapSnippet = useCallback(() => {
@@ -394,32 +440,46 @@ export const App: React.FC = () => {
             `Knowledge relationship map for ${patientCase.title}.`,
             { mapData: mapData }
         );
-        alert('Map saved to collection!');
-    }, [mapData, patientCase, handleSaveSnippet]);
+        addToast('Map saved to collection!', 'success');
+    }, [mapData, patientCase, handleSaveSnippet, addToast]);
 
-    const handleDeleteSnippet = (snippetId: string) => {
-        const updatedSnippets = savedSnippets.filter(s => s.id !== snippetId);
-        setSavedSnippets(updatedSnippets);
-        localStorage.setItem('ungana_saved_snippets', JSON.stringify(updatedSnippets));
+    const handleDeleteSnippet = async (snippetId: string) => {
+        try {
+            await db.snippets.delete(snippetId);
+        } catch (e) {
+            console.error("Delete snippet error:", e);
+        }
+    };
+
+    const handleImportCase = async (caseData: PatientCase) => {
+        try {
+            // Ensure the case has an ID and timestamp
+            const caseToSave = {
+                ...caseData,
+                id: caseData.id || generateId(),
+                timestamp: caseData.timestamp || Date.now()
+            };
+            await db.patientCases.put(caseToSave);
+            logEvent('import_case', { case_title: caseToSave.title });
+        } catch (e) {
+            console.error("Import case error:", e);
+        }
     };
     
-    const handlePatientCaseUpdate = (updatedCase: PatientCase) => {
+    const handlePatientCaseUpdate = async (updatedCase: PatientCase) => {
         setPatientCase(updatedCase);
         setInteractionState(prev => ({ ...prev, caseEdited: true }));
         
         // AUTO-PERSISTENCE: If this is a previously saved case, update it in the collection automatically
         if (updatedCase.id) {
-            const existingIdx = savedCases.findIndex(c => c.id === updatedCase.id);
-            if (existingIdx >= 0 && mapData) {
-                const updatedSavedCase: SavedCase = {
-                    ...savedCases[existingIdx],
-                    caseData: updatedCase,
-                    savedAt: new Date().toISOString(),
-                };
-                const newSavedCases = [...savedCases];
-                newSavedCases[existingIdx] = updatedSavedCase;
-                setSavedCases(newSavedCases);
-                localStorage.setItem('ungana_saved_cases', JSON.stringify(newSavedCases));
+            try {
+                await db.patientCases.put({
+                    ...updatedCase,
+                    knowledgeMap: mapData || updatedCase.knowledgeMap,
+                    timestamp: Date.now()
+                });
+            } catch (e) {
+                console.error("Auto-persistence error:", e);
             }
         }
     };
@@ -433,6 +493,34 @@ export const App: React.FC = () => {
         });
         setSelectedNodeInfo(null);
     }, [logEvent]);
+
+    const handleAddNode = useCallback((node: KnowledgeNode) => {
+        if (mapData) {
+            setMapData({
+                ...mapData,
+                nodes: [...mapData.nodes, node]
+            });
+            logEvent('map_node_added', { node_label: node.label });
+        }
+    }, [mapData, logEvent]);
+
+    const handleAddLink = useCallback((link: KnowledgeLink) => {
+        if (mapData) {
+            setMapData({
+                ...mapData,
+                links: [...mapData.links, link]
+            });
+            logEvent('map_link_added', { source: link.source, target: link.target });
+        }
+    }, [mapData, logEvent]);
+
+    const handleJoinCollaboration = useCallback(() => {
+        const id = prompt('Enter Room ID to join or create:', roomId || Math.random().toString(36).substring(7));
+        if (id) {
+            joinRoom(id);
+            logEvent('collaboration_joined', { room_id: id });
+        }
+    }, [joinRoom, roomId, logEvent]);
 
     const getKnowledgeMapImage = useCallback(async (): Promise<string | undefined> => {
         return await knowledgeMapRef.current?.captureAsImage();
@@ -460,14 +548,22 @@ export const App: React.FC = () => {
                 onLanguageChange={handleLanguageChange}
                 currentTheme={theme}
                 onThemeToggle={toggleTheme}
+                onCollaborate={handleJoinCollaboration}
+                isCollaborating={!!roomId}
                 T={T}
+                isCompact={!!patientCase}
                 className="sticky top-0 z-30"
             />
             
-            <main className="flex-grow p-2 sm:p-4 overflow-hidden relative flex flex-col">
+            <main className={`flex-grow overflow-hidden relative flex flex-col transition-all duration-500 ${
+                !!patientCase ? 'p-1 sm:p-2' :
+                density === 'compact' ? 'p-1 sm:p-2' : 
+                density === 'relaxed' ? 'p-4 sm:p-8' : 
+                'p-2 sm:p-4'
+            }`}>
                 <div className="absolute inset-0 pointer-events-none opacity-[0.03] dark:opacity-[0.05]" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, currentColor 1px, transparent 0)', backgroundSize: '32px 32px' }}></div>
                 <div className="max-w-7xl mx-auto w-full h-full flex flex-col min-h-0 relative z-10">
-                    <div className="flex-shrink-0 mb-3 sm:mb-4">
+                    <div className={`flex-shrink-0 transition-all duration-300 ${!!patientCase ? 'mb-2' : 'mb-3 sm:mb-4'}`}>
                         <ControlPanel
                             onGenerate={handleGenerate}
                             disabled={isLoading || isGeneratingDetails}
@@ -483,7 +579,7 @@ export const App: React.FC = () => {
                         />
                     </div>
 
-                    <div className="hidden md:block flex-shrink-0 mb-4">
+                    <div className={`hidden md:block flex-shrink-0 transition-all duration-300 ${!!patientCase ? 'h-0 overflow-hidden mb-0 opacity-0' : 'mb-4 opacity-100'}`}>
                         <TipsCarousel interactionState={interactionState} T={T} />
                     </div>
                     
@@ -512,7 +608,13 @@ export const App: React.FC = () => {
                                         />
                                     </div>
                                 </div>
-                                <div className="w-full flex-shrink-0 h-full flex flex-col lg:w-[38%] lg:flex-shrink min-h-0">
+                                <div className="w-full flex-shrink-0 h-full flex flex-col lg:w-[38%] lg:flex-shrink min-h-0 relative">
+                                    {/* Knowledge Map Label for Desktop */}
+                                    <div className="hidden lg:flex absolute -top-6 left-0 items-center gap-2 text-[10px] font-black uppercase tracking-widest text-gray-400 dark:text-gray-500">
+                                        <Network className="w-3 h-3" />
+                                        <span>{T.knowledgeMapTitle || 'Knowledge Map'}</span>
+                                    </div>
+                                    
                                     {mapData ? (
                                         <div className="flex-grow min-h-0">
                                             <KnowledgeMap
@@ -529,6 +631,8 @@ export const App: React.FC = () => {
                                                 onDiscussNode={handleDiscussNode}
                                                 onSaveMap={handleSaveMapSnippet}
                                                 onDownloadMap={handleDownloadMap}
+                                                onAddNode={handleAddNode}
+                                                onAddLink={handleAddLink}
                                             />
                                         </div>
                                     ) : isGeneratingDetails ? (
@@ -562,6 +666,7 @@ export const App: React.FC = () => {
                 onDeleteCase={handleDeleteCase}
                 savedSnippets={savedSnippets}
                 onDeleteSnippet={handleDeleteSnippet}
+                onImportCase={handleImportCase}
                 T={T}
                 language={language}
             />
@@ -609,6 +714,7 @@ export const App: React.FC = () => {
                 T={T}
                 evaluationDaysRemaining={evaluationDaysRemaining}
                 onOpenFeedback={() => setIsFeedbackModalOpen(true)}
+                isCompact={!!patientCase}
                 className="sticky bottom-0 z-20"
             />
         </div>

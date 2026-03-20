@@ -97,7 +97,9 @@ export const EcgInterpreter: React.FC<EcgInterpreterProps> = ({ T, language }) =
             <div className="medical-card p-5 space-y-6">
                 <div className="flex items-center gap-2 mb-2">
                     <div className="p-2 bg-brand-blue/10 rounded-lg">
-                        <Activity className="w-5 h-5 text-brand-blue" />
+                        <span title="Activity">
+                            <Activity className="w-5 h-5 text-brand-blue" />
+                        </span>
                     </div>
                     <div>
                         <h3 className="text-md font-bold text-slate-900 leading-tight">{T.ecgInterpreterTitle || 'ECG Analysis Assistant'}</h3>
@@ -108,7 +110,9 @@ export const EcgInterpreter: React.FC<EcgInterpreterProps> = ({ T, language }) =
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-1.5">
                         <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-1.5">
-                            <Zap className="w-3 h-3" />
+                            <span title="Activity">
+                                <Zap className="w-3 h-3" />
+                            </span>
                             {T.ecgRateLabel}
                         </label>
                         <input 
@@ -122,7 +126,9 @@ export const EcgInterpreter: React.FC<EcgInterpreterProps> = ({ T, language }) =
                     </div>
                     <div className="space-y-1.5">
                         <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-1.5">
-                            <Heart className="w-3 h-3" />
+                            <span title="Heart">
+                                <Heart className="w-3 h-3" />
+                            </span>
                             {T.ecgRhythmLabel}
                         </label>
                         <select 
@@ -144,7 +150,9 @@ export const EcgInterpreter: React.FC<EcgInterpreterProps> = ({ T, language }) =
 
                 <div className="space-y-1.5">
                     <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-1.5">
-                        <Info className="w-3 h-3" />
+                        <span title="Information">
+                            <Info className="w-3 h-3" />
+                        </span>
                         {T.ecgIntervals}
                     </label>
                     <div className="grid grid-cols-3 gap-3">
@@ -177,7 +185,9 @@ export const EcgInterpreter: React.FC<EcgInterpreterProps> = ({ T, language }) =
 
                 <div className="space-y-1.5">
                     <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-1.5">
-                        <Activity className="w-3 h-3" />
+                        <span title="Activity">
+                            <Activity className="w-3 h-3" />
+                        </span>
                         {T.ecgStSegment}
                     </label>
                     <select 
@@ -195,7 +205,9 @@ export const EcgInterpreter: React.FC<EcgInterpreterProps> = ({ T, language }) =
 
                 <div className="space-y-1.5">
                     <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-1.5">
-                        <FileText className="w-3 h-3" />
+                        <span title="Results">
+                            <FileText className="w-3 h-3" />
+                        </span>
                         {T.ecgOtherFindings}
                     </label>
                     <textarea 
@@ -210,7 +222,9 @@ export const EcgInterpreter: React.FC<EcgInterpreterProps> = ({ T, language }) =
 
                 <div className="space-y-1.5">
                     <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-1.5">
-                        <Upload className="w-3 h-3" />
+                        <span title="Upload">
+                            <Upload className="w-3 h-3" />
+                        </span>
                         {T.uploadEcgLabel}
                     </label>
                      <label 
@@ -229,7 +243,9 @@ export const EcgInterpreter: React.FC<EcgInterpreterProps> = ({ T, language }) =
                                 <div className="relative inline-block">
                                     <img src={file.url} alt="ECG Preview" className="max-h-32 rounded-lg shadow-md border border-slate-200" />
                                     <div className="absolute -top-2 -right-2 p-1 bg-brand-blue text-white rounded-full shadow-lg">
-                                        <CheckCircle2 className="w-4 h-4" />
+                                        <span title="Selected">
+                                            <CheckCircle2 className="w-4 h-4" />
+                                        </span>
                                     </div>
                                 </div>
                                 <p className="mt-3 text-xs font-bold text-slate-600 truncate max-w-[200px] mx-auto">{file.name}</p>
@@ -238,7 +254,9 @@ export const EcgInterpreter: React.FC<EcgInterpreterProps> = ({ T, language }) =
                         ) : (
                             <div className="text-center space-y-3">
                                 <div className="p-3 bg-white rounded-full shadow-sm border border-slate-100 inline-block">
-                                    <Upload className="w-6 h-6 text-slate-400" />
+                                    <span title="Upload">
+                                        <Upload className="w-6 h-6 text-slate-400" />
+                                    </span>
                                 </div>
                                 <div>
                                     <p className="text-sm font-bold text-slate-700">{T.uploadEcgPrompt || 'Drop ECG image here or click to browse'}</p>
@@ -256,9 +274,13 @@ export const EcgInterpreter: React.FC<EcgInterpreterProps> = ({ T, language }) =
                     className="w-full flex items-center justify-center gap-2 bg-brand-blue hover:bg-blue-800 text-white font-black py-4 px-6 rounded-xl transition-all shadow-md disabled:bg-slate-200 disabled:text-slate-400 disabled:shadow-none uppercase tracking-widest text-xs"
                 >
                     {isInterpreting ? (
-                        <Activity className="w-5 h-5 animate-pulse" />
+                        <span title="Activity">
+                            <Activity className="w-5 h-5 animate-pulse" />
+                        </span>
                     ) : (
-                        <Zap className="w-5 h-5" />
+                        <span title="Activity">
+                            <Zap className="w-5 h-5" />
+                        </span>
                     )}
                     {isInterpreting ? T.interpretingEcgMessage : T.interpretEcgButton}
                 </button>
@@ -266,7 +288,9 @@ export const EcgInterpreter: React.FC<EcgInterpreterProps> = ({ T, language }) =
                 {(isInterpreting || interpretationResult || error) && (
                     <div className="mt-6 p-5 bg-white border border-slate-200 rounded-2xl animate-fade-in shadow-sm">
                         <div className="flex items-center gap-2 mb-4 border-b border-slate-100 pb-3">
-                            <FileText className="w-4 h-4 text-brand-blue" />
+                            <span title="Results">
+                                <FileText className="w-4 h-4 text-brand-blue" />
+                            </span>
                             <h4 className="text-[10px] font-black text-brand-blue uppercase tracking-widest">{T.interpretationResultTitle}</h4>
                         </div>
                         
@@ -279,7 +303,9 @@ export const EcgInterpreter: React.FC<EcgInterpreterProps> = ({ T, language }) =
                         
                         {error && (
                             <div className="p-3 bg-red-50 border border-red-100 rounded-xl flex items-center gap-2">
-                                <AlertCircle className="w-4 h-4 text-red-500" />
+                                <span title="Alert">
+                                    <AlertCircle className="w-4 h-4 text-red-500" />
+                                </span>
                                 <p className="text-xs font-bold text-red-600">{error}</p>
                             </div>
                         )}

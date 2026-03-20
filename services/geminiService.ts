@@ -1,6 +1,7 @@
 
 import { GoogleGenAI, Type, GenerateContentResponse, Modality, ThinkingLevel } from "@google/genai";
 import type { PatientCase, KnowledgeMapData, KnowledgeNode, KnowledgeLink, TraceableEvidence, FurtherReading, DiagramData, EcgFindings } from '../types';
+import { db } from '../db';
 
 const getAiClient = () => {
     return new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || process.env.API_KEY });
@@ -330,6 +331,43 @@ const extractJson = (text: string) => {
     return text.trim();
 };
 
+export const generateFullCaseStream = async function* (condition: string, discipline: string, difficulty: string, language: string) {
+    const ai = getAiClient();
+    
+    const corePrompt = `Expert Medical Synthesis: Create a comprehensive, high-fidelity clinical case for "${condition}". 
+    Discipline: ${discipline}. Difficulty: ${difficulty}. Language: ${language}.
+    
+    CORE MISSION: Produce a detailed, professional-grade medical case study.
+    
+    ${SYNTHESIS_GUIDELINE}
+    
+    IMPORTANT: You MUST output ONLY the JSON object.`;
+
+    const stream = await ai.models.generateContentStream({
+        model: FAST_MODEL,
+        contents: corePrompt,
+        config: { 
+            responseMimeType: "application/json", 
+            responseSchema: coreCaseSchema,
+            maxOutputTokens: 4096,
+            thinkingConfig: { thinkingLevel: ThinkingLevel.LOW }
+        },
+    });
+
+    let fullText = "";
+    for await (const chunk of stream) {
+        fullText += chunk.text;
+        try {
+            // Try to parse partial JSON if possible (this is hard for nested objects)
+            // For now, we yield the full text so the UI can show progress
+            yield { partialText: fullText };
+        } catch (e) {}
+    }
+
+    const finalJson = JSON.parse(extractJson(fullText));
+    yield { finalCase: finalJson };
+};
+
 export const generateFullCase = async (condition: string, discipline: string, difficulty: string, language: string): Promise<{ patientCase: PatientCase, knowledgeMap: KnowledgeMapData }> => {
     const ai = getAiClient();
     
@@ -423,6 +461,55 @@ export const generateFullCase = async (condition: string, discipline: string, di
     const patientCase = { ...coreData, knowledgeMap: finalMap } as PatientCase;
 
     return { patientCase, knowledgeMap: finalMap as KnowledgeMapData };
+};
+
+export const generateKnowledgeMap = async (condition: string, discipline: string, difficulty: string, language: string): Promise<KnowledgeMapData> => {
+    const ai = getAiClient();
+    const mapPrompt = `Expert Medical Synthesis: Create a comprehensive knowledge map for a clinical case of "${condition}". 
+    Discipline: ${discipline}. Difficulty: ${difficulty}. Language: ${language}.
+    
+    CORE MISSION: Design a network of 8-12 interconnected nodes showing how symptoms, labs, pathophysiology, and management mechanisms are linked for this condition.
+    
+    REQUIREMENTS:
+    1. NODES: Create 8-12 nodes representing key concepts (e.g., specific symptoms, biomarkers, anatomical structures, drugs).
+    2. LINKS: Create meaningful connections between these nodes with clear descriptions of the relationship.
+    3. DISCIPLINE: Ensure the map highlights aspects relevant to ${discipline}.
+    
+    ${SYNTHESIS_GUIDELINE}`;
+
+    const mapData = await retryWithBackoff(async () => {
+        const response: GenerateContentResponse = await ai.models.generateContent({
+            model: FAST_MODEL,
+            contents: mapPrompt,
+            config: { 
+                responseMimeType: "application/json", 
+                responseSchema: knowledgeMapSchema,
+                maxOutputTokens: 2048,
+                thinkingConfig: { thinkingLevel: ThinkingLevel.LOW }
+            },
+        });
+
+        const finishReason = response.candidates?.[0]?.finishReason;
+        if (finishReason !== 'STOP') {
+            console.warn("generateKnowledgeMap finished with reason:", finishReason);
+        }
+
+        const text = response.text || "{}";
+        try {
+            return JSON.parse(extractJson(text));
+        } catch (e) {
+            console.error("JSON Parse Error in generateKnowledgeMap retry:", e, text);
+            throw new Error("Failed to parse knowledge map JSON. Retrying...");
+        }
+    });
+
+    // Validate knowledge map links
+    const nodes = mapData.nodes || [];
+    const links = mapData.links || [];
+    const validNodeIds = new Set(nodes.map((n: any) => n.id));
+    const validLinks = links.filter((l: any) => validNodeIds.has(l.source) && validNodeIds.has(l.target));
+
+    return { nodes, links: validLinks } as KnowledgeMapData;
 };
 
 export const generateEvidenceAndQuiz = async (condition: string, discipline: string, difficulty: string, language: string) => {
@@ -550,14 +637,45 @@ export const generateSpeech = async (text: string, voiceName: string): Promise<s
     return data;
 };
 
+// Cache for concept abstracts to avoid redundant AI calls
+const abstractCache = new Map<string, string>();
+
 export const getConceptAbstract = async (concept: string, caseContext: string, language: string): Promise<string> => {
+    const cacheKey = `${concept}_${language}`;
+    if (abstractCache.has(cacheKey)) return abstractCache.get(cacheKey)!;
+
+    // Check IndexedDB cache as well
+    try {
+        const cached = await db.patientCases.where('title').equals(`CACHE_${cacheKey}`).first();
+        if (cached) {
+            const result = cached.patientProfile;
+            abstractCache.set(cacheKey, result);
+            return result;
+        }
+    } catch (e) { console.error("Cache read error:", e); }
+
     const ai = getAiClient();
     const prompt = `Significance: "${concept}" in context of "${caseContext}". 50 words. Language: ${language}.`;
     const response: GenerateContentResponse = await retryWithBackoff(() => ai.models.generateContent({
         model: FAST_MODEL,
         contents: prompt
     }));
-    return response.text || "";
+    const result = response.text || "";
+    
+    if (result) {
+        abstractCache.set(cacheKey, result);
+        // Persist to DB cache (using patientProfile field as a temporary store for the abstract)
+        db.patientCases.add({
+            id: `cache_${Date.now()}_${Math.random()}`,
+            title: `CACHE_${cacheKey}`,
+            patientProfile: result,
+            presentingComplaint: '',
+            history: '',
+            timestamp: Date.now()
+        } as any).catch(e => console.error("Cache write error:", e));
+    }
+    
+    return result;
 };
 
 export const getConceptConnectionExplanation = async (conceptA: string, conceptB: string, caseContext: string, language: string): Promise<string> => {

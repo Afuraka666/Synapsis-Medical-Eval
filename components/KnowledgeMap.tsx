@@ -18,6 +18,7 @@ import { Discipline } from '../types';
 import type { KnowledgeMapData, KnowledgeNode, KnowledgeLink } from '../types';
 import { ConceptCard } from './ConceptCard';
 import { useAnalytics } from '../contexts/analytics';
+import { useCollaboration } from '../contexts/CollaborationContext';
 
 declare const d3: any;
 
@@ -98,7 +99,9 @@ const svgToDataURL = async (svgEl: SVGSVGElement): Promise<string> => {
 const LoadingSpinner: React.FC = () => (
     <div className="flex flex-col items-center justify-center h-full p-4 text-brand-blue dark:text-brand-blue-light">
         <div className="relative">
-            <Activity className="h-12 w-12 animate-pulse" />
+            <span title="Activity">
+                <Activity className="h-12 w-12 animate-pulse" />
+            </span>
             <div className="absolute inset-0 flex items-center justify-center">
                 <div className="h-4 w-4 bg-brand-blue rounded-full animate-ping"></div>
             </div>
@@ -133,32 +136,65 @@ interface MapControlsProps {
     onToggleFullscreen: () => void;
     onSaveMap?: () => void;
     onDownloadMap?: () => void;
+    onAddNode?: () => void;
+    onAddLink?: () => void;
     isFullscreen: boolean;
 }
 
-const MapControls: React.FC<MapControlsProps> = ({ onZoomIn, onZoomOut, onReset, onToggleFullscreen, onSaveMap, onDownloadMap, isFullscreen }) => {
+const MapControls: React.FC<MapControlsProps> = ({ onZoomIn, onZoomOut, onReset, onToggleFullscreen, onSaveMap, onDownloadMap, onAddNode, onAddLink, isFullscreen }) => {
     const buttonClasses = "bg-white dark:bg-slate-800 hover:bg-gray-50 dark:hover:bg-slate-700 text-gray-700 dark:text-slate-200 rounded-xl w-10 h-10 flex items-center justify-center transition-all hover:scale-105 active:scale-95";
     return (
         <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex flex-row gap-2 z-10 bg-white/90 dark:bg-slate-800/90 backdrop-blur-md p-1.5 rounded-2xl shadow-2xl border border-gray-200/50 dark:border-slate-700/50">
             <button onClick={onZoomIn} title="Zoom In" className={buttonClasses}>
-                 <ZoomIn className="h-5 w-5" />
+                 <span title="Zoom In">
+                    <ZoomIn className="h-5 w-5" />
+                 </span>
             </button>
             <button onClick={onZoomOut} title="Zoom Out" className={buttonClasses}>
-                <ZoomOut className="h-5 w-5" />
+                <span title="Zoom Out">
+                    <ZoomOut className="h-5 w-5" />
+                </span>
             </button>
             <div className="w-px h-6 bg-gray-200 dark:bg-slate-700 self-center mx-1"></div>
             <button onClick={onReset} title="Reset View" className={buttonClasses}>
-                 <RotateCcw className="h-5 w-5" />
+                 <span title="Reset View">
+                    <RotateCcw className="h-5 w-5" />
+                 </span>
             </button>
              <button onClick={onToggleFullscreen} title={isFullscreen ? "Exit Fullscreen" : "Enter Fullscreen"} className={buttonClasses}>
-                {isFullscreen ? <Minimize className="h-5 w-5" /> : <Maximize className="h-5 w-5" />}
+                {isFullscreen ? (
+                    <span title="Exit Fullscreen">
+                        <Minimize className="h-5 w-5" />
+                    </span>
+                ) : (
+                    <span title="Enter Fullscreen">
+                        <Maximize className="h-5 w-5" />
+                    </span>
+                )}
             </button>
+            {(onAddNode || onAddLink) && (
+                <>
+                    <div className="w-px h-6 bg-gray-200 dark:bg-slate-700 self-center mx-1"></div>
+                    {onAddNode && (
+                        <button onClick={onAddNode} title="Add Node" className={buttonClasses}>
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+                        </button>
+                    )}
+                    {onAddLink && (
+                        <button onClick={onAddLink} title="Add Link" className={buttonClasses}>
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+                        </button>
+                    )}
+                </>
+            )}
             {(onSaveMap || onDownloadMap) && (
                 <>
                     <div className="w-px h-6 bg-gray-200 dark:bg-slate-700 self-center mx-1"></div>
                     {onSaveMap && (
                         <button onClick={onSaveMap} title="Save Map to Collection" className={`${buttonClasses} text-brand-blue dark:text-brand-blue-light`}>
-                            <Save className="h-5 w-5" />
+                            <span title="Save Map">
+                                <Save className="h-5 w-5" />
+                            </span>
                         </button>
                     )}
                     {onDownloadMap && (
@@ -181,7 +217,9 @@ const NodeTooltip: React.FC<{ node: KnowledgeNode | null; position: { x: number;
         >
             <div className="flex items-center justify-between mb-2">
                 <span className="text-[9px] font-black uppercase tracking-[0.2em] text-brand-blue dark:text-brand-blue-light bg-brand-blue/5 dark:bg-brand-blue-light/5 px-2 py-0.5 rounded-full">{node.discipline}</span>
-                <Info className="w-3 h-3 text-gray-500 dark:text-slate-400" />
+                <span title="Information">
+                    <Info className="w-3 h-3 text-gray-500 dark:text-slate-400" />
+                </span>
             </div>
             <h4 className="font-black text-sm text-gray-900 dark:text-white mb-2 tracking-tight">{node.label}</h4>
             <div className="h-px w-full bg-gray-100 dark:bg-slate-700 mb-2"></div>
@@ -203,10 +241,13 @@ interface KnowledgeMapProps {
     onDiscussNode: (nodeInfo: { node: KnowledgeNode; abstract: string; loading: boolean }) => void;
     onSaveMap?: () => void;
     onDownloadMap?: () => void;
+    onAddNode?: (node: KnowledgeNode) => void;
+    onAddLink?: (link: KnowledgeLink) => void;
 }
 
-export const KnowledgeMap = forwardRef<any, KnowledgeMapProps>(({ data, onNodeClick, selectedNodeInfo, onClearSelection, isMapFullscreen, setIsMapFullscreen, caseTitle, language, T, onDiscussNode, onSaveMap, onDownloadMap }, ref) => {
+export const KnowledgeMap = forwardRef<any, KnowledgeMapProps>(({ data, onNodeClick, selectedNodeInfo, onClearSelection, isMapFullscreen, setIsMapFullscreen, caseTitle, language, T, onDiscussNode, onSaveMap, onDownloadMap, onAddNode, onAddLink }, ref) => {
     const { logEvent } = useAnalytics();
+    const { updateCursor, remoteCursors } = useCollaboration();
     const svgRef = useRef<SVGSVGElement | null>(null);
     const containerRef = useRef<HTMLDivElement | null>(null);
     const [isLoading, setIsLoading] = useState(true);
@@ -287,11 +328,26 @@ export const KnowledgeMap = forwardRef<any, KnowledgeMapProps>(({ data, onNodeCl
         const chargeStrength = isMobile ? -1200 : -2500;
         const collideRadius = isMobile ? 80 : 120;
 
+        // Clustering force: pull nodes of same discipline together
+        const clusterForce = (alpha: number) => {
+            const centers: Record<string, { x: number; y: number }> = {};
+            nodes.forEach((n: any) => {
+                if (!centers[n.discipline]) centers[n.discipline] = { x: width / 2, y: height / 2 };
+            });
+            
+            nodes.forEach((n: any) => {
+                const center = centers[n.discipline];
+                n.vx += (center.x - n.x) * alpha * 0.05;
+                n.vy += (center.y - n.y) * alpha * 0.05;
+            });
+        };
+
         simulationRef.current = d3.forceSimulation(nodes)
             .force('link', d3.forceLink(links).id((d: any) => d.id).distance(linkDistance).strength(0.6))
             .force('charge', d3.forceManyBody().strength(chargeStrength))
             .force('center', d3.forceCenter(width / 2, height / 2))
             .force('collide', d3.forceCollide().radius(collideRadius).iterations(2))
+            .force('cluster', clusterForce)
             .velocityDecay(0.4)
             .on('tick.loading', () => {
                 setIsLoading(false);
@@ -392,7 +448,9 @@ export const KnowledgeMap = forwardRef<any, KnowledgeMapProps>(({ data, onNodeCl
     if (typeof d3 === 'undefined') {
         return (
             <div className="w-full h-full flex flex-col items-center justify-center bg-slate-50 dark:bg-slate-900 p-8 text-center">
-                <Network className="h-12 w-12 text-red-400 mb-4" />
+                <span title="Network Error">
+                    <Network className="h-12 w-12 text-red-400 mb-4" />
+                </span>
                 <h3 className="font-black text-gray-900 dark:text-white mb-2">Visualization Error</h3>
                 <p className="text-sm text-gray-500 dark:text-slate-400 max-w-xs">
                     The knowledge map engine (D3.js) failed to load. Please check your internet connection and refresh the page.
@@ -411,7 +469,31 @@ export const KnowledgeMap = forwardRef<any, KnowledgeMapProps>(({ data, onNodeCl
         <div ref={containerRef} className={`w-full h-full bg-slate-50 dark:bg-slate-900 shadow-inner border border-gray-200 dark:border-dark-border overflow-hidden transition-colors duration-300 ${isMapFullscreen ? 'fixed inset-0 z-40' : 'relative rounded-xl'}`}>
             <div className="absolute inset-0 pointer-events-none opacity-50 dark:opacity-20" style={{ backgroundImage: 'radial-gradient(circle at 1px 1px, #94a3b8 1px, transparent 0)', backgroundSize: '24px 24px' }}></div>
             {isLoading && <div className="absolute inset-0 z-20 flex items-center justify-center bg-slate-50/50 dark:bg-dark-bg/50 backdrop-blur-sm"><LoadingSpinner /></div>}
-            <svg ref={svgRef} className="w-full h-full touch-none relative z-0" onClick={onClearSelection}></svg>
+            <svg 
+                ref={svgRef} 
+                className="w-full h-full touch-none relative z-0" 
+                onClick={onClearSelection}
+                onMouseMove={(e) => {
+                    const rect = e.currentTarget.getBoundingClientRect();
+                    updateCursor({ x: e.clientX - rect.left, y: e.clientY - rect.top });
+                }}
+            ></svg>
+            
+            {/* Remote Cursors */}
+            {Object.entries(remoteCursors).map(([id, pos]) => (
+                <div 
+                    key={id} 
+                    className="absolute pointer-events-none transition-all duration-75 z-50"
+                    style={{ left: pos.x, top: pos.y }}
+                >
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M5.65376 12.3773L15.2451 12.9087L11.5312 16.6226L11.5312 21.0835L5.65376 12.3773Z" fill="#3b82f6" stroke="white" strokeWidth="2"/>
+                    </svg>
+                    <div className="bg-blue-500 text-white text-[8px] px-1 py-0.5 rounded-sm whitespace-nowrap -mt-1 ml-4 shadow-sm">
+                        User {id.slice(0, 4)}
+                    </div>
+                </div>
+            ))}
             <MapControls 
                 onZoomIn={() => {
                     logEvent('map_zoom_in');
@@ -435,6 +517,28 @@ export const KnowledgeMap = forwardRef<any, KnowledgeMapProps>(({ data, onNodeCl
                 }} 
                 onSaveMap={onSaveMap} 
                 onDownloadMap={onDownloadMap}
+                onAddNode={onAddNode ? () => {
+                    const label = prompt('Node Label:');
+                    if (label) {
+                        onAddNode({
+                            id: Math.random().toString(36).substring(7),
+                            label,
+                            discipline: Discipline.PHYSIOLOGY, // Default
+                            summary: 'Manually added concept.'
+                        });
+                    }
+                } : undefined}
+                onAddLink={onAddLink ? () => {
+                    const source = prompt('Source Node ID:');
+                    const target = prompt('Target Node ID:');
+                    if (source && target) {
+                        onAddLink({
+                            source,
+                            target,
+                            description: 'Manually added connection.'
+                        });
+                    }
+                } : undefined}
                 isFullscreen={isMapFullscreen} 
             />
             <NodeTooltip node={hoveredNode?.node || null} position={hoveredNode?.position || null} />
