@@ -280,18 +280,25 @@ export const KnowledgeMap = forwardRef<any, KnowledgeMapProps>(({ data, onNodeCl
         if (!containerRef.current || typeof d3 === 'undefined') return;
         const observer = new ResizeObserver(() => {
             window.requestAnimationFrame(() => {
-                if (svgRef.current && gRef.current && !isLoading) {
+                if (svgRef.current && gRef.current) {
                     const { width, height } = containerRef.current!.getBoundingClientRect();
-                    if (width > 0 && height > 0 && simulationRef.current) {
-                        simulationRef.current.force('center', d3.forceCenter(width / 2, height / 2));
-                        simulationRef.current.alpha(0.1).restart();
+                    if (width > 0 && height > 0) {
+                        if (simulationRef.current) {
+                            simulationRef.current.force('center', d3.forceCenter(width / 2, height / 2));
+                            simulationRef.current.alpha(0.1).restart();
+                        }
+                        // Always try to reset zoom when size changes and we have a valid size
+                        // especially if it was previously 0 or hidden
+                        if (!isLoading) {
+                            resetZoom();
+                        }
                     }
                 }
             });
         });
         observer.observe(containerRef.current);
         return () => observer.disconnect();
-    }, [isLoading]);
+    }, [isLoading, resetZoom]);
 
     useEffect(() => {
         if (!svgRef.current || !containerRef.current || typeof d3 === 'undefined') return;
@@ -318,7 +325,9 @@ export const KnowledgeMap = forwardRef<any, KnowledgeMapProps>(({ data, onNodeCl
             .attr('d', 'M0,-5L10,0L0,5')
             .attr('fill', '#94a3b8');
 
-        const { width, height } = containerRef.current.getBoundingClientRect();
+        const { width: initialWidth, height: initialHeight } = containerRef.current.getBoundingClientRect();
+        const width = initialWidth || window.innerWidth; // Fallback to window width if container is 0
+        const height = initialHeight || window.innerHeight; // Fallback to window height if container is 0
         const isMobile = width < 640;
         
         const g = svg.append('g'); gRef.current = g;

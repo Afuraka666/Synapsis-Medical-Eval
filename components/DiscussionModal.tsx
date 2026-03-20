@@ -215,6 +215,10 @@ export const DiscussionModal: React.FC<DiscussionModalProps> = ({
 
             const getSystemInstruction = () => `You are an expert medical tutor. Facilitate a deep Socratic discussion about "${topic.aspect}" for "${caseTitle}". 
             
+            **CONVERSATIONAL STYLE (CRITICAL):**
+            1. **NO MARKDOWN SYMBOLS:** Do NOT use markdown symbols like "**" for bold or "###" for headers. Use plain text for emphasis or structure.
+            2. **NATURAL FLOW:** Keep the discussion conversational and professional without heavy formatting.
+            
             **VISUAL PREFERENCE & PHYSIOLOGICAL FIDELITY (MANDATORY):**
             Do NOT explain physiological curves in text. You MUST use visual triggers:
             1. **PHYSIOLOGY GRAPHS:** Use [GRAPH: type] tags. 
@@ -734,7 +738,7 @@ export const DiscussionModal: React.FC<DiscussionModalProps> = ({
                                 <div key={index} className={`msg-${index} flex items-start gap-3 ${msg.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
                                     {msg.role === 'model' && <div className="w-8 h-8 bg-brand-blue dark:bg-brand-blue-light text-white rounded-full flex items-center justify-center flex-shrink-0 text-xs font-bold shadow-sm">AI</div>}
                                     <div className={`max-w-[92%] sm:max-w-[85%] space-y-3 ${msg.role === 'user' ? 'items-end' : 'items-start'}`}>
-                                        <div className={`px-3 py-2.5 sm:px-4 sm:py-3 rounded-2xl text-sm shadow-sm transition-colors ${msg.role === 'user' ? 'bg-brand-blue dark:bg-brand-blue-light text-white rounded-tr-none' : msg.role === 'model' ? 'bg-white dark:bg-dark-surface text-brand-text dark:text-slate-200 border border-gray-200 dark:border-dark-border rounded-tl-none' : 'text-center w-full text-gray-500 italic bg-transparent shadow-none'}`}>
+                                        <div className={`px-3 py-2.5 sm:px-4 sm:py-3 rounded-2xl text-sm shadow-sm transition-colors font-serif ${msg.role === 'user' ? 'bg-brand-blue dark:bg-brand-blue-light text-white rounded-tr-none' : msg.role === 'model' ? 'bg-white dark:bg-dark-surface text-brand-text dark:text-slate-200 border border-gray-200 dark:border-dark-border rounded-tl-none' : 'text-center w-full text-gray-500 italic bg-transparent shadow-none'}`}>
                                             {msg.role === 'model' ? (
                                                 <div className="space-y-4">
                                                     <MarkdownRenderer content={msg.text} />

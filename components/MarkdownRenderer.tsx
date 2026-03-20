@@ -23,6 +23,9 @@ const sanitizeContent = (text: string): string => {
         .replace(/\\\$/g, '$')
         // 0.1 Strip out custom visual tags that are handled by the UI
         .replace(/\[\s*(ILLUSTRATE|DIAGRAM|GRAPH):\s*.*?\s*\]/gi, '')
+        // 0.2 Strip out ** and ### as requested by user ("not necessary and should not appear")
+        .replace(/\*\*/g, '')
+        .replace(/^#+\s*/gm, '')
         .trim();
 
     // 1. Protect existing math blocks by temporarily replacing them
@@ -158,13 +161,13 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, cla
     const cleanContent = useMemo(() => sanitizeContent(content), [content]);
 
     return (
-        <div className={`prose prose-sm max-w-none text-gray-900 dark:text-slate-100 ${className || ''}`}>
+        <div className={`prose prose-sm max-w-none text-gray-900 dark:text-slate-100 font-serif ${className || ''}`}>
             <ReactMarkdown
                 remarkPlugins={[remarkMath, remarkGfm]}
                 rehypePlugins={[rehypeKatex]}
                 components={{
                     a: ({ node, ...props }) => <a {...props} className="text-blue-700 dark:text-blue-300 hover:underline font-bold" target="_blank" rel="noopener noreferrer" />,
-                    p: ({ node, ...props }) => <p {...props} className={`${compact ? 'mb-0' : 'mb-4 last:mb-0'} leading-relaxed font-sans text-gray-900 dark:text-slate-100`} />,
+                    p: ({ node, ...props }) => <p {...props} className={`${compact ? 'mb-0' : 'mb-4 last:mb-0'} leading-relaxed font-serif text-gray-900 dark:text-slate-100`} />,
                     ul: ({ node, ...props }) => <ul {...props} className={`list-disc pl-5 ${compact ? 'mb-0' : 'mb-4'} space-y-2 text-gray-900 dark:text-slate-100`} />,
                     ol: ({ node, ...props }) => <ol {...props} className={`list-decimal pl-5 ${compact ? 'mb-0' : 'mb-4'} space-y-2 text-gray-900 dark:text-slate-100`} />,
                     li: ({ node, ...props }) => <li {...props} className="text-gray-900 dark:text-slate-100" />,
