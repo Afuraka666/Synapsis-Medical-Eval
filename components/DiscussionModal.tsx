@@ -98,6 +98,10 @@ const cleanTextForDownload = (text: string): string => {
         .replace(/\*/g, '')
         .replace(/__/g, '')
         .replace(/#/g, '')
+        .replace(/>/g, '')
+        .replace(/\[/g, '')
+        .replace(/\]/g, '')
+        .replace(/;/g, '')
         .trim();
 };
 

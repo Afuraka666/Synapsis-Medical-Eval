@@ -30,7 +30,8 @@ import {
     FileSearch,
     BrainCircuit,
     FileType,
-    ExternalLink
+    ExternalLink,
+    FileDown
 } from 'lucide-react';
 import { EducationalContentType, Discipline } from '../types';
 import type { PatientCase, EducationalContent, QuizQuestion, DisciplineSpecificConsideration, MultidisciplinaryConnection, TraceableEvidence, FurtherReading, ProcedureDetails, PatientOutcome, KnowledgeMapData, Snippet, ChatMessage } from '../types';
@@ -48,6 +49,7 @@ import { ScientificGraph } from './ScientificGraph';
 import { AudioVisualizer } from './AudioVisualizer';
 import { useAnalytics } from '../contexts/analytics';
 import { useContentDensity } from '../contexts/ContentDensityContext';
+import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType, ImageRun, Table, TableRow, TableCell, WidthType, BorderStyle } from 'docx';
 
 const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
 const isSpeechRecognitionSupported = !!SpeechRecognition;
@@ -96,15 +98,27 @@ const cleanTextForDownload = (text: string): string => {
         .replace(/\*/g, '')
         .replace(/__/g, '')
         .replace(/#/g, '')
+        .replace(/>/g, '')
+        .replace(/\[/g, '')
+        .replace(/\]/g, '')
+        .replace(/;/g, '')
         .trim();
 };
 
 function parseMarkdownTable(text: string) {
     const lines = text.trim().split('\n');
     if (lines.length < 3) return null;
+    
     const rows = lines
-        .filter(line => line.trim().startsWith('|'))
-        .map(line => line.split('|').filter(cell => cell.trim() !== '').map(cell => cell.trim()));
+        .filter(line => line.trim().includes('|'))
+        .map(line => {
+            let trimmed = line.trim();
+            if (trimmed.startsWith('|')) trimmed = trimmed.substring(1);
+            if (trimmed.endsWith('|')) trimmed = trimmed.substring(0, trimmed.length - 1);
+            const parts = trimmed.split('|');
+            return parts.map(cell => cell.trim());
+        });
+        
     if (rows.length < 2) return null;
     const header = rows[0];
     const data = rows.slice(2);
@@ -119,16 +133,23 @@ function splitMessageContent(text: string) {
     let inTable = false;
     let tableLines: string[] = [];
 
+    const isTableLine = (line: string) => line.trim().includes('|');
+    const isSeparator = (line: string) => line.trim().match(/^[|:\s-]*$/) && line.trim().includes('-') && line.trim().includes('|');
+
     for (let i = 0; i < lines.length; i++) {
         const line = lines[i];
-        const isTableRow = line.trim().startsWith('|');
-
-        if (isTableRow) {
+        
+        if (isTableLine(line)) {
             if (!inTable) {
-                if (currentText.trim()) parts.push({type: 'text', content: currentText.trim()});
-                currentText = '';
-                inTable = true;
-                tableLines = [line];
+                const nextLine = lines[i+1];
+                if (nextLine && isSeparator(nextLine)) {
+                    if (currentText.trim()) parts.push({type: 'text', content: currentText.trim()});
+                    currentText = '';
+                    inTable = true;
+                    tableLines = [line];
+                } else {
+                    currentText += (currentText ? '\n' : '') + line;
+                }
             } else {
                 tableLines.push(line);
             }
@@ -147,9 +168,8 @@ function splitMessageContent(text: string) {
         const table = parseMarkdownTable(tableLines.join('\n'));
         if (table) parts.push({type: 'table', table});
         else currentText += (currentText ? '\n' : '') + tableLines.join('\n');
-    } else if (currentText.trim()) {
-        parts.push({type: 'text', content: currentText.trim()});
     }
+    if (currentText.trim()) parts.push({type: 'text', content: currentText.trim()});
     return parts;
 }
 
@@ -418,18 +438,20 @@ export const PatientCaseView: React.FC<PatientCaseViewProps> = ({ patientCase: i
     await addSection(T.patientProfile, patientCase.patientProfile);
     await addSection(T.presentingComplaint, patientCase.presentingComplaint);
     await addSection(T.history, patientCase.history);
+    if (patientCase.procedureDetails) await addSection(T.procedureDetails, patientCase.procedureDetails.description);
+    if (patientCase.patientOutcome) await addSection(T.patientOutcome, patientCase.patientOutcome.outcome);
 
     if (patientCase.biochemicalPathway) {
         await addSection(patientCase.biochemicalPathway.title, patientCase.biochemicalPathway.description);
     }
 
     if (patientCase.multidisciplinaryConnections) {
-        let connText = patientCase.multidisciplinaryConnections.map(c => `* ${c.discipline}: ${c.connection}`).join('\n\n');
+        let connText = patientCase.multidisciplinaryConnections.map(c => `${c.discipline}: ${c.connection}`).join('\n\n');
         await addSection(T.multidisciplinaryConnections, connText);
     }
 
     if (patientCase.disciplineSpecificConsiderations) {
-        let consText = patientCase.disciplineSpecificConsiderations.map(c => `* ${c.aspect}: ${c.consideration}`).join('\n\n');
+        let consText = patientCase.disciplineSpecificConsiderations.map(c => `${c.aspect}: ${c.consideration}`).join('\n\n');
         await addSection(T.managementConsiderations, consText);
     }
 
@@ -437,7 +459,6 @@ export const PatientCaseView: React.FC<PatientCaseViewProps> = ({ patientCase: i
         for (const edu of patientCase.educationalContent) {
             await addSection(edu.title, edu.description);
             if (edu.imageData) {
-                // We'd need to convert base64 if it's not already
                 if (y > 200) { doc.addPage(); y = 20; }
                 const imgW = 140; 
                 const imgH = 105;
@@ -447,11 +468,27 @@ export const PatientCaseView: React.FC<PatientCaseViewProps> = ({ patientCase: i
         }
     }
 
+    if (patientCase.traceableEvidence && patientCase.traceableEvidence.length > 0) {
+        let evidenceText = patientCase.traceableEvidence.map(e => `${e.claim} (Source: ${e.source})`).join('\n\n');
+        await addSection(T.traceableEvidence, evidenceText);
+    }
+
+    if (patientCase.furtherReadings && patientCase.furtherReadings.length > 0) {
+        let readingText = patientCase.furtherReadings.map(r => `${r.topic}: ${r.reference}`).join('\n\n');
+        await addSection(T.furtherReading, readingText);
+    }
+
+    if (patientCase.quiz && patientCase.quiz.length > 0) {
+        let quizText = patientCase.quiz.map((q, i) => {
+            return `Question ${i + 1}: ${q.question}\nOptions: ${q.options.join(', ')}\nCorrect Answer: ${q.options[q.correctAnswerIndex]}\nExplanation: ${q.explanation}`;
+        }).join('\n\n');
+        await addSection('QUIZ', quizText);
+    }
+
     // Capture SVGs if any are visible in the container
     if (containerRef.current) {
         const svgs = containerRef.current.querySelectorAll('svg');
         for (const svg of Array.from(svgs) as SVGSVGElement[]) {
-            // Only capture relevant SVGs (diagrams, graphs)
             if (svg.closest('.interactive-diagram') || svg.closest('.scientific-graph')) {
                 const imgData = await captureSvgAsBase64(svg);
                 if (y > 180) { doc.addPage(); y = 20; }
@@ -462,8 +499,251 @@ export const PatientCaseView: React.FC<PatientCaseViewProps> = ({ patientCase: i
             }
         }
     }
+
+    // Add Knowledge Map if available
+    if (onGetMapImage) {
+        const mapImg = await onGetMapImage();
+        if (mapImg) {
+            if (y > 180) { doc.addPage(); y = 20; }
+            doc.setFont('helvetica', 'bold').setFontSize(14).setTextColor(brandColor).text('KNOWLEDGE MAP', margin, y);
+            y += 10;
+            const imgW = pageWidth - (margin * 2);
+            const imgH = (imgW * 0.75); 
+            doc.addImage(mapImg, 'PNG', margin, y, imgW, imgH);
+            y += imgH + 15;
+        }
+    }
+
+    // Add Discussions if any
+    if (patientCase.discussions && Object.keys(patientCase.discussions).length > 0) {
+        doc.addPage();
+        y = 20;
+        doc.setFont('helvetica', 'bold').setFontSize(16).setTextColor(brandColor).text('CASE DISCUSSIONS', margin, y);
+        y += 15;
+
+        for (const [topic, messages] of Object.entries(patientCase.discussions) as [string, ChatMessage[]][]) {
+            if (messages.length <= 1) continue; 
+            
+            doc.setFont('helvetica', 'bold').setFontSize(12).setTextColor(brandColor).text(`Topic: ${topic}`, margin, y);
+            y += 10;
+
+            for (const msg of messages) {
+                const role = msg.role === 'user' ? 'You' : 'AI Tutor';
+                doc.setFont('helvetica', 'bold').setFontSize(10).setTextColor('#374151').text(`${role}:`, margin, y);
+                y += 6;
+
+                const blocks = splitMessageContent(msg.text);
+                for (const block of blocks) {
+                    if (block.type === 'text') {
+                        doc.setFont('helvetica', 'normal').setFontSize(10).setTextColor('#111827');
+                        const cleaned = cleanTextForDownload(block.content || '');
+                        const lines = doc.splitTextToSize(cleaned, pageWidth - 2 * margin);
+                        if (y + (lines.length * 5) > 280) { doc.addPage(); y = 20; }
+                        doc.text(lines, margin, y);
+                        y += (lines.length * 5) + 4;
+                    } else if (block.type === 'table' && block.table) {
+                        if (y > 240) { doc.addPage(); y = 20; }
+                        (doc as any).autoTable({
+                            startY: y,
+                            head: [block.table.header],
+                            body: block.table.data,
+                            margin: { left: margin },
+                            styles: { fontSize: 8, font: 'helvetica' },
+                            headStyles: { fillColor: '#4b5563', textColor: 255 },
+                            theme: 'grid'
+                        });
+                        y = (doc as any).lastAutoTable.finalY + 8;
+                    }
+                }
+                y += 4;
+            }
+            y += 10;
+        }
+    }
     
-    doc.save(`${patientCase.title.replace(/\s+/g, '_')}_Case.pdf`);
+    doc.save(`${patientCase.title.replace(/\s+/g, '_')}_Case_Full.pdf`);
+  };
+
+  const handleDownloadWord = async () => {
+    logEvent('download_case_word');
+    const sections: any[] = [];
+
+    const addWordSection = (title: string, content: string) => {
+        sections.push(new Paragraph({ text: title.toUpperCase(), heading: HeadingLevel.HEADING_2, spacing: { before: 400, after: 200 } }));
+        const blocks = splitMessageContent(content);
+        for (const block of blocks) {
+            if (block.type === 'text') {
+                const cleaned = cleanTextForDownload(block.content || '');
+                sections.push(new Paragraph({ children: [new TextRun({ text: cleaned, size: 22 })], spacing: { after: 200 } }));
+            } else if (block.type === 'table' && block.table) {
+                const table = new Table({
+                    width: { size: 100, type: WidthType.PERCENTAGE },
+                    rows: [
+                        new TableRow({
+                            children: block.table.header.map(cell => new TableCell({
+                                children: [new Paragraph({ children: [new TextRun({ text: cell, bold: true, color: 'FFFFFF' })], alignment: AlignmentType.CENTER })],
+                                shading: { fill: '1e3a8a' }
+                            }))
+                        }),
+                        ...block.table.data.map(row => new TableRow({
+                            children: row.map(cell => new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: cell, size: 18 })] })] }))
+                        }))
+                    ]
+                });
+                sections.push(table);
+                sections.push(new Paragraph({ text: '', spacing: { after: 200 } }));
+            }
+        }
+    };
+
+    addWordSection(T.patientProfile, patientCase.patientProfile);
+    addWordSection(T.presentingComplaint, patientCase.presentingComplaint);
+    addWordSection(T.history, patientCase.history);
+    if (patientCase.procedureDetails) addWordSection(T.procedureDetails, patientCase.procedureDetails.description);
+    if (patientCase.patientOutcome) addWordSection(T.patientOutcome, patientCase.patientOutcome.outcome);
+
+    if (patientCase.biochemicalPathway) {
+        addWordSection(patientCase.biochemicalPathway.title, patientCase.biochemicalPathway.description);
+    }
+
+    if (patientCase.multidisciplinaryConnections) {
+        let connText = patientCase.multidisciplinaryConnections.map(c => `${c.discipline}: ${c.connection}`).join('\n\n');
+        addWordSection(T.multidisciplinaryConnections, connText);
+    }
+
+    if (patientCase.disciplineSpecificConsiderations) {
+        let consText = patientCase.disciplineSpecificConsiderations.map(c => `${c.aspect}: ${c.consideration}`).join('\n\n');
+        addWordSection(T.managementConsiderations, consText);
+    }
+
+    if (patientCase.educationalContent) {
+        for (const edu of patientCase.educationalContent) {
+            addWordSection(edu.title, edu.description);
+            if (edu.imageData) {
+                try {
+                    const base64Data = edu.imageData.split(',')[1];
+                    const buffer = Uint8Array.from(atob(base64Data), c => c.charCodeAt(0));
+                    sections.push(new Paragraph({
+                        children: [new ImageRun({ data: buffer, transformation: { width: 500, height: 375 } })],
+                        alignment: AlignmentType.CENTER,
+                        spacing: { before: 200, after: 200 }
+                    }));
+                } catch (e) { console.error("Image embed error:", e); }
+            }
+        }
+    }
+
+    if (patientCase.traceableEvidence && patientCase.traceableEvidence.length > 0) {
+        let evidenceText = patientCase.traceableEvidence.map(e => `${e.claim} (Source: ${e.source})`).join('\n\n');
+        addWordSection(T.traceableEvidence, evidenceText);
+    }
+
+    if (patientCase.furtherReadings && patientCase.furtherReadings.length > 0) {
+        let readingText = patientCase.furtherReadings.map(r => `${r.topic}: ${r.reference}`).join('\n\n');
+        addWordSection(T.furtherReading, readingText);
+    }
+
+    if (patientCase.quiz && patientCase.quiz.length > 0) {
+        let quizText = patientCase.quiz.map((q, i) => {
+            return `Question ${i + 1}: ${q.question}\nOptions: ${q.options.join(', ')}\nCorrect Answer: ${q.options[q.correctAnswerIndex]}\nExplanation: ${q.explanation}`;
+        }).join('\n\n');
+        addWordSection('QUIZ', quizText);
+    }
+
+    // SVGs
+    if (containerRef.current) {
+        const svgs = containerRef.current.querySelectorAll('svg');
+        for (const svg of Array.from(svgs) as SVGSVGElement[]) {
+            if (svg.closest('.interactive-diagram') || svg.closest('.scientific-graph')) {
+                try {
+                    const imgData = await captureSvgAsBase64(svg);
+                    const base64Data = imgData.split(',')[1];
+                    const buffer = Uint8Array.from(atob(base64Data), c => c.charCodeAt(0));
+                    sections.push(new Paragraph({
+                        children: [new ImageRun({ data: buffer, transformation: { width: 550, height: 300 } })],
+                        alignment: AlignmentType.CENTER,
+                        spacing: { before: 200, after: 200 }
+                    }));
+                } catch (e) { console.error("SVG embed error:", e); }
+            }
+        }
+    }
+
+    // Knowledge Map
+    if (onGetMapImage) {
+        const mapImg = await onGetMapImage();
+        if (mapImg) {
+            sections.push(new Paragraph({ text: 'KNOWLEDGE MAP', heading: HeadingLevel.HEADING_2, spacing: { before: 400, after: 200 } }));
+            try {
+                const base64Data = mapImg.split(',')[1];
+                const buffer = Uint8Array.from(atob(base64Data), c => c.charCodeAt(0));
+                sections.push(new Paragraph({
+                    children: [new ImageRun({ data: buffer, transformation: { width: 600, height: 450 } })],
+                    alignment: AlignmentType.CENTER,
+                    spacing: { before: 200, after: 200 }
+                }));
+            } catch (e) { console.error("Map embed error:", e); }
+        }
+    }
+
+    // Discussions
+    if (patientCase.discussions && Object.keys(patientCase.discussions).length > 0) {
+        sections.push(new Paragraph({ text: 'CASE DISCUSSIONS', heading: HeadingLevel.HEADING_1, spacing: { before: 600, after: 300 } }));
+        for (const [topic, messages] of Object.entries(patientCase.discussions) as [string, ChatMessage[]][]) {
+            if (messages.length <= 1) continue;
+            sections.push(new Paragraph({ text: `Topic: ${topic}`, heading: HeadingLevel.HEADING_2, spacing: { before: 300, after: 200 } }));
+            for (const msg of messages) {
+                const role = msg.role === 'user' ? 'You' : 'AI Tutor';
+                sections.push(new Paragraph({ children: [new TextRun({ text: `${role}:`, bold: true, size: 20 })], spacing: { before: 100 } }));
+                const blocks = splitMessageContent(msg.text);
+                for (const block of blocks) {
+                    if (block.type === 'text') {
+                        const cleaned = cleanTextForDownload(block.content || '');
+                        sections.push(new Paragraph({ children: [new TextRun({ text: cleaned, size: 20 })], spacing: { after: 150 } }));
+                    } else if (block.type === 'table' && block.table) {
+                        const table = new Table({
+                            width: { size: 100, type: WidthType.PERCENTAGE },
+                            rows: [
+                                new TableRow({
+                                    children: block.table.header.map(cell => new TableCell({
+                                        children: [new Paragraph({ children: [new TextRun({ text: cell, bold: true, color: 'FFFFFF', size: 18 })], alignment: AlignmentType.CENTER })],
+                                        shading: { fill: '4b5563' }
+                                    }))
+                                }),
+                                ...block.table.data.map(row => new TableRow({
+                                    children: row.map(cell => new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: cell, size: 16 })] })] }))
+                                }))
+                            ]
+                        });
+                        sections.push(table);
+                        sections.push(new Paragraph({ text: '', spacing: { after: 150 } }));
+                    }
+                }
+            }
+        }
+    }
+
+    const doc = new Document({
+        sections: [{
+            properties: {},
+            children: [
+                new Paragraph({ text: 'Ungana Medical', heading: HeadingLevel.TITLE, alignment: AlignmentType.CENTER }),
+                new Paragraph({ text: patientCase.title.toUpperCase(), heading: HeadingLevel.HEADING_1, alignment: AlignmentType.CENTER }),
+                new Paragraph({ text: `Synthesized on: ${new Date().toLocaleDateString()}`, alignment: AlignmentType.CENTER, spacing: { after: 400 } }),
+                ...sections
+            ]
+        }]
+    });
+
+    const blob = await Packer.toBlob(doc);
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${patientCase.title.replace(/\s+/g, '_')}_Case_Full.docx`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   };
 
   const handleImageGenerated = useCallback((idx: number, img: string) => { 
@@ -540,6 +820,7 @@ export const PatientCaseView: React.FC<PatientCaseViewProps> = ({ patientCase: i
             ) : (
               <>
                 <button onClick={handleDownloadPdf} title={T.downloadPdfButton} className="p-1 sm:p-1.5 text-gray-500 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-full transition-all"><FileType className="h-3.5 w-3.5" /></button>
+                <button onClick={handleDownloadWord} title={T.downloadWordButton} className="p-1 sm:p-1.5 text-gray-500 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-full transition-all"><FileDown className="h-3.5 w-3.5" /></button>
                 <button onClick={onOpenShare} title={T.shareCaseTitle} className="p-1 sm:p-1.5 text-gray-500 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-full transition-all"><svg className="h-3.5 w-3.5" fill="currentColor" viewBox="0 0 20 20"><path d="M15 8a3 3 0 10-2.977-2.63l-4.94 2.47a3 3 0 100 4.319l4.94 2.47a3 3 0 10.895-1.789l-4.94-2.47a3.027 3.027 0 000-.74l4.94-2.47C13.456 7.68 14.19 8 15 8z" /></svg></button>
                 <button onClick={() => setIsEditing(true)} title={T.editTextTitle} className="p-1 sm:p-1.5 text-gray-500 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-full transition-all"><svg className="h-3.5 w-3.5" fill="currentColor" viewBox="0 0 20 20"><path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828z" /><path d="M2 6a2 2 0 012-2h4a1 1 0 010 2H4v10h10v-4a1 1 0 112 0v4a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" /></svg></button>
               </>

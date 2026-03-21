@@ -21,11 +21,13 @@ export const SourceRenderer: React.FC<SourceRendererProps> = ({ text, groundingS
     dois.forEach(d => remainingText = remainingText.replace(d, ''));
     const urls = remainingText.match(urlRegex) || [];
 
-    // Extract URLs from groundingSources
+    // Extract URLs and Maps from groundingSources
     const groundingUrls = (groundingSources || []).map(gs => gs.web?.uri).filter(Boolean);
+    const groundingMaps = (groundingSources || []).map(gs => gs.maps?.uri).filter(Boolean);
     const allUrls = Array.from(new Set([...urls, ...groundingUrls]));
+    const allMaps = Array.from(new Set(groundingMaps));
 
-    if (pmids.length === 0 && dois.length === 0 && allUrls.length === 0) return null;
+    if (pmids.length === 0 && dois.length === 0 && allUrls.length === 0 && allMaps.length === 0) return null;
 
     return (
         <div className="flex flex-wrap items-center gap-2">
@@ -73,6 +75,18 @@ export const SourceRenderer: React.FC<SourceRendererProps> = ({ text, groundingS
                     </a>
                 );
             })}
+            {allMaps.map((url, index) => (
+                <a 
+                    key={`map-${index}`}
+                    href={url} 
+                    target="_blank" 
+                    rel="noopener noreferrer" 
+                    className="bg-amber-50 text-amber-700 px-1.5 py-0.5 rounded border border-amber-100 hover:bg-amber-100 transition flex items-center gap-1"
+                >
+                    <svg className="w-2.5 h-2.5" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" /></svg>
+                    Map
+                </a>
+            ))}
             {onSearchClick && (
                 <button 
                     onClick={onSearchClick} 
