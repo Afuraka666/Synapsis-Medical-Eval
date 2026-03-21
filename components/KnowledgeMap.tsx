@@ -247,6 +247,7 @@ interface KnowledgeMapProps {
     setIsMapFullscreen: (isFullscreen: boolean) => void;
     caseTitle: string;
     language: string;
+    theme: 'light' | 'dark';
     T: Record<string, any>;
     onDiscussNode: (nodeInfo: { node: KnowledgeNode; abstract: string; loading: boolean }) => void;
     onSaveMap?: () => void;
@@ -255,7 +256,7 @@ interface KnowledgeMapProps {
     onAddLink?: (link: KnowledgeLink) => void;
 }
 
-export const KnowledgeMap = forwardRef<any, KnowledgeMapProps>(({ data, onNodeClick, selectedNodeInfo, onClearSelection, isMapFullscreen, setIsMapFullscreen, caseTitle, language, T, onDiscussNode, onSaveMap, onDownloadMap, onAddNode, onAddLink }, ref) => {
+export const KnowledgeMap = forwardRef<any, KnowledgeMapProps>(({ data, onNodeClick, selectedNodeInfo, onClearSelection, isMapFullscreen, setIsMapFullscreen, caseTitle, language, theme, T, onDiscussNode, onSaveMap, onDownloadMap, onAddNode, onAddLink }, ref) => {
     const { logEvent } = useAnalytics();
     const { updateCursor, remoteCursors } = useCollaboration();
     const svgRef = useRef<SVGSVGElement | null>(null);
@@ -283,8 +284,9 @@ export const KnowledgeMap = forwardRef<any, KnowledgeMapProps>(({ data, onNodeCl
         const bounds = g.node().getBBox();
         const { width, height } = containerRef.current.getBoundingClientRect();
         
-        const effectiveWidth = width || dimensions.width || window.innerWidth;
-        const effectiveHeight = height || dimensions.height || window.innerHeight;
+        // Use container dimensions directly, fallback to window
+        const effectiveWidth = width || window.innerWidth;
+        const effectiveHeight = height || window.innerHeight;
         
         if (effectiveWidth === 0 || effectiveHeight === 0) return;
         
@@ -302,7 +304,7 @@ export const KnowledgeMap = forwardRef<any, KnowledgeMapProps>(({ data, onNodeCl
             .scale(scale);
             
         svg.transition().duration(750).call(zoomRef.current.transform, transform);
-    }, [dimensions]);
+    }, []); // Removed dimensions dependency to stabilize
 
     useEffect(() => {
         // Safety timeout to ensure loading state is cleared even if D3 simulation hangs or fails to fire events
@@ -326,17 +328,19 @@ export const KnowledgeMap = forwardRef<any, KnowledgeMapProps>(({ data, onNodeCl
             for (const entry of entries) {
                 const { width, height } = entry.contentRect;
                 if (width > 0 && height > 0) {
-                    setDimensions({ width, height });
+                    // Only update if dimensions actually changed to avoid unnecessary re-renders
+                    setDimensions(prev => {
+                        if (Math.abs(prev.width - width) < 1 && Math.abs(prev.height - height) < 1) return prev;
+                        return { width, height };
+                    });
+                    
                     window.requestAnimationFrame(() => {
                         if (simulationRef.current) {
                             simulationRef.current.force('center', d3.forceCenter(width / 2, height / 2));
                             simulationRef.current.alpha(0.3).restart();
                         }
                         
-                        if (isLoading) {
-                            setIsLoading(false);
-                        }
-                        
+                        setIsLoading(false);
                         resetZoom();
                     });
                 }
@@ -345,7 +349,7 @@ export const KnowledgeMap = forwardRef<any, KnowledgeMapProps>(({ data, onNodeCl
         
         observer.observe(containerRef.current);
         return () => observer.disconnect();
-    }, [isLoading, resetZoom]);
+    }, [resetZoom]); // resetZoom is now stable
 
     useEffect(() => {
         if (!svgRef.current || !containerRef.current || typeof d3 === 'undefined') return;
@@ -445,14 +449,14 @@ export const KnowledgeMap = forwardRef<any, KnowledgeMapProps>(({ data, onNodeCl
         };
 
         simulationRef.current = d3.forceSimulation(nodes)
-            .force('link', d3.forceLink(links).id((d: any) => d.id).distance(linkDistance).strength(0.7))
+            .force('link', d3.forceLink(links).id((d: any) => d.id).distance(linkDistance).strength(0.8))
             .force('charge', d3.forceManyBody().strength(chargeStrength))
             .force('center', d3.forceCenter(width / 2, height / 2))
-            .force('x', d3.forceX(width / 2).strength(0.1))
-            .force('y', d3.forceY(height / 2).strength(0.1))
-            .force('collide', d3.forceCollide().radius(collideRadius).iterations(3))
+            .force('x', d3.forceX(width / 2).strength(0.12))
+            .force('y', d3.forceY(height / 2).strength(0.12))
+            .force('collide', d3.forceCollide().radius(collideRadius).iterations(4))
             .force('cluster', clusterForce)
-            .velocityDecay(0.3)
+            .velocityDecay(0.4) // Smoother movement
             .on('tick.loading', () => {
                 setIsLoading(false);
                 resetZoom();
@@ -462,17 +466,17 @@ export const KnowledgeMap = forwardRef<any, KnowledgeMapProps>(({ data, onNodeCl
 
         const linkPaths = g.append("g").selectAll("path").data(links).join("path")
             .attr("fill", "none")
-            .attr("stroke", "#cbd5e1")
-            .attr("stroke-opacity", 0.6)
-            .attr("stroke-width", 3.5) // Increased thickness
+            .attr("stroke", theme === 'dark' ? '#475569' : '#cbd5e1')
+            .attr("stroke-opacity", 0.4)
+            .attr("stroke-width", 2.5)
             .attr("marker-end", "url(#map-arrowhead)")
-            .attr("class", "link-path transition-all cursor-help")
+            .attr("class", "link-path transition-all duration-300 cursor-help")
             .on('mouseenter', (event: any, d: any) => {
-                d3.select(event.currentTarget).attr("stroke", "#3b82f6").attr("stroke-opacity", 1).attr("stroke-width", 4.5);
+                d3.select(event.currentTarget).attr("stroke", "#3b82f6").attr("stroke-opacity", 0.8).attr("stroke-width", 3.5);
                 setHoveredLink(d);
             })
             .on('mouseleave', (event: any) => {
-                d3.select(event.currentTarget).attr("stroke", "#cbd5e1").attr("stroke-opacity", 0.6).attr("stroke-width", 3.5);
+                d3.select(event.currentTarget).attr("stroke", theme === 'dark' ? '#475569' : '#cbd5e1').attr("stroke-opacity", 0.4).attr("stroke-width", 2.5);
                 setHoveredLink(null);
             });
 
@@ -496,11 +500,30 @@ export const KnowledgeMap = forwardRef<any, KnowledgeMapProps>(({ data, onNodeCl
             });
 
         node.append('rect')
-            .attr('rx', 12).attr('ry', 12) // Slightly less rounded for a more "technical" feel
+            .attr('rx', 14).attr('ry', 14)
             .attr('fill', (d: any, i: number) => getNodeColor(d.discipline, d.id, i))
-            .attr('stroke', '#ffffff')
+            .attr('stroke', theme === 'dark' ? '#1e293b' : '#ffffff')
             .attr('stroke-width', 2.5)
-            .attr('filter', 'drop-shadow(0px 8px 16px rgba(0,0,0,0.15))');
+            .attr('filter', 'drop-shadow(0px 8px 24px rgba(0,0,0,0.2))')
+            .attr('class', 'node-rect transition-all duration-300');
+            
+        // Add a subtle glow for important nodes
+        node.filter((d: any) => (d.importance || 0) > 1.5)
+            .append('rect')
+            .attr('rx', 16).attr('ry', 16)
+            .attr('fill', (d: any, i: number) => getNodeColor(d.discipline, d.id, i))
+            .attr('fill-opacity', 0.1)
+            .attr('stroke', (d: any, i: number) => getNodeColor(d.discipline, d.id, i))
+            .attr('stroke-opacity', 0.2)
+            .attr('stroke-width', 4)
+            .attr('class', 'animate-pulse pointer-events-none')
+            .each(function(d: any) {
+                d3.select(this)
+                    .attr('width', d.pillWidth + 8)
+                    .attr('height', d.pillHeight + 8)
+                    .attr('x', - (d.pillWidth + 8) / 2)
+                    .attr('y', - (d.pillHeight + 8) / 2);
+            });
 
         node.append('text')
             .text((d: any) => d.label)
@@ -550,7 +573,7 @@ export const KnowledgeMap = forwardRef<any, KnowledgeMapProps>(({ data, onNodeCl
         return () => {
             if (simulationRef.current) simulationRef.current.stop();
         };
-    }, [data, nodes, links, onNodeClick, resetZoom, dimensions.width, dimensions.height]);
+    }, [nodes, links, onNodeClick, resetZoom, theme]);
 
     if (typeof d3 === 'undefined') {
         return (

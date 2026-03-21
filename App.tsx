@@ -87,9 +87,9 @@ export const App: React.FC = () => {
     const [mapData, setMapData] = useState<KnowledgeMapData | null>(null);
 
     // Theme State
-    const [theme, setTheme] = useState(() => {
+    const [theme, setTheme] = useState<'light' | 'dark'>(() => {
         const saved = localStorage.getItem('ungana_theme');
-        if (saved) return saved;
+        if (saved === 'light' || saved === 'dark') return saved;
         return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
     });
 
@@ -152,11 +152,13 @@ export const App: React.FC = () => {
     const { density, isDesktop, size, orientation, isMobile } = useContentDensity();
 
     // Automatically detect screen size and adjust layout state
+    const wasDesktop = useRef(isDesktopResp);
     useEffect(() => {
-        if (isDesktopResp) {
+        if (isDesktopResp && !wasDesktop.current) {
             setMobileView('case');
             setIsMapFullscreen(false);
         }
+        wasDesktop.current = isDesktopResp;
     }, [isDesktopResp]);
 
     // Handle mobile orientation changes for better layout
@@ -173,24 +175,48 @@ export const App: React.FC = () => {
         return { ...translations.en, ...selectedTranslation };
     }, [language]);
     
+    const lastSyncedCaseRef = useRef<string>('');
+
     // -- EFFECTS --
 
     // Sync with remote updates
     useEffect(() => {
         if (remoteUpdate) {
-            setPatientCase(remoteUpdate);
-            if (remoteUpdate.knowledgeMap) {
-                setMapData(remoteUpdate.knowledgeMap);
+            const remoteStr = JSON.stringify(remoteUpdate);
+            if (remoteStr !== lastSyncedCaseRef.current) {
+                lastSyncedCaseRef.current = remoteStr;
+                setPatientCase(remoteUpdate);
+                if (remoteUpdate.knowledgeMap) {
+                    const mapStr = JSON.stringify(remoteUpdate.knowledgeMap);
+                    if (mapStr !== JSON.stringify(mapData)) {
+                        setMapData(remoteUpdate.knowledgeMap);
+                    }
+                }
             }
         }
-    }, [remoteUpdate]);
+    }, [remoteUpdate, mapData]);
 
     // Broadcast local updates
     useEffect(() => {
         if (patientCase && roomId) {
-            broadcastUpdate(patientCase);
+            const caseStr = JSON.stringify(patientCase);
+            if (caseStr !== lastSyncedCaseRef.current) {
+                lastSyncedCaseRef.current = caseStr;
+                broadcastUpdate(patientCase);
+            }
         }
     }, [patientCase, roomId, broadcastUpdate]);
+
+    // Keep mapData in sync with patientCase.knowledgeMap if it changes elsewhere
+    useEffect(() => {
+        if (patientCase?.knowledgeMap) {
+            const caseMapStr = JSON.stringify(patientCase.knowledgeMap);
+            const currentMapStr = JSON.stringify(mapData);
+            if (caseMapStr !== currentMapStr) {
+                setMapData(patientCase.knowledgeMap);
+            }
+        }
+    }, [patientCase?.knowledgeMap, mapData]);
 
     useEffect(() => {
         if (theme === 'dark') {
@@ -596,7 +622,7 @@ export const App: React.FC = () => {
                         <div className="flex-grow min-h-0 relative flex flex-col overflow-hidden">
                             <div 
                                 className="flex flex-grow h-full w-full transition-transform duration-500 ease-in-out lg:transform-none lg:flex-row lg:gap-4 min-h-0"
-                                style={{ transform: `translateX(${mobileView === 'map' ? '-100%' : '0%'})` }}
+                                style={!isDesktopResp ? { transform: `translateX(${mobileView === 'map' ? '-100%' : '0%'})` } : {}}
                             >
                                 <div className={`w-full flex-shrink-0 h-full lg:w-[62%] lg:flex-shrink min-h-0 flex flex-col transition-opacity duration-300 ${mobileView === 'map' ? 'opacity-0 pointer-events-none lg:opacity-100 lg:pointer-events-auto' : 'opacity-100'}`}>
                                     <div ref={caseScrollRef} className="flex-grow overflow-y-auto bg-white dark:bg-dark-surface rounded-2xl shadow-lg border border-gray-200 dark:border-dark-border">
@@ -636,6 +662,7 @@ export const App: React.FC = () => {
                                                 setIsMapFullscreen={setIsMapFullscreen}
                                                 caseTitle={patientCase.title}
                                                 language={language}
+                                                theme={theme}
                                                 T={T}
                                                 onDiscussNode={handleDiscussNode}
                                                 onSaveMap={handleSaveMapSnippet}
@@ -678,6 +705,7 @@ export const App: React.FC = () => {
                 onImportCase={handleImportCase}
                 T={T}
                 language={language}
+                theme={theme}
             />
 
              <ShareModal

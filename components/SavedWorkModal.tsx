@@ -18,6 +18,7 @@ interface SavedWorkModalProps {
     onImportCase: (caseData: PatientCase) => void;
     T: Record<string, any>;
     language: string;
+    theme: 'light' | 'dark';
 }
 
 type ActiveTab = 'cases' | 'snippets';
@@ -25,7 +26,7 @@ type ActiveTab = 'cases' | 'snippets';
 /**
  * Enhanced snippet content renderer that handles rich media
  */
-const SnippetVisuals: React.FC<{ snippet: Snippet; language: string; T: Record<string, any> }> = ({ snippet, language, T }) => {
+const SnippetVisuals: React.FC<{ snippet: Snippet; language: string; theme: 'light' | 'dark'; T: Record<string, any> }> = ({ snippet, language, theme, T }) => {
     const [isMapFullscreen, setIsMapFullscreen] = useState(false);
     
     return (
@@ -49,6 +50,7 @@ const SnippetVisuals: React.FC<{ snippet: Snippet; language: string; T: Record<s
                         setIsMapFullscreen={setIsMapFullscreen} 
                         caseTitle={snippet.title} 
                         language={language} 
+                        theme={theme}
                         T={T} 
                         onDiscussNode={() => {}} 
                     />
@@ -66,7 +68,7 @@ const SnippetVisuals: React.FC<{ snippet: Snippet; language: string; T: Record<s
 };
 
 export const SavedWorkModal: React.FC<SavedWorkModalProps> = ({ 
-    isOpen, onClose, savedCases, onLoadCase, onDeleteCase, savedSnippets, onDeleteSnippet, onImportCase, T, language 
+    isOpen, onClose, savedCases, onLoadCase, onDeleteCase, savedSnippets, onDeleteSnippet, onImportCase, T, language, theme 
 }) => {
     const [activeTab, setActiveTab] = useState<ActiveTab>('cases');
     const [searchQuery, setSearchQuery] = useState('');
@@ -244,7 +246,7 @@ export const SavedWorkModal: React.FC<SavedWorkModalProps> = ({
                                             </div>
 
                                             {/* Rich visual content rendering */}
-                                            <SnippetVisuals snippet={s} language={language} T={T} />
+                                            <SnippetVisuals snippet={s} language={language} theme={theme} T={T} />
                                         </li>
                                     ))}
                                 </ul>

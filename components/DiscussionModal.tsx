@@ -107,12 +107,14 @@ function parseMarkdownTable(text: string) {
     
     // Improved parsing to handle empty cells and varying pipe configurations
     const rows = lines
-        .filter(line => line.trim().startsWith('|'))
+        .filter(line => line.trim().includes('|'))
         .map(line => {
-            const parts = line.trim().split('|');
-            // Remove first and last empty parts if they exist (due to leading/trailing pipes)
-            if (parts[0] === '') parts.shift();
-            if (parts[parts.length - 1] === '') parts.pop();
+            let trimmed = line.trim();
+            // Remove leading and trailing pipes if they exist
+            if (trimmed.startsWith('|')) trimmed = trimmed.substring(1);
+            if (trimmed.endsWith('|')) trimmed = trimmed.substring(0, trimmed.length - 1);
+            
+            const parts = trimmed.split('|');
             return parts.map(cell => cell.trim());
         });
         
@@ -216,8 +218,8 @@ export const DiscussionModal: React.FC<DiscussionModalProps> = ({
             const getSystemInstruction = () => `You are an expert medical tutor. Facilitate a deep Socratic discussion about "${topic.aspect}" for "${caseTitle}". 
             
             **CONVERSATIONAL STYLE (CRITICAL):**
-            1. **NO MARKDOWN SYMBOLS:** Do NOT use markdown symbols like "**" for bold or "###" for headers. Use plain text for emphasis or structure.
-            2. **NATURAL FLOW:** Keep the discussion conversational and professional without heavy formatting.
+            1. **MARKDOWN SUPPORT:** You MAY use standard markdown for structure (headers, bold, lists).
+            2. **NATURAL FLOW:** Keep the discussion conversational and professional.
             
             **VISUAL PREFERENCE & PHYSIOLOGICAL FIDELITY (MANDATORY):**
             Do NOT explain physiological curves in text. You MUST use visual triggers:

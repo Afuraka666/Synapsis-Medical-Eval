@@ -61,11 +61,13 @@ export const CollaborationProvider: React.FC<{ children: React.ReactNode }> = ({
         }
     }, [socket, roomId]);
 
+    const value = React.useMemo(() => ({
+        socket, isConnected, roomId, joinRoom, broadcastUpdate, 
+        remoteUpdate, remoteCursors, updateCursor 
+    }), [socket, isConnected, roomId, joinRoom, broadcastUpdate, remoteUpdate, remoteCursors, updateCursor]);
+
     return (
-        <CollaborationContext.Provider value={{ 
-            socket, isConnected, roomId, joinRoom, broadcastUpdate, 
-            remoteUpdate, remoteCursors, updateCursor 
-        }}>
+        <CollaborationContext.Provider value={value}>
             {children}
         </CollaborationContext.Provider>
     );

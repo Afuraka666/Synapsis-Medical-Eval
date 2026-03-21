@@ -21,10 +21,12 @@ export const AnalyticsProvider: React.FC<{ children: ReactNode }> = ({ children 
     });
   }, []);
 
+  const value = React.useMemo(() => ({ logEvent, eventLog }), [logEvent, eventLog]);
+
   // Using React.createElement because this is a .ts file, not a .tsx file.
   return React.createElement(
     AnalyticsContext.Provider,
-    { value: { logEvent, eventLog } },
+    { value },
     children
   );
 };

@@ -23,27 +23,17 @@ const sanitizeContent = (text: string): string => {
         .replace(/\\\$/g, '$')
         // 0.1 Strip out custom visual tags that are handled by the UI
         .replace(/\[\s*(ILLUSTRATE|DIAGRAM|GRAPH):\s*.*?\s*\]/gi, '')
-        // 0.2 Strip out ** and ### as requested by user ("not necessary and should not appear")
-        .replace(/\*\*/g, '')
-        .replace(/^#+\s*/gm, '')
         .trim();
 
-    // 0.3 Ensure tables have a double newline before them to be correctly parsed
+    // 0.2 Ensure tables have a double newline before them to be correctly parsed
     // We look for a line starting with | that is preceded by text on the previous line
     cleaned = cleaned.replace(/([^\n])\n\|/g, '$1\n\n|');
 
-    // 1. Protect existing math blocks and tables by temporarily replacing them
+    // 1. Protect existing math blocks by temporarily replacing them
     const protectedBlocks: string[] = [];
     
     // Protect math blocks
     cleaned = cleaned.replace(/(\$\$[\s\S]*?\$\$|\$[^\$\n]+?\$)/g, (match) => {
-        protectedBlocks.push(match);
-        return `__PROTECTED_BLOCK_${protectedBlocks.length - 1}__`;
-    });
-
-    // Protect tables (lines starting with |)
-    // We look for blocks that look like tables: multiple lines starting with |
-    cleaned = cleaned.replace(/((\n|^)\|[\s\S]+?\|(\n|$)(?=\n|$|\s*\n))/g, (match) => {
         protectedBlocks.push(match);
         return `__PROTECTED_BLOCK_${protectedBlocks.length - 1}__`;
     });
@@ -98,15 +88,10 @@ const sanitizeContent = (text: string): string => {
         .replace(/(^|\s)\$+(?!\d)(\s|$)/g, '$1$2') // Remove $ or $$ that are not followed by a digit
         .replace(/\\\$/g, '$'); // Final unescape
 
-    // 9. Restore protected blocks (math and tables)
+    // 9. Restore protected blocks (math)
     cleaned = cleaned.replace(/__PROTECTED_BLOCK_(\d+)__/g, (match, p1) => {
         let block = protectedBlocks[parseInt(p1)];
         
-        // If it's a table (starts with newline or |), return it as is
-        if (block.trim().startsWith('|')) {
-            return block;
-        }
-
         // If it's a math block, fix common issues inside it
         // If the user wants NO $, we strip them and convert to plain text
         let unwrapped = block.replace(/^\$\$?|\$\$?$/g, '').trim();
