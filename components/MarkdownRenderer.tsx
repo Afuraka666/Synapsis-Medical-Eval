@@ -18,28 +18,34 @@ interface MarkdownRendererProps {
 const sanitizeContent = (text: string): string => {
     if (!text) return '';
     
-    // 0. Unescape \$ if AI over-escaped it (common in JSON responses)
+    // 0. Basic normalization
     let cleaned = text
+        .replace(/\r\n/g, '\n')
         .replace(/\\\$/g, '$')
-        // 0.1 Strip out custom visual tags that are handled by the UI
+        .replace(/\\\|/g, '|') // Unescape pipes which are critical for tables
+        .replace(/\\_/g, '_')
+        .replace(/\\\[/g, '[')
+        .replace(/\\\]/g, ']')
         .replace(/\[\s*(ILLUSTRATE|DIAGRAM|GRAPH):\s*.*?\s*\]/gi, '')
         .trim();
 
-    // 0.2 Ensure tables have a double newline before them to be correctly parsed
-    // We look for a line starting with | that is preceded by text on the previous line
-    cleaned = cleaned.replace(/([^\n])\n\|/g, '$1\n\n|');
+    // 1. Ensure tables have a double newline before and after to be correctly parsed by GFM
+    // Before table
+    cleaned = cleaned.replace(/([^\n])\n(\s*\|)/g, '$1\n\n$2');
+    // After table
+    cleaned = cleaned.replace(/(\|\s*)\n([^\n|])/g, '$1\n\n$2');
 
-    // 1. Protect existing math blocks by temporarily replacing them
+    // 2. Protect existing math blocks by temporarily replacing them
     const protectedBlocks: string[] = [];
     
-    // Protect math blocks
-    cleaned = cleaned.replace(/(\$\$[\s\S]*?\$\$|\$[^\$\n]+?\$)/g, (match) => {
+    // Protect math blocks (only if they don't contain pipes to avoid breaking tables)
+    cleaned = cleaned.replace(/(\$\$[\s\S]*?\$\$|\$[^\$\n|]+?\$)/g, (match) => {
         protectedBlocks.push(match);
         return `__PROTECTED_BLOCK_${protectedBlocks.length - 1}__`;
     });
 
     cleaned = cleaned
-        // 2. Replace specific common LaTeX commands with Unicode ONLY if NOT in math mode
+        // 3. Replace specific common LaTeX commands with Unicode
         .replace(/\\rightarrow/gi, ' → ')
         .replace(/\\leftarrow/gi, ' ← ')
         .replace(/\\Delta/g, ' Δ ')
@@ -51,16 +57,10 @@ const sanitizeContent = (text: string): string => {
         .replace(/\\times/gi, ' × ')
         .replace(/\\cdot/gi, ' · ')
         
-        // 3. Clean up LaTeX escaping artifacts for characters that shouldn't be escaped in Markdown
-        .replace(/\\_/g, '_')            
-        .replace(/\\\^/g, '^')           
-        .replace(/\\\[/g, '[')           
-        .replace(/\\\]/g, ']')           
-        
         // 4. Normalize spacing for medical units
         .replace(/(\d)(mg|mcg|mL|mmHg|bpm|mmol|meq)/gi, '$1 $2')
         
-        // 5. Unicode for standard medical variables (now safe because math is protected)
+        // 5. Unicode for standard medical variables
         .replace(/\bPaO2\b/g, 'PaO₂')
         .replace(/\bSaO2\b/g, 'SaO₂')
         .replace(/\bPvO2\b/g, 'PvO₂')
@@ -72,28 +72,16 @@ const sanitizeContent = (text: string): string => {
         .replace(/\bH2O\b/g, 'H₂O')
         .replace(/\bHCO3\b/g, 'HCO₃⁻')
         .replace(/\bt1\/2\b/gi, 'T½')
-        .replace(/P\(A-a\)O2/g, 'P(A-a)O₂')
+        .replace(/P\(A-a\)O2/g, 'P(A-a)O₂');
         
-        // 6. Recovery for lost backslashes in common LaTeX commands (outside math blocks)
-        // Only do this if we still want to support some LaTeX, but the user wants Unicode.
-        // Actually, let's skip this if we want to move away from LaTeX.
-        
-        // 7. REMOVED: Detect and wrap equations that look like LaTeX but aren't wrapped
-        // We no longer want to force LaTeX wrapping as the user wants plain text with Unicode.
-        
-    // 8. Final cleanup (BEFORE restoring blocks to avoid mangling them)
+    // 6. Final cleanup
     cleaned = cleaned
         .replace(/[ \t]+/g, ' ')
-        .replace(/\n{3,}/g, '\n\n')
-        .replace(/(^|\s)\$+(?!\d)(\s|$)/g, '$1$2') // Remove $ or $$ that are not followed by a digit
-        .replace(/\\\$/g, '$'); // Final unescape
+        .replace(/\n{3,}/g, '\n\n');
 
-    // 9. Restore protected blocks (math)
+    // 7. Restore protected blocks (math)
     cleaned = cleaned.replace(/__PROTECTED_BLOCK_(\d+)__/g, (match, p1) => {
         let block = protectedBlocks[parseInt(p1)];
-        
-        // If it's a math block, fix common issues inside it
-        // If the user wants NO $, we strip them and convert to plain text
         let unwrapped = block.replace(/^\$\$?|\$\$?$/g, '').trim();
         
         // Convert common LaTeX math commands to plain text/Unicode
