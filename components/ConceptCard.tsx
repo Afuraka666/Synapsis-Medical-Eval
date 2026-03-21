@@ -29,23 +29,24 @@ export const ConceptCard: React.FC<ConceptCardProps> = ({ nodeInfo, onClose, onD
   const color = DisciplineColors[node.discipline] || '#6b7280';
   
   return (
-    <div className="absolute top-4 left-1/2 -translate-x-1/2 sm:left-auto sm:translate-x-0 sm:right-4 w-[calc(100%-2rem)] max-w-sm sm:w-80 medical-card p-4 sm:p-6 animate-fade-in z-10">
-      <div className="flex justify-between items-start mb-4">
+    <div className="absolute top-4 left-1/2 -translate-x-1/2 sm:left-auto sm:translate-x-0 sm:right-4 w-[calc(100%-2rem)] max-w-sm sm:w-80 glass-panel p-4 sm:p-6 animate-fade-in z-10 rounded-3xl shadow-2xl overflow-hidden">
+      <div className="absolute top-0 right-0 w-32 h-32 bg-brand-blue/5 rounded-full -mr-16 -mt-16 blur-3xl"></div>
+      <div className="flex justify-between items-start mb-6 relative">
         <div className="flex-1">
-          <div className="flex items-center gap-2 mb-2">
+          <div className="flex items-center gap-2 mb-3">
             <span
-              className="text-[10px] font-black px-2.5 py-0.5 rounded-full uppercase tracking-widest"
-              style={{ backgroundColor: `${color}15`, color: color }}
+              className="text-[9px] font-black px-3 py-1 rounded-full uppercase tracking-[0.2em] border border-current/20"
+              style={{ backgroundColor: `${color}10`, color: color }}
               title={`Medical Domain: ${node.discipline}`}
             >
               {node.discipline}
             </span>
           </div>
-          <h3 className="text-xl font-black text-gray-900 dark:text-white tracking-tight leading-tight">{node.label}</h3>
+          <h3 className="text-2xl font-black text-gray-900 dark:text-white tracking-tighter leading-none">{node.label}</h3>
         </div>
         <button
           onClick={onClose}
-          className="p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-lg transition-all"
+          className="p-2 text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-slate-800 rounded-full transition-all"
           aria-label="Close"
           title="Dismiss concept detail"
         >
@@ -55,19 +56,18 @@ export const ConceptCard: React.FC<ConceptCardProps> = ({ nodeInfo, onClose, onD
         </button>
       </div>
 
-      <div className="relative group">
-        <div className="absolute -left-2 top-0 bottom-0 w-1 bg-brand-blue/20 rounded-full"></div>
-        <div className="text-sm text-gray-800 dark:text-slate-200 min-h-[60px] leading-relaxed">
+      <div className="relative group mb-8">
+        <div className="text-sm text-gray-700 dark:text-slate-300 min-h-[80px] leading-relaxed">
           {loading ? (
             <LoadingSpinner />
           ) : (
-            <div className="space-y-3">
-              <p className="whitespace-pre-wrap font-medium">{abstract}</p>
-              <div className="flex items-start gap-2 p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-100 dark:border-slate-700">
+            <div className="space-y-4">
+              <p className="whitespace-pre-wrap font-medium tracking-tight text-gray-800 dark:text-slate-200">{abstract}</p>
+              <div className="flex items-start gap-3 p-4 bg-brand-blue/5 dark:bg-brand-blue-light/5 rounded-2xl border border-brand-blue/10 dark:border-brand-blue-light/10">
                 <span title="Information">
-                  <Info className="w-4 h-4 text-brand-blue mt-0.5 flex-shrink-0" />
+                  <Info className="w-4 h-4 text-brand-blue dark:text-brand-blue-light mt-0.5 flex-shrink-0" />
                 </span>
-                <p className="text-[11px] text-gray-700 dark:text-slate-300 italic">
+                <p className="text-[11px] text-gray-600 dark:text-slate-400 font-medium leading-snug">
                   This concept is a key node in the biochemical pathway for this case.
                 </p>
               </div>
@@ -76,12 +76,12 @@ export const ConceptCard: React.FC<ConceptCardProps> = ({ nodeInfo, onClose, onD
         </div>
       </div>
 
-      <div className="mt-6 pt-4 border-t border-gray-100 dark:border-slate-700">
+      <div className="relative">
           <button
               onClick={() => onDiscuss(nodeInfo)}
               disabled={loading}
               title="Initiate deep-dive medical discussion on this concept"
-              className="w-full bg-brand-blue hover:bg-brand-blue-dark text-white font-black py-3 px-4 rounded-xl transition-all text-xs uppercase tracking-widest flex items-center justify-center gap-2 shadow-lg shadow-brand-blue/20 disabled:opacity-50 disabled:shadow-none hover:scale-[1.02] active:scale-[0.98]"
+              className="w-full bg-brand-blue dark:bg-brand-blue-light hover:bg-brand-blue-dark dark:hover:bg-brand-blue text-white font-black py-4 px-6 rounded-2xl transition-all text-[10px] uppercase tracking-[0.2em] flex items-center justify-center gap-2 shadow-xl shadow-brand-blue/20 dark:shadow-brand-blue-light/20 disabled:opacity-50 disabled:shadow-none hover:scale-[1.02] active:scale-[0.98]"
           >
               <span title="Discuss">
                 <MessageSquare className="w-4 h-4" />

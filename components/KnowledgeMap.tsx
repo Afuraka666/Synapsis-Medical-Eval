@@ -43,8 +43,11 @@ export const DisciplineColors: Record<string, string> = {
     [Discipline.SPEECH_LANGUAGE_THERAPY]: '#4338CA',
 };
 
-// Randomized color generator for unique node identity
-const getNodeColor = (id: string, index: number) => {
+// Use DisciplineColors if available, otherwise fallback to randomized color
+const getNodeColor = (discipline: string, id: string, index: number) => {
+    if (discipline && DisciplineColors[discipline]) {
+        return DisciplineColors[discipline];
+    }
     let hash = 0;
     for (let i = 0; i < id.length; i++) {
         hash = id.charCodeAt(i) + ((hash << 5) - hash);
@@ -142,10 +145,10 @@ interface MapControlsProps {
     T: Record<string, any>;
 }
 
-const MapControls: React.FC<MapControlsProps> = ({ onZoomIn, onZoomOut, onReset, onToggleFullscreen, onSaveMap, onDownloadMap, onAddNode, onAddLink, isFullscreen, T }) => {
-    const buttonClasses = "bg-white dark:bg-slate-800 hover:bg-gray-50 dark:hover:bg-slate-700 text-gray-700 dark:text-slate-200 rounded-xl w-10 h-10 flex items-center justify-center transition-all hover:scale-105 active:scale-95";
+const MapControls: React.FC<MapControlsProps & { onToggleLegend: () => void; showLegend: boolean }> = ({ onZoomIn, onZoomOut, onReset, onToggleFullscreen, onSaveMap, onDownloadMap, onAddNode, onAddLink, onToggleLegend, showLegend, isFullscreen, T }) => {
+    const buttonClasses = "bg-white dark:bg-slate-800 hover:bg-gray-50 dark:hover:bg-slate-700 text-gray-700 dark:text-slate-200 rounded-xl w-10 h-10 flex items-center justify-center transition-all hover:scale-105 active:scale-95 border border-gray-200 dark:border-slate-700 shadow-sm";
     return (
-        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex flex-row gap-2 z-10 bg-white/90 dark:bg-slate-800/90 backdrop-blur-md p-1.5 rounded-2xl shadow-2xl border border-gray-200/50 dark:border-slate-700/50">
+        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex flex-row gap-2 z-10 bg-white/95 dark:bg-slate-800/95 backdrop-blur-md p-2 rounded-2xl shadow-2xl border border-gray-200/50 dark:border-slate-700/50">
             <button onClick={onZoomIn} title={T.zoomInButton} className={buttonClasses}>
                  <span title={T.zoomInButton}>
                     <ZoomIn className="h-5 w-5" />
@@ -172,6 +175,12 @@ const MapControls: React.FC<MapControlsProps> = ({ onZoomIn, onZoomOut, onReset,
                         <Maximize className="h-5 w-5" />
                     </span>
                 )}
+            </button>
+            <div className="w-px h-6 bg-gray-200 dark:bg-slate-700 self-center mx-1"></div>
+            <button onClick={onToggleLegend} title={T.toggleLegend} className={`${buttonClasses} ${showLegend ? 'bg-brand-blue/10 dark:bg-brand-blue-light/10 text-brand-blue dark:text-brand-blue-light border-brand-blue/30' : ''}`}>
+                <span title={T.toggleLegend}>
+                    <Network className="h-5 w-5" />
+                </span>
             </button>
             {(onAddNode || onAddLink) && (
                 <>
@@ -257,6 +266,7 @@ export const KnowledgeMap = forwardRef<any, KnowledgeMapProps>(({ data, onNodeCl
     const gRef = useRef<any>(null);
     const [hoveredNode, setHoveredNode] = useState<{ node: KnowledgeNode; position: { x: number; y: number } } | null>(null);
     const [hoveredLink, setHoveredLink] = useState<KnowledgeLink | null>(null);
+    const [showLegend, setShowLegend] = useState(false);
     
     const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
     
@@ -350,7 +360,31 @@ export const KnowledgeMap = forwardRef<any, KnowledgeMapProps>(({ data, onNodeCl
         const svg = d3.select(svgRef.current);
         svg.selectAll('*').remove();
         
-        svg.append('defs').append('marker')
+        // Add defs for patterns and markers
+        const defs = svg.append('defs');
+        
+        // Add grid pattern
+        const pattern = defs.append('pattern')
+            .attr('id', 'grid')
+            .attr('width', 40)
+            .attr('height', 40)
+            .attr('patternUnits', 'userSpaceOnUse');
+        
+        pattern.append('path')
+            .attr('d', 'M 40 0 L 0 0 0 40')
+            .attr('fill', 'none')
+            .attr('stroke', 'currentColor')
+            .attr('stroke-opacity', 0.05)
+            .attr('stroke-width', 0.5);
+
+        // Background grid rect
+        svg.append('rect')
+            .attr('width', '100%')
+            .attr('height', '100%')
+            .attr('fill', 'url(#grid)')
+            .attr('pointer-events', 'none');
+
+        defs.append('marker')
             .attr('id', 'map-arrowhead')
             .attr('viewBox', '0 -5 10 10')
             .attr('refX', 8)
@@ -377,31 +411,48 @@ export const KnowledgeMap = forwardRef<any, KnowledgeMapProps>(({ data, onNodeCl
         const zoom = d3.zoom().scaleExtent([0.1, 4]).on('zoom', (event: any) => g.attr('transform', event.transform));
         zoomRef.current = zoom; svg.call(zoom);
         
-        const linkDistance = isMobile ? 120 : 220;
-        const chargeStrength = isMobile ? -1200 : -2500;
-        const collideRadius = isMobile ? 80 : 120;
+        const linkDistance = isMobile ? 140 : 240;
+        const chargeStrength = isMobile ? -1500 : -3000;
+        const collideRadius = isMobile ? 90 : 130;
 
         // Clustering force: pull nodes of same discipline together
         const clusterForce = (alpha: number) => {
             const centers: Record<string, { x: number; y: number }> = {};
+            const disciplineCounts: Record<string, number> = {};
+            
             nodes.forEach((n: any) => {
-                if (!centers[n.discipline]) centers[n.discipline] = { x: width / 2, y: height / 2 };
+                if (!centers[n.discipline]) {
+                    centers[n.discipline] = { x: 0, y: 0 };
+                    disciplineCounts[n.discipline] = 0;
+                }
+                centers[n.discipline].x += n.x;
+                centers[n.discipline].y += n.y;
+                disciplineCounts[n.discipline]++;
+            });
+            
+            Object.keys(centers).forEach(d => {
+                centers[d].x /= disciplineCounts[d];
+                centers[d].y /= disciplineCounts[d];
             });
             
             nodes.forEach((n: any) => {
                 const center = centers[n.discipline];
-                n.vx += (center.x - n.x) * alpha * 0.05;
-                n.vy += (center.y - n.y) * alpha * 0.05;
+                if (center) {
+                    n.vx += (center.x - n.x) * alpha * 0.1;
+                    n.vy += (center.y - n.y) * alpha * 0.1;
+                }
             });
         };
 
         simulationRef.current = d3.forceSimulation(nodes)
-            .force('link', d3.forceLink(links).id((d: any) => d.id).distance(linkDistance).strength(0.6))
+            .force('link', d3.forceLink(links).id((d: any) => d.id).distance(linkDistance).strength(0.7))
             .force('charge', d3.forceManyBody().strength(chargeStrength))
             .force('center', d3.forceCenter(width / 2, height / 2))
-            .force('collide', d3.forceCollide().radius(collideRadius).iterations(2))
+            .force('x', d3.forceX(width / 2).strength(0.1))
+            .force('y', d3.forceY(height / 2).strength(0.1))
+            .force('collide', d3.forceCollide().radius(collideRadius).iterations(3))
             .force('cluster', clusterForce)
-            .velocityDecay(0.4)
+            .velocityDecay(0.3)
             .on('tick.loading', () => {
                 setIsLoading(false);
                 resetZoom();
@@ -445,11 +496,11 @@ export const KnowledgeMap = forwardRef<any, KnowledgeMapProps>(({ data, onNodeCl
             });
 
         node.append('rect')
-            .attr('rx', 25).attr('ry', 25)
-            .attr('fill', (d: any, i: number) => getNodeColor(d.id, i)) // Randomized colors
+            .attr('rx', 12).attr('ry', 12) // Slightly less rounded for a more "technical" feel
+            .attr('fill', (d: any, i: number) => getNodeColor(d.discipline, d.id, i))
             .attr('stroke', '#ffffff')
             .attr('stroke-width', 2.5)
-            .attr('filter', 'drop-shadow(0px 4px 6px rgba(0,0,0,0.1))');
+            .attr('filter', 'drop-shadow(0px 8px 16px rgba(0,0,0,0.15))');
 
         node.append('text')
             .text((d: any) => d.label)
@@ -473,11 +524,12 @@ export const KnowledgeMap = forwardRef<any, KnowledgeMapProps>(({ data, onNodeCl
 
         node.append('text')
             .text((d: any) => (d.discipline || '').toUpperCase())
+            .attr("font-family", "'JetBrains Mono', monospace") // Monospace for discipline
             .attr('font-size', isMobile ? '7px' : '8px')
             .attr('font-weight', '900')
             .attr('fill', '#ffffff')
             .attr('opacity', 0.9)
-            .attr('letter-spacing', '0.08em')
+            .attr('letter-spacing', '0.12em')
             .attr('text-anchor', 'middle')
             .attr('dy', isMobile ? '1.8em' : '1.6em');
 
@@ -575,6 +627,8 @@ export const KnowledgeMap = forwardRef<any, KnowledgeMapProps>(({ data, onNodeCl
                     logEvent('map_toggle_fullscreen', { is_fullscreen: !isMapFullscreen });
                     setIsMapFullscreen(!isMapFullscreen);
                 }} 
+                onToggleLegend={() => setShowLegend(!showLegend)}
+                showLegend={showLegend}
                 onSaveMap={onSaveMap} 
                 onDownloadMap={onDownloadMap}
                 onAddNode={onAddNode ? () => {
@@ -604,6 +658,28 @@ export const KnowledgeMap = forwardRef<any, KnowledgeMapProps>(({ data, onNodeCl
             />
             <NodeTooltip node={hoveredNode?.node || null} position={hoveredNode?.position || null} T={T} />
             
+            {showLegend && (
+                <div className="absolute top-6 right-6 z-10 bg-white/95 dark:bg-slate-800/95 backdrop-blur-md p-4 rounded-2xl shadow-2xl border border-gray-200/50 dark:border-slate-700/50 max-h-[70%] overflow-y-auto animate-fade-in w-64">
+                    <div className="flex items-center gap-2 mb-4">
+                        <span title={T.legendTitle}>
+                            <Network className="w-4 h-4 text-brand-blue dark:text-brand-blue-light" />
+                        </span>
+                        <h4 className="font-black text-xs uppercase tracking-widest text-gray-900 dark:text-white">{T.legendTitle || 'Knowledge Legend'}</h4>
+                    </div>
+                    <div className="space-y-3">
+                        {Array.from(new Set(nodes.map(n => n.discipline))).filter(Boolean).map(discipline => (
+                            <div key={discipline} className="flex items-center gap-3">
+                                <div 
+                                    className="w-3 h-3 rounded-full flex-shrink-0" 
+                                    style={{ backgroundColor: DisciplineColors[discipline] || '#94a3b8' }}
+                                ></div>
+                                <span className="text-[10px] font-bold text-gray-700 dark:text-slate-300 uppercase tracking-wider truncate">{discipline}</span>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
+
             {hoveredLink && (
                 <div className="absolute bottom-4 right-4 bg-white/90 dark:bg-slate-800/90 p-2 px-3 rounded-lg shadow-lg border border-brand-blue/20 text-[10px] max-w-[200px] animate-fade-in pointer-events-none">
                     <p className="font-black uppercase text-gray-600 dark:text-slate-400 mb-1">{T.relationshipLabel}</p>
