@@ -227,7 +227,7 @@ export const DiscussionModal: React.FC<DiscussionModalProps> = ({
                - Available types: oxygen_dissociation, frank_starling, pressure_volume_loop (CARDIAC ONLY), respiratory_flow_volume (RESPIRATORY ONLY), cerebral_pressure_volume, cerebral_autoregulation, capnography, spirometry.
                - **IMPORTANT:** Use 'respiratory_flow_volume' for airway mechanics, NEVER 'pressure_volume_loop'.
             2. **CLINICAL ALGORITHMS:** Use [DIAGRAM: specific description] for treatment cascades or anatomical pathways.
-            3. **DATA COMPARISON:** Use Markdown Tables for lab ranges, drug properties, or differential signs.
+            3. **DATA COMPARISON (CRITICAL):** ALWAYS use Markdown Tables for lab ranges, drug properties, dosage comparisons, or differential signs. For example, when comparing Calcium Chloride and Calcium Gluconate, use a table with columns for Feature, Calcium Chloride, and Calcium Gluconate.
             
             **STRICT FORMATTING (CRITICAL):**
             1. **NO LATEX:** Do NOT use LaTeX or dollar signs ($ or $$) for equations.

@@ -29,13 +29,30 @@ const sanitizeContent = (text: string): string => {
         .replace(/\[\s*(ILLUSTRATE|DIAGRAM|GRAPH):\s*.*?\s*\]/gi, '')
         .trim();
 
-    // 1. Ensure tables have a double newline before and after to be correctly parsed by GFM
+    // 1. Fix malformed table rows (text after last pipe on the same line)
+    // This often happens when the AI appends a comment or "Fix this" to the last row
+    cleaned = cleaned.split('\n').map(line => {
+        const trimmed = line.trim();
+        if (trimmed.startsWith('|') && trimmed.includes('|') && !trimmed.endsWith('|')) {
+            const lastPipeIndex = line.lastIndexOf('|');
+            if (lastPipeIndex !== -1 && lastPipeIndex < line.length - 1) {
+                const tablePart = line.substring(0, lastPipeIndex + 1);
+                const extraPart = line.substring(lastPipeIndex + 1).trim();
+                if (extraPart && !extraPart.startsWith('|')) {
+                    return `${tablePart}\n\n${extraPart}`;
+                }
+            }
+        }
+        return line;
+    }).join('\n');
+
+    // 2. Ensure tables have a double newline before and after to be correctly parsed by GFM
     // Before table
     cleaned = cleaned.replace(/([^\n])\n(\s*\|)/g, '$1\n\n$2');
     // After table
     cleaned = cleaned.replace(/(\|\s*)\n([^\n|])/g, '$1\n\n$2');
 
-    // 2. Protect existing math blocks by temporarily replacing them
+    // 3. Protect existing math blocks by temporarily replacing them
     const protectedBlocks: string[] = [];
     
     // Protect math blocks (only if they don't contain pipes to avoid breaking tables)
@@ -45,7 +62,7 @@ const sanitizeContent = (text: string): string => {
     });
 
     cleaned = cleaned
-        // 3. Replace specific common LaTeX commands with Unicode
+        // 4. Replace specific common LaTeX commands with Unicode
         .replace(/\\rightarrow/gi, ' → ')
         .replace(/\\leftarrow/gi, ' ← ')
         .replace(/\\Delta/g, ' Δ ')
@@ -57,10 +74,10 @@ const sanitizeContent = (text: string): string => {
         .replace(/\\times/gi, ' × ')
         .replace(/\\cdot/gi, ' · ')
         
-        // 4. Normalize spacing for medical units
+        // 5. Normalize spacing for medical units
         .replace(/(\d)(mg|mcg|mL|mmHg|bpm|mmol|meq)/gi, '$1 $2')
         
-        // 5. Unicode for standard medical variables
+        // 6. Unicode for standard medical variables
         .replace(/\bPaO2\b/g, 'PaO₂')
         .replace(/\bSaO2\b/g, 'SaO₂')
         .replace(/\bPvO2\b/g, 'PvO₂')
@@ -74,12 +91,12 @@ const sanitizeContent = (text: string): string => {
         .replace(/\bt1\/2\b/gi, 'T½')
         .replace(/P\(A-a\)O2/g, 'P(A-a)O₂');
         
-    // 6. Final cleanup
+    // 7. Final cleanup
     cleaned = cleaned
         .replace(/[ \t]+/g, ' ')
         .replace(/\n{3,}/g, '\n\n');
 
-    // 7. Restore protected blocks (math)
+    // 8. Restore protected blocks (math)
     cleaned = cleaned.replace(/__PROTECTED_BLOCK_(\d+)__/g, (match, p1) => {
         let block = protectedBlocks[parseInt(p1)];
         let unwrapped = block.replace(/^\$\$?|\$\$?$/g, '').trim();
@@ -167,27 +184,27 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, cla
                     h3: ({ node, ...props }) => <h3 {...props} className="text-lg font-black mt-4 mb-2 text-gray-900 dark:text-slate-100" />,
                     blockquote: ({ node, ...props }) => <blockquote {...props} className="border-l-4 border-brand-blue/20 pl-4 italic my-4 bg-slate-50 dark:bg-slate-800/40 py-3 pr-3 text-gray-700 dark:text-slate-300 rounded-r-xl" />,
                     table: ({ node, ...props }) => (
-                        <div className="overflow-x-auto my-6 bg-white dark:bg-slate-900 shadow-sm border border-gray-200 dark:border-dark-border rounded-lg">
+                        <div className="overflow-x-auto my-8 border-t-2 border-b-2 border-gray-900 dark:border-slate-200 py-1">
                             <table {...props} className="min-w-full border-collapse" />
                         </div>
                     ),
-                    thead: ({ node, ...props }) => <thead {...props} className="bg-gray-50 dark:bg-slate-800 border-b border-gray-200 dark:border-dark-border" />,
+                    thead: ({ node, ...props }) => <thead {...props} className="border-b border-gray-900 dark:border-slate-200" />,
                     th: ({ node, ...props }) => (
                         <th 
                             {...props} 
-                            className="px-4 py-2 text-left text-xs font-black text-gray-700 dark:text-gray-200 uppercase tracking-tight border-r border-gray-100 dark:border-dark-border last:border-0" 
+                            className="px-4 py-3 text-left text-sm font-black text-gray-900 dark:text-white uppercase tracking-wider" 
                         />
                     ),
                     td: ({ node, ...props }) => (
                         <td 
                             {...props} 
-                            className="px-4 py-2 text-sm text-gray-600 dark:text-slate-300 border-t border-r border-gray-100 dark:border-dark-border last:border-r-0 font-medium" 
+                            className="px-4 py-3 text-sm text-gray-700 dark:text-slate-300 border-b border-gray-100 dark:border-dark-border/30 last:border-b-0 font-medium" 
                         />
                     ),
                     tr: ({ node, ...props }) => (
                         <tr 
                             {...props} 
-                            className="transition-colors hover:bg-gray-50 dark:hover:bg-slate-800/30" 
+                            className="transition-colors hover:bg-gray-50/50 dark:hover:bg-slate-800/30" 
                         />
                     ),
                     code: ({ node, className, children, ...props }) => {
