@@ -218,7 +218,7 @@ export const DiscussionModal: React.FC<DiscussionModalProps> = ({
             const getSystemInstruction = () => `You are an expert medical tutor. Facilitate a deep Socratic discussion about "${topic.aspect}" for "${caseTitle}". 
             
             **CONVERSATIONAL STYLE (CRITICAL):**
-            1. **MARKDOWN SUPPORT:** You MAY use standard markdown for structure (headers, bold, lists).
+            1. **NO MARKDOWN SYMBOLS:** Do NOT use markdown symbols like ** (bold) or ### (headers) in your text. Use plain text for structure.
             2. **NATURAL FLOW:** Keep the discussion conversational and professional.
             
             **VISUAL PREFERENCE & PHYSIOLOGICAL FIDELITY (MANDATORY):**

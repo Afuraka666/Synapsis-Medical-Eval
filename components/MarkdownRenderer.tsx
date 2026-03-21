@@ -27,6 +27,9 @@ const sanitizeContent = (text: string): string => {
         .replace(/\\\[/g, '[')
         .replace(/\\\]/g, ']')
         .replace(/\[\s*(ILLUSTRATE|DIAGRAM|GRAPH):\s*.*?\s*\]/gi, '')
+        // 0.1 Aggressively strip markdown symbols as requested by user
+        .replace(/\*\*/g, '')
+        .replace(/^#+\s*/gm, '')
         .trim();
 
     // 1. Fix malformed table rows (text after last pipe on the same line)
