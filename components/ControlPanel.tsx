@@ -16,6 +16,7 @@ import {
     Sparkles
 } from 'lucide-react';
 import { AudioVisualizer } from './AudioVisualizer';
+import { GoogleGenAI } from "@google/genai";
 
 interface ControlPanelProps {
   onGenerate: (condition: string, discipline: string, difficulty: string) => void;
@@ -43,13 +44,13 @@ const getBCP47Language = (lang: string): string => {
     return map[lang] || 'en-US';
 };
 
-const MicButton: React.FC<{ onClick: () => void, isListening: boolean, disabled: boolean, title: string, T: Record<string, any> }> = ({ onClick, isListening, disabled, title, T }) => {
+const MicButton: React.FC<{ onClick: () => void, isListening: boolean, disabled: boolean, title: string, T: Record<string, any>, isSupported: boolean }> = ({ onClick, isListening, disabled, title, T, isSupported }) => {
     return (
         <button 
             type="button" 
             onClick={onClick} 
-            disabled={disabled} 
-            title={title}
+            disabled={disabled || !isSupported} 
+            title={!isSupported ? T.micUnsupportedTooltip : title}
             className="flex items-center justify-center p-2.5 sm:p-3 text-gray-400 hover:text-brand-blue-light disabled:text-gray-300 disabled:cursor-not-allowed transition-all gap-2 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-dark-border rounded-xl hover:bg-gray-100 dark:hover:bg-slate-700 min-w-[46px] sm:min-w-[52px]"
         >
             <AudioVisualizer isListening={isListening} />
@@ -59,7 +60,7 @@ const MicButton: React.FC<{ onClick: () => void, isListening: boolean, disabled:
                     <span className="text-[10px] font-black uppercase tracking-tighter text-red-500 animate-pulse hidden sm:inline">{T.listeningLabel}</span>
                  </div>
             ) : (
-                <Mic className="h-4 w-4" />
+                <Mic className={`h-4 w-4 ${!isSupported ? 'opacity-30' : ''}`} />
             )}
         </button>
     );
@@ -77,6 +78,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
   const historyRef = useRef<HTMLDivElement>(null);
   const [isListening, setIsListening] = useState(false);
   const [activeInput, setActiveInput] = useState<'condition' | 'discipline' | null>(null);
+  const [interimText, setInterimText] = useState("");
   const recognitionRef = useRef<any>(null);
   const [micError, setMicError] = useState<string | null>(null);
   const [isSavedWorkMenuOpen, setIsSavedWorkMenuOpen] = useState(false);
@@ -100,12 +102,17 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
 
   const handleMicClick = (targetInput: 'condition' | 'discipline') => {
       if (!isSpeechRecognitionSupported) {
-          console.error("Speech recognition not supported");
+          console.error("Speech recognition not supported in this browser");
+          setMicError(T.micUnsupportedTooltip || "Speech recognition not supported");
           return;
       }
       
       if (isListening && activeInput === targetInput && recognitionRef.current) { 
-          recognitionRef.current.stop(); 
+          try {
+              recognitionRef.current.stop(); 
+          } catch (e) {
+              console.error("Error stopping recognition:", e);
+          }
           return; 
       }
 
@@ -117,56 +124,93 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
       setMicError(null); 
       setActiveInput(targetInput);
       
-      const recognition = new SpeechRecognition();
-      recognition.continuous = true; 
-      recognition.interimResults = true; 
-      recognition.maxAlternatives = 1;
-      recognition.lang = getBCP47Language(language);
-      
-      recognition.onstart = () => {
-          console.log("Mic started for:", targetInput);
-          setIsListening(true);
-      };
+      let recognition: any;
+      try {
+          recognition = new SpeechRecognition();
+          recognition.continuous = true; 
+          recognition.interimResults = true; 
+          recognition.maxAlternatives = 1;
+          recognition.lang = getBCP47Language(language);
+          
+          recognition.onstart = () => {
+              console.log("Mic started for:", targetInput);
+              setIsListening(true);
+              setInterimText("");
+          };
 
-      recognition.onend = () => { 
-          console.log("Mic ended");
-          setIsListening(false); 
-          setActiveInput(null); 
-          recognitionRef.current = null; 
-      };
+          recognition.onend = async () => { 
+              console.log("Mic ended");
+              setIsListening(false); 
+              setActiveInput(null); 
+              recognitionRef.current = null;
+              setInterimText("");
 
-      recognition.onerror = (event: any) => { 
-          console.error("Mic error:", event.error);
-          setIsListening(false); 
-          setActiveInput(null); 
-          
-          if (event.error === 'no-speech') {
-              // Don't show a scary error for silence, just reset
-              return;
-          }
-          
-          setMicError(event.error === 'not-allowed' ? T.micPermissionError : T.micGenericError); 
-      };
-      
-      recognition.onresult = (event: any) => { 
-          let transcript = '';
-          for (let i = 0; i < event.results.length; i++) {
-              transcript += event.results[i][0].transcript;
-          }
-          
-          console.log("Transcript received:", transcript);
-          
-          if (targetInput === 'condition') {
-              setConditionInput(transcript);
-          } else {
-              setDisciplineInput(transcript);
-          }
-      };
+              // Post-process for medical accuracy
+              const currentText = targetInput === 'condition' ? conditionInput : disciplineInput;
+              if (currentText.trim().length > 5) {
+                  try {
+                      const ai = new GoogleGenAI({ apiKey: (process.env.GEMINI_API_KEY || process.env.API_KEY)! });
+                      const prompt = `Correct any medical terminology, spelling, or punctuation errors in the following transcribed text. Keep the meaning exactly the same. Only return the corrected text, nothing else.\n\nText: "${currentText}"`;
+                      const result = await ai.models.generateContent({
+                          model: 'gemini-3-flash-preview',
+                          contents: prompt
+                      });
+                      const corrected = result.text.trim().replace(/^"|"$/g, '');
+                      if (corrected && corrected !== currentText) {
+                          if (targetInput === 'condition') setConditionInput(corrected);
+                          else setDisciplineInput(corrected);
+                      }
+                  } catch (e) {
+                      console.error("Medical correction failed:", e);
+                  }
+              }
+          };
 
-      try { 
+          recognition.onerror = (event: any) => { 
+              console.error("Mic error:", event.error, event.message);
+              setIsListening(false); 
+              setActiveInput(null); 
+              setInterimText("");
+              
+              if (event.error === 'no-speech') {
+                  return;
+              }
+              
+              let errorMessage = T.micGenericError;
+              if (event.error === 'not-allowed') errorMessage = T.micPermissionError;
+              if (event.error === 'network') errorMessage = "Network error during speech recognition.";
+              if (event.error === 'aborted') return; // User stopped it
+              
+              setMicError(errorMessage); 
+          };
+          
+          recognition.onresult = (event: any) => { 
+              let finalTranscript = '';
+              let currentInterim = '';
+
+              for (let i = event.resultIndex; i < event.results.length; ++i) {
+                  if (event.results[i].isFinal) {
+                      finalTranscript += event.results[i][0].transcript;
+                  } else {
+                      currentInterim += event.results[i][0].transcript;
+                  }
+              }
+
+              if (finalTranscript) {
+                  if (targetInput === 'condition') {
+                      setConditionInput(prev => prev ? `${prev.trim()} ${finalTranscript.trim()}` : finalTranscript.trim());
+                  } else {
+                      setDisciplineInput(prev => prev ? `${prev.trim()} ${finalTranscript.trim()}` : finalTranscript.trim());
+                  }
+              }
+              setInterimText(currentInterim);
+          };
+
           recognitionRef.current = recognition; 
           recognition.start(); 
       } catch (err: any) { 
+          console.error("Failed to start speech recognition:", err);
+          setMicError(T.micGenericError);
           setIsListening(false); 
           setActiveInput(null); 
       }
@@ -201,33 +245,49 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
           <div className="flex flex-col flex-1">
               <label htmlFor="condition-input" className="font-black text-gray-500 dark:text-gray-400 text-[9px] sm:text-[10px] uppercase tracking-widest mb-1 sm:mb-1.5 ml-1">{T.conditionLabel}</label>
               <div className="flex gap-2">
-                    <input 
-                      type="text" 
-                      id="condition-input" 
-                      value={conditionInput} 
-                      onChange={(e) => setConditionInput(e.target.value)} 
-                      autoComplete="off"
-                      disabled={disabled} 
-                      placeholder={T.conditionPlaceholder} 
-                      className="p-2.5 sm:p-3 border border-gray-200 dark:border-dark-border rounded-xl focus:ring-2 focus:ring-brand-blue-light/30 focus:border-brand-blue-light w-full bg-gray-50 dark:bg-slate-800 text-gray-900 dark:text-white transition-all outline-none font-medium text-sm sm:text-base" 
-                    />
-                  {isSpeechRecognitionSupported && <MicButton onClick={() => handleMicClick('condition')} isListening={isListening && activeInput === 'condition'} disabled={disabled} title={T.voiceInputCondition} T={T} />}
+                    <div className="relative flex-1">
+                      <input 
+                        type="text" 
+                        id="condition-input" 
+                        value={conditionInput} 
+                        onChange={(e) => setConditionInput(e.target.value)} 
+                        autoComplete="off"
+                        disabled={disabled} 
+                        placeholder={T.conditionPlaceholder} 
+                        className="p-2.5 sm:p-3 border border-gray-200 dark:border-dark-border rounded-xl focus:ring-2 focus:ring-brand-blue-light/30 focus:border-brand-blue-light w-full bg-gray-50 dark:bg-slate-800 text-gray-900 dark:text-white transition-all outline-none font-medium text-sm sm:text-base" 
+                      />
+                      {isListening && activeInput === 'condition' && interimText && (
+                        <div className="absolute left-3 sm:left-4 right-4 top-1/2 -translate-y-1/2 pointer-events-none overflow-hidden whitespace-nowrap">
+                            <span className="text-transparent">{conditionInput}</span>
+                            <span className="text-gray-400 dark:text-gray-500 italic ml-1">{interimText}</span>
+                        </div>
+                      )}
+                    </div>
+                  {<MicButton onClick={() => handleMicClick('condition')} isListening={isListening && activeInput === 'condition'} disabled={disabled} title={T.voiceInputCondition} T={T} isSupported={isSpeechRecognitionSupported} />}
               </div>
           </div>
           <div className="flex flex-col flex-1">
               <label htmlFor="discipline-input" className="font-black text-gray-500 dark:text-gray-400 text-[9px] sm:text-[10px] uppercase tracking-widest mb-1 sm:mb-1.5 ml-1">{T.disciplineLabel}</label>
               <div className="flex gap-2">
-                    <input 
-                      type="text" 
-                      id="discipline-input" 
-                      value={disciplineInput} 
-                      onChange={(e) => setDisciplineInput(e.target.value)} 
-                      autoComplete="off"
-                      disabled={disabled} 
-                      placeholder={T.disciplinePlaceholder} 
-                      className="p-2.5 sm:p-3 border border-gray-200 dark:border-dark-border rounded-xl focus:ring-2 focus:ring-brand-blue-light/30 focus:border-brand-blue-light w-full bg-gray-50 dark:bg-slate-800 text-gray-900 dark:text-white transition-all outline-none font-medium text-sm sm:text-base" 
-                    />
-                  {isSpeechRecognitionSupported && <MicButton onClick={() => handleMicClick('discipline')} isListening={isListening && activeInput === 'discipline'} disabled={disabled} title={T.voiceInputDiscipline} T={T} />}
+                    <div className="relative flex-1">
+                      <input 
+                        type="text" 
+                        id="discipline-input" 
+                        value={disciplineInput} 
+                        onChange={(e) => setDisciplineInput(e.target.value)} 
+                        autoComplete="off"
+                        disabled={disabled} 
+                        placeholder={T.disciplinePlaceholder} 
+                        className="p-2.5 sm:p-3 border border-gray-200 dark:border-dark-border rounded-xl focus:ring-2 focus:ring-brand-blue-light/30 focus:border-brand-blue-light w-full bg-gray-50 dark:bg-slate-800 text-gray-900 dark:text-white transition-all outline-none font-medium text-sm sm:text-base" 
+                      />
+                      {isListening && activeInput === 'discipline' && interimText && (
+                        <div className="absolute left-3 sm:left-4 right-4 top-1/2 -translate-y-1/2 pointer-events-none overflow-hidden whitespace-nowrap">
+                            <span className="text-transparent">{disciplineInput}</span>
+                            <span className="text-gray-400 dark:text-gray-500 italic ml-1">{interimText}</span>
+                        </div>
+                      )}
+                    </div>
+                  {<MicButton onClick={() => handleMicClick('discipline')} isListening={isListening && activeInput === 'discipline'} disabled={disabled} title={T.voiceInputDiscipline} T={T} isSupported={isSpeechRecognitionSupported} />}
               </div>
           </div>
           <div className="flex flex-row gap-2 w-full lg:w-auto">

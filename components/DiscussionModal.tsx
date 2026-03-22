@@ -252,6 +252,7 @@ export const DiscussionModal: React.FC<DiscussionModalProps> = ({
     const scrollContainerRef = useRef<HTMLDivElement | null>(null);
     const shareMenuRef = useRef<HTMLDivElement | null>(null);
     const [isListening, setIsListening] = useState(false);
+    const [interimText, setInterimText] = useState("");
     const recognitionRef = useRef<any>(null);
 
             const getSystemInstruction = () => `You are an expert medical tutor. Facilitate a deep Socratic discussion about "${topic.aspect}" for "${caseTitle}". 
@@ -333,27 +334,83 @@ export const DiscussionModal: React.FC<DiscussionModalProps> = ({
 
     const handleMicClick = () => {
         if (!isSpeechRecognitionSupported) return;
+        
         if (isListening) { 
             recognitionRef.current?.stop(); 
             logEvent('stop_voice_input', { topic_id: topicId });
             return; 
         }
-        logEvent('start_voice_input', { topic_id: topicId });
-        const recognition = new SpeechRecognition();
-        recognition.lang = getBCP47Language(language);
-        recognition.continuous = true;
-        recognition.interimResults = true;
-        recognition.onstart = () => setIsListening(true);
-        recognition.onend = () => { setIsListening(false); };
-        recognition.onresult = (e: any) => {
-            let fullTranscript = '';
-            for (let i = 0; i < e.results.length; i++) {
-                fullTranscript += e.results[i][0].transcript;
-            }
-            setUserInput(fullTranscript);
-        };
-        recognitionRef.current = recognition;
-        recognition.start();
+
+        try {
+            const recognition = new SpeechRecognition();
+            recognition.lang = getBCP47Language(language);
+            recognition.continuous = true;
+            recognition.interimResults = true;
+            
+            const baseText = userInput.trim();
+            
+            recognition.onstart = () => {
+                setIsListening(true);
+                setInterimText("");
+                logEvent('start_voice_input', { topic_id: topicId });
+            };
+            
+            recognition.onerror = (event: any) => {
+                console.error("Speech recognition error:", event.error);
+                setIsListening(false);
+                setInterimText("");
+                // Log specific errors for debugging
+                logEvent('voice_input_error', { error: event.error, topic_id: topicId });
+            };
+            
+            recognition.onend = async () => {
+                setIsListening(false);
+                setInterimText("");
+
+                // Post-process for medical accuracy
+                if (userInput.trim().length > 10) {
+                    try {
+                        const apiKey = process.env.GEMINI_API_KEY || process.env.API_KEY;
+                        const ai = new GoogleGenAI({ apiKey: apiKey! });
+                        const prompt = `Correct any medical terminology, spelling, or punctuation errors in the following transcribed text. Keep the meaning exactly the same. Only return the corrected text, nothing else.\n\nText: "${userInput}"`;
+                        const result = await ai.models.generateContent({
+                            model: 'gemini-3-flash-preview',
+                            contents: prompt
+                        });
+                        const corrected = result.text.trim().replace(/^"|"$/g, '');
+                        if (corrected && corrected !== userInput) {
+                            setUserInput(corrected);
+                        }
+                    } catch (e) {
+                        console.error("Medical correction failed in modal:", e);
+                    }
+                }
+            };
+            
+            recognition.onresult = (e: any) => {
+                let finalTranscript = '';
+                let currentInterim = '';
+
+                for (let i = e.resultIndex; i < e.results.length; ++i) {
+                    if (e.results[i].isFinal) {
+                        finalTranscript += e.results[i][0].transcript;
+                    } else {
+                        currentInterim += e.results[i][0].transcript;
+                    }
+                }
+
+                if (finalTranscript) {
+                    setUserInput(prev => prev ? `${prev.trim()} ${finalTranscript.trim()}` : finalTranscript.trim());
+                }
+                setInterimText(currentInterim);
+            };
+
+            recognitionRef.current = recognition;
+            recognition.start();
+        } catch (err) {
+            console.error("Failed to start speech recognition:", err);
+            setIsListening(false);
+        }
     };
 
     useEffect(() => {
@@ -854,8 +911,9 @@ export const DiscussionModal: React.FC<DiscussionModalProps> = ({
                             <button 
                                 type="button" 
                                 onClick={handleMicClick} 
-                                disabled={isLoading} 
-                                className={`p-2.5 sm:p-3 rounded-xl border transition-all flex items-center justify-center gap-2 ${isListening ? 'text-red-500 border-red-200 bg-red-50 animate-pulse' : 'text-gray-600 dark:text-gray-400 border-gray-200 dark:border-dark-border hover:bg-gray-50 dark:hover:bg-slate-800'}`}
+                                disabled={isLoading || !isSpeechRecognitionSupported} 
+                                className={`p-2.5 sm:p-3 rounded-xl border transition-all flex items-center justify-center gap-2 ${!isSpeechRecognitionSupported ? 'opacity-30 cursor-not-allowed' : isListening ? 'text-red-500 border-red-200 bg-red-50 animate-pulse' : 'text-gray-600 dark:text-gray-400 border-gray-200 dark:border-dark-border hover:bg-gray-50 dark:hover:bg-slate-800'}`}
+                                title={!isSpeechRecognitionSupported ? 'Speech recognition not supported in this browser' : isListening ? T.stopVoiceInput : T.voiceInputButton}
                             >
                                 <AudioVisualizer isListening={isListening} />
                                 {isListening ? <MicOff className="h-5 w-5" /> : <Mic className="h-5 w-5" />}
@@ -869,6 +927,12 @@ export const DiscussionModal: React.FC<DiscussionModalProps> = ({
                                     disabled={isLoading} 
                                     className="w-full p-2.5 sm:p-3 pr-10 sm:pr-12 border border-gray-200 dark:border-dark-border rounded-xl bg-gray-50 dark:bg-slate-800 text-black dark:text-white text-sm focus:ring-2 focus:ring-brand-blue/20 focus:border-brand-blue outline-none transition-all" 
                                 />
+                                {isListening && interimText && (
+                                    <div className="absolute left-2.5 sm:left-3 right-10 sm:right-12 top-1/2 -translate-y-1/2 pointer-events-none overflow-hidden whitespace-nowrap text-sm">
+                                        <span className="text-transparent">{userInput}</span>
+                                        <span className="text-gray-400 dark:text-gray-500 italic ml-1">{interimText}</span>
+                                    </div>
+                                )}
                                 <button 
                                     type="submit" 
                                     disabled={isLoading || !userInput.trim()} 

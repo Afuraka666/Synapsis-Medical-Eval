@@ -34,13 +34,17 @@ export const AudioVisualizer: React.FC<AudioVisualizerProps> = ({ isListening })
                 audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)({
                     latencyHint: 'interactive'
                 });
+
+                if (audioContextRef.current.state === 'suspended') {
+                    await audioContextRef.current.resume();
+                }
                 
                 const source = audioContextRef.current.createMediaStreamSource(stream);
                 analyzerRef.current = audioContextRef.current.createAnalyser();
                 
                 // High FFT size for granular frequency analysis
-                analyzerRef.current.fftSize = 512;
-                analyzerRef.current.smoothingTimeConstant = 0.7; // Smooth transitions
+                analyzerRef.current.fftSize = 1024;
+                analyzerRef.current.smoothingTimeConstant = 0.5; // Faster transitions for better responsiveness
                 source.connect(analyzerRef.current);
 
                 const bufferLength = analyzerRef.current.frequencyBinCount;
@@ -57,29 +61,35 @@ export const AudioVisualizer: React.FC<AudioVisualizerProps> = ({ isListening })
 
                     ctx.clearRect(0, 0, canvas.width, canvas.height);
                     
-                    const barWidth = (canvas.width / (bufferLength / 2)) * 1.5;
-                    let x = 0;
+                    // Focus on human speech frequencies (approx. 300Hz - 3400Hz)
+                    // With 48kHz sample rate and 1024 FFT, each bin is ~47Hz.
+                    // 300Hz is bin ~6, 3400Hz is bin ~72.
+                    const startBin = 4;
+                    const endBin = 80;
+                    const activeBins = endBin - startBin;
+                    const barWidth = (canvas.width / activeBins) * 0.8;
+                    let x = (canvas.width - (activeBins * (barWidth + 1))) / 2;
 
-                    // Focus on human speech frequencies (lower half of spectrum)
-                    for (let i = 0; i < bufferLength / 2; i++) {
-                        // High sensitivity scaling for better visibility of low volume
-                        const normalized = dataArray[i] / 255;
-                        const barHeight = normalized * canvas.height * 2.8;
+                    for (let i = startBin; i < endBin; i++) {
+                        // Logarithmic-like sensitivity scaling for better visibility of speech nuances
+                        const value = dataArray[i];
+                        const normalized = Math.pow(value / 255, 0.85);
+                        const barHeight = normalized * canvas.height * 0.9;
                         
-                        // Reactive gradient based on intensity
-                        const hue = 210 + (normalized * 30); // Shifts from blue to lighter teal
-                        ctx.fillStyle = `hsla(${hue}, 80%, 60%, ${0.5 + (normalized * 0.5)})`;
+                        // Reactive gradient based on intensity and frequency
+                        const hue = 210 + (normalized * 40) + (i * 0.5); 
+                        ctx.fillStyle = `hsla(${hue}, 85%, 60%, ${0.6 + (normalized * 0.4)})`;
                         
-                        // Rounded bars for clinical aesthetics
+                        // Centered rounded bars for a modern "voice wave" look
                         const radius = barWidth / 2;
                         const bx = x;
-                        const by = canvas.height - barHeight;
+                        const by = (canvas.height - barHeight) / 2;
                         
                         ctx.beginPath();
-                        ctx.roundRect(bx, by, barWidth, barHeight, [radius, radius, 0, 0]);
+                        ctx.roundRect(bx, by, barWidth, barHeight, [radius, radius, radius, radius]);
                         ctx.fill();
                         
-                        x += barWidth + 1.5;
+                        x += barWidth + 1;
                     }
                 };
                 draw();
