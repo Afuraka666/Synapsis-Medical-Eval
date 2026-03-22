@@ -32,7 +32,7 @@ import { SmartContent } from './SmartContent';
 import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType, ImageRun, Table, TableRow, TableCell, WidthType, BorderStyle } from 'docx';
 import { useAnalytics } from '../contexts/analytics';
 
-const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+const SpeechRecognition = typeof window !== 'undefined' ? ((window as any).SpeechRecognition || (window as any).webkitSpeechRecognition) : null;
 const isSpeechRecognitionSupported = !!SpeechRecognition;
 
 const GRAPH_TITLES: Record<string, string> = {
@@ -912,8 +912,14 @@ export const DiscussionModal: React.FC<DiscussionModalProps> = ({
                                 type="button" 
                                 onClick={handleMicClick} 
                                 disabled={isLoading || !isSpeechRecognitionSupported} 
-                                className={`p-2.5 sm:p-3 rounded-xl border transition-all flex items-center justify-center gap-2 ${!isSpeechRecognitionSupported ? 'opacity-30 cursor-not-allowed' : isListening ? 'text-red-500 border-red-200 bg-red-50 animate-pulse' : 'text-gray-600 dark:text-gray-400 border-gray-200 dark:border-dark-border hover:bg-gray-50 dark:hover:bg-slate-800'}`}
-                                title={!isSpeechRecognitionSupported ? 'Speech recognition not supported in this browser' : isListening ? T.stopVoiceInput : T.voiceInputButton}
+                                className={`p-2.5 sm:p-3 rounded-xl border transition-all flex items-center justify-center gap-2 min-w-[46px] sm:min-w-[52px] ${
+                                    !isSpeechRecognitionSupported 
+                                    ? 'bg-gray-100 dark:bg-slate-900 border-gray-200 dark:border-dark-border text-gray-300 dark:text-gray-600 cursor-not-allowed opacity-50' 
+                                    : isListening 
+                                    ? 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-900/30 text-red-500 animate-pulse'
+                                    : 'bg-gray-50 dark:bg-slate-800 border-gray-200 dark:border-dark-border text-gray-400 hover:text-brand-blue-light hover:bg-gray-100 dark:hover:bg-slate-700'
+                                }`}
+                                title={!isSpeechRecognitionSupported ? T.micUnsupportedTooltip : isListening ? T.stopVoiceInput : T.voiceInputButton}
                             >
                                 <AudioVisualizer isListening={isListening} />
                                 {isListening ? <MicOff className="h-5 w-5" /> : <Mic className="h-5 w-5" />}

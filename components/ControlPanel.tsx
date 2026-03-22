@@ -32,7 +32,7 @@ interface ControlPanelProps {
   onSetMobileView: (view: 'case' | 'map') => void;
 }
 
-const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+const SpeechRecognition = typeof window !== 'undefined' ? ((window as any).SpeechRecognition || (window as any).webkitSpeechRecognition) : null;
 const isSpeechRecognitionSupported = !!SpeechRecognition;
 
 const getBCP47Language = (lang: string): string => {
@@ -51,7 +51,13 @@ const MicButton: React.FC<{ onClick: () => void, isListening: boolean, disabled:
             onClick={onClick} 
             disabled={disabled || !isSupported} 
             title={!isSupported ? T.micUnsupportedTooltip : title}
-            className="flex items-center justify-center p-2.5 sm:p-3 text-gray-400 hover:text-brand-blue-light disabled:text-gray-300 disabled:cursor-not-allowed transition-all gap-2 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-dark-border rounded-xl hover:bg-gray-100 dark:hover:bg-slate-700 min-w-[46px] sm:min-w-[52px]"
+            className={`flex items-center justify-center p-2.5 sm:p-3 transition-all gap-2 border rounded-xl min-w-[46px] sm:min-w-[52px] ${
+                !isSupported 
+                ? 'bg-gray-100 dark:bg-slate-900 border-gray-200 dark:border-dark-border text-gray-300 dark:text-gray-600 cursor-not-allowed opacity-50' 
+                : isListening 
+                ? 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-900/30 text-red-500'
+                : 'bg-gray-50 dark:bg-slate-800 border-gray-200 dark:border-dark-border text-gray-400 hover:text-brand-blue-light hover:bg-gray-100 dark:hover:bg-slate-700'
+            }`}
         >
             <AudioVisualizer isListening={isListening} />
             {isListening ? (
