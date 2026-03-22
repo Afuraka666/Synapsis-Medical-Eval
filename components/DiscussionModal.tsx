@@ -16,7 +16,8 @@ import {
     Minus,
     MessageSquare,
     Info,
-    ChevronDown
+    ChevronDown,
+    AlertCircle
 } from 'lucide-react';
 import type { DisciplineSpecificConsideration, ChatMessage, DiagramData, EducationalContent } from '../types';
 import { EducationalContentType } from '../types';
@@ -253,6 +254,7 @@ export const DiscussionModal: React.FC<DiscussionModalProps> = ({
     const shareMenuRef = useRef<HTMLDivElement | null>(null);
     const [isListening, setIsListening] = useState(false);
     const [interimText, setInterimText] = useState("");
+    const [micError, setMicError] = useState<string | null>(null);
     const recognitionRef = useRef<any>(null);
 
             const getSystemInstruction = () => `You are an expert medical tutor. Facilitate a deep Socratic discussion about "${topic.aspect}" for "${caseTitle}". 
@@ -341,6 +343,7 @@ export const DiscussionModal: React.FC<DiscussionModalProps> = ({
             return; 
         }
 
+        setMicError(null);
         try {
             const recognition = new SpeechRecognition();
             recognition.lang = getBCP47Language(language);
@@ -359,7 +362,18 @@ export const DiscussionModal: React.FC<DiscussionModalProps> = ({
                 console.error("Speech recognition error:", event.error);
                 setIsListening(false);
                 setInterimText("");
-                // Log specific errors for debugging
+                
+                if (event.error === 'no-speech') {
+                    setMicError(T.micNoSpeechError);
+                    return;
+                }
+                
+                let errorMessage = T.micGenericError;
+                if (event.error === 'not-allowed') errorMessage = T.micPermissionError;
+                if (event.error === 'network') errorMessage = T.micNetworkError;
+                if (event.error === 'aborted') return;
+                
+                setMicError(errorMessage);
                 logEvent('voice_input_error', { error: event.error, topic_id: topicId });
             };
             
@@ -907,10 +921,20 @@ export const DiscussionModal: React.FC<DiscussionModalProps> = ({
                 </main>
                 <footer className={`p-3 sm:p-4 border-t border-gray-100 dark:border-dark-border bg-white dark:bg-dark-surface transition-colors ${isFullscreen ? 'rounded-none' : 'rounded-b-2xl'}`}>
                     <div className={`flex flex-col ${isFullscreen ? 'max-w-4xl mx-auto w-full' : ''}`}>
-                        <form onSubmit={(e) => handleSendMessage(e)} className="flex items-center gap-2 mb-3">
-                            <button 
-                                type="button" 
-                                onClick={handleMicClick} 
+                        <form onSubmit={(e) => handleSendMessage(e)} className="flex flex-col gap-2 mb-3">
+                            {micError && (
+                                <div className="text-xs text-red-500 bg-red-50 dark:bg-red-900/20 px-3 py-1.5 rounded-lg border border-red-100 dark:border-red-900/30 mb-1 flex items-center gap-2">
+                                    <AlertCircle className="h-3 w-3" />
+                                    {micError}
+                                    <button onClick={() => setMicError(null)} className="ml-auto hover:text-red-700">
+                                        <X className="h-3 w-3" />
+                                    </button>
+                                </div>
+                            )}
+                            <div className="flex items-center gap-2">
+                                <button 
+                                    type="button" 
+                                    onClick={handleMicClick} 
                                 disabled={isLoading || !isSpeechRecognitionSupported} 
                                 className={`p-2.5 sm:p-3 rounded-xl border transition-all flex items-center justify-center gap-2 min-w-[46px] sm:min-w-[52px] ${
                                     !isSpeechRecognitionSupported 
@@ -947,7 +971,8 @@ export const DiscussionModal: React.FC<DiscussionModalProps> = ({
                                     <Send className="h-5 w-5" />
                                 </button>
                             </div>
-                        </form>
+                        </div>
+                    </form>
                         <div className="flex justify-between items-center pt-3 border-t border-gray-50 dark:border-dark-border">
                             <div className="flex items-center gap-2">
                                 <div className={`w-1.5 h-1.5 rounded-full ${isSaved ? 'bg-green-500' : 'bg-amber-500 animate-pulse'}`}></div>

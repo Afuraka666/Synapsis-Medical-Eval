@@ -12,6 +12,7 @@ export const AudioVisualizer: React.FC<AudioVisualizerProps> = ({ isListening })
     const animationFrameRef = useRef<number | null>(null);
 
     useEffect(() => {
+        let activeStream: MediaStream | null = null;
         if (!isListening) {
             if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current);
             return;
@@ -29,6 +30,7 @@ export const AudioVisualizer: React.FC<AudioVisualizerProps> = ({ isListening })
                         channelCount: 1
                     } 
                 });
+                activeStream = stream;
                 
                 // Use interactive latency hint for real-time responsiveness
                 audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)({
@@ -102,6 +104,9 @@ export const AudioVisualizer: React.FC<AudioVisualizerProps> = ({ isListening })
 
         return () => {
             if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current);
+            if (activeStream) {
+                activeStream.getTracks().forEach(track => track.stop());
+            }
             if (audioContextRef.current?.state !== 'closed') {
                 audioContextRef.current?.close();
             }

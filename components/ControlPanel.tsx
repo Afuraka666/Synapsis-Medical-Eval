@@ -3,6 +3,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { 
     Mic, 
     MicOff, 
+    X,
+    AlertCircle,
     History as HistoryIcon, 
     Plus, 
     Search, 
@@ -179,12 +181,13 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
               setInterimText("");
               
               if (event.error === 'no-speech') {
+                  setMicError(T.micNoSpeechError);
                   return;
               }
               
               let errorMessage = T.micGenericError;
               if (event.error === 'not-allowed') errorMessage = T.micPermissionError;
-              if (event.error === 'network') errorMessage = "Network error during speech recognition.";
+              if (event.error === 'network') errorMessage = T.micNetworkError;
               if (event.error === 'aborted') return; // User stopped it
               
               setMicError(errorMessage); 
@@ -241,9 +244,10 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
   return (
     <div className="medical-card p-3 sm:p-4 md:p-5 transition-all duration-300">
       {micError && (
-          <div className="mb-4 p-2 bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-900/30 rounded-lg flex items-center justify-between animate-fade-in">
-              <p className="text-xs text-red-600 dark:text-red-400 font-bold">{micError}</p>
-              <button onClick={() => setMicError(null)} className="text-red-400 hover:text-red-600"><Plus className="w-4 h-4 rotate-45" /></button>
+          <div className="mb-4 p-2.5 bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-900/30 rounded-xl flex items-center gap-2 animate-fade-in">
+              <AlertCircle className="h-4 w-4 text-red-500" />
+              <p className="text-xs text-red-600 dark:text-red-400 font-bold flex-grow">{micError}</p>
+              <button onClick={() => setMicError(null)} className="text-red-400 hover:text-red-600 transition-colors"><X className="w-4 h-4" /></button>
           </div>
       )}
       {!isCaseActive ? (
