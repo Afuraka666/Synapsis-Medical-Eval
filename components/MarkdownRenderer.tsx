@@ -26,7 +26,6 @@ const sanitizeContent = (text: string): string => {
         .replace(/\\_/g, '_')
         .replace(/\\\[/g, '[')
         .replace(/\\\]/g, ']')
-        .replace(/\[\s*(ILLUSTRATE|DIAGRAM|GRAPH):\s*.*?\s*\]/gi, '')
         // 0.1 Aggressively strip markdown symbols as requested by user
         .replace(/\*\*/g, '')
         .replace(/^#+\s*/gm, '')

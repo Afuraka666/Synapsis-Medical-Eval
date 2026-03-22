@@ -85,7 +85,8 @@ const SYNTHESIS_GUIDELINE = `
 const EVIDENCE_GUIDELINE = `
 **VERIFICATION RULES:**
 1. **GOOGLE SEARCH:** You MUST use Google Search to verify clinical trials, PMIDs, and latest guidelines for the specific condition. 
-2. **PREFERRED SOURCES:** Prioritize evidence from:
+2. **PMID/DOI VERIFICATION (CRITICAL):** You MUST verify the PMID and DOI for every reference using Google Search. Do NOT rely on internal knowledge for these IDs as they are frequently hallucinated. Cross-reference the title with the ID.
+3. **PREFERRED SOURCES:** Prioritize evidence from:
    - Google Scholar
    - Government/Public Health Databases: PubMed, Medline Plus, clinicaltrials.gov, CDC.
    - Peer-Reviewed Medical Journals: JAMA Network, NEJM, The Lancet, Cochrane Library.
@@ -560,6 +561,7 @@ export const generateEvidenceAndQuiz = async (condition: string, discipline: str
     
     1. TRACEABLE EVIDENCE: Provide 3-5 verified clinical claims with sources (PMIDs or major guidelines). 
        - YOU MUST PERFORM A SEARCH to find real, existing evidence.
+       - **CRITICAL:** Verify the PMID/DOI for each source via Google Search. Do NOT hallucinate IDs.
        - YOU MUST INCLUDE A VALID, CLICKABLE URL (e.g., https://pubmed.ncbi.nlm.nih.gov/...) in the "url" field for each source.
        - DO NOT FABRICATE URLs.
     2. FURTHER READINGS: Provide 2-3 relevant topics for deeper study. 
@@ -755,7 +757,7 @@ export const enrichCaseWithWebSources = async (patientCase: PatientCase, languag
     
     **MANDATORY VERIFICATION:** 
     1. Use the Google Search tool to verify all clinical evidence.
-    2. Every PMID or DOI MUST be factually verified for accuracy and relevance. 
+    2. Every PMID or DOI MUST be factually verified for accuracy and relevance using the search tool. Do NOT rely on internal memory for these IDs.
     3. PREFERRED SOURCES: Google Scholar, PubMed, clinicaltrials.gov, CDC, JAMA, NEJM, The Lancet, Cochrane Library, Mayo Clinic, Johns Hopkins.
     4. YOU MUST INCLUDE A VALID, CLICKABLE URL (e.g., https://pubmed.ncbi.nlm.nih.gov/...) in the "url" field for each source and reference.
     5. **CRITICAL:** The URL MUST lead directly to the article or abstract. You MUST verify that the article title at the URL matches your claim.

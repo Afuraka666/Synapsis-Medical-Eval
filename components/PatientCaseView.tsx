@@ -34,14 +34,14 @@ import {
     FileDown
 } from 'lucide-react';
 import { EducationalContentType, Discipline } from '../types';
-import type { PatientCase, EducationalContent, QuizQuestion, DisciplineSpecificConsideration, MultidisciplinaryConnection, TraceableEvidence, FurtherReading, ProcedureDetails, PatientOutcome, KnowledgeMapData, Snippet, ChatMessage } from '../types';
+import type { PatientCase, EducationalContent, QuizQuestion, DisciplineSpecificConsideration, MultidisciplinaryConnection, TraceableEvidence, FurtherReading, ProcedureDetails, PatientOutcome, KnowledgeMapData, Snippet, ChatMessage, DiagramData } from '../types';
 import { DisciplineColors } from './KnowledgeMap';
 import { QuizView } from './QuizView';
 import { ImageGenerator } from './ImageGenerator';
 import { TextToSpeechPlayer } from './TextToSpeechPlayer';
 import { InteractiveDiagram } from './InteractiveDiagram';
 import { SourceSearchModal } from './SourceSearchModal';
-import { enrichCaseWithWebSources } from '../services/geminiService';
+import { enrichCaseWithWebSources, generateDiagramForDiscussion } from '../services/geminiService';
 import { DisciplineIcon } from './DisciplineIcon';
 import { MarkdownRenderer } from './MarkdownRenderer';
 import { SourceRenderer } from './SourceRenderer';
@@ -49,6 +49,7 @@ import { ScientificGraph } from './ScientificGraph';
 import { AudioVisualizer } from './AudioVisualizer';
 import { useAnalytics } from '../contexts/analytics';
 import { useContentDensity } from '../contexts/ContentDensityContext';
+import { SmartContent } from './SmartContent';
 import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType, ImageRun, Table, TableRow, TableCell, WidthType, BorderStyle } from 'docx';
 
 const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
@@ -127,50 +128,72 @@ function parseMarkdownTable(text: string) {
 }
 
 function splitMessageContent(text: string) {
-    const parts: {type: 'text' | 'table', content?: string, table?: {header: string[], data: string[][]}}[] = [];
-    const lines = text.split('\n');
-    let currentText = '';
-    let inTable = false;
-    let tableLines: string[] = [];
-
-    const isTableLine = (line: string) => line.trim().includes('|');
-    const isSeparator = (line: string) => line.trim().match(/^[|:\s-]*$/) && line.trim().includes('-') && line.trim().includes('|');
-
-    for (let i = 0; i < lines.length; i++) {
-        const line = lines[i];
+    const blocks: {type: 'text' | 'table' | 'illustration' | 'diagram' | 'graph', content?: string, table?: {header: string[], data: string[][]}, tag?: string}[] = [];
+    
+    // Split by tags first
+    const parts = text.split(/(\[\s*(?:GRAPH|ILLUSTRATE|DIAGRAM):\s*.*?\s*\])/gi);
+    
+    for (const part of parts) {
+        if (!part) continue;
         
-        if (isTableLine(line)) {
-            if (!inTable) {
-                const nextLine = lines[i+1];
-                if (nextLine && isSeparator(nextLine)) {
-                    if (currentText.trim()) parts.push({type: 'text', content: currentText.trim()});
-                    currentText = '';
-                    inTable = true;
-                    tableLines = [line];
+        const graphMatch = part.match(/\[GRAPH:\s*(.*?)\s*\]/i);
+        const illustrateMatch = part.match(/\[ILLUSTRATE:\s*(.*?)\s*\]/i);
+        const diagramMatch = part.match(/\[DIAGRAM:\s*(.*?)\s*\]/i);
+        
+        if (graphMatch) {
+            blocks.push({ type: 'graph', tag: graphMatch[1].trim() });
+        } else if (illustrateMatch) {
+            blocks.push({ type: 'illustration', tag: illustrateMatch[1].trim() });
+        } else if (diagramMatch) {
+            blocks.push({ type: 'diagram', tag: diagramMatch[1].trim() });
+        } else {
+            // Handle tables within this text part
+            const lines = part.split('\n');
+            let currentText = '';
+            let inTable = false;
+            let tableLines: string[] = [];
+
+            const isTableLine = (line: string) => line.trim().includes('|');
+            const isSeparator = (line: string) => line.trim().match(/^[|:\s-]*$/) && line.trim().includes('-') && line.trim().includes('|');
+
+            for (let i = 0; i < lines.length; i++) {
+                const line = lines[i];
+                if (isTableLine(line)) {
+                    if (!inTable) {
+                        const nextLine = lines[i+1];
+                        if (nextLine && isSeparator(nextLine)) {
+                            if (currentText.trim()) blocks.push({type: 'text', content: currentText.trim()});
+                            currentText = '';
+                            inTable = true;
+                            tableLines = [line];
+                        } else {
+                            currentText += (currentText ? '\n' : '') + line;
+                        }
+                    } else {
+                        tableLines.push(line);
+                    }
                 } else {
+                    if (inTable) {
+                        const table = parseMarkdownTable(tableLines.join('\n'));
+                        if (table) blocks.push({type: 'table', table});
+                        else currentText += (currentText ? '\n' : '') + tableLines.join('\n');
+                        inTable = false;
+                        tableLines = [];
+                    }
                     currentText += (currentText ? '\n' : '') + line;
                 }
-            } else {
-                tableLines.push(line);
             }
-        } else {
             if (inTable) {
                 const table = parseMarkdownTable(tableLines.join('\n'));
-                if (table) parts.push({type: 'table', table});
+                if (table) blocks.push({type: 'table', table});
                 else currentText += (currentText ? '\n' : '') + tableLines.join('\n');
-                inTable = false;
-                tableLines = [];
             }
-            currentText += (currentText ? '\n' : '') + line;
+            if (currentText.trim()) {
+                blocks.push({type: 'text', content: currentText.trim()});
+            }
         }
     }
-    if (inTable) {
-        const table = parseMarkdownTable(tableLines.join('\n'));
-        if (table) parts.push({type: 'table', table});
-        else currentText += (currentText ? '\n' : '') + tableLines.join('\n');
-    }
-    if (currentText.trim()) parts.push({type: 'text', content: currentText.trim()});
-    return parts;
+    return blocks;
 }
 
 const getBCP47Language = (lang: string): string => {
@@ -284,38 +307,6 @@ const Section: React.FC<{
   );
 };
 
-const SmartContent: React.FC<{ content: string | undefined; language: string; T: Record<string, any>; onTriggerIllustration: (desc: string) => void; allowVisuals?: boolean }> = ({ content, language, T, onTriggerIllustration, allowVisuals = false }) => {
-    if (!content) return null;
-    const graphMatches = allowVisuals ? [...content.matchAll(/\[GRAPH:\s*(.*?)\s*\]/g)] : [];
-    const illustrateMatches = allowVisuals ? [...content.matchAll(/\[ILLUSTRATE:\s*(.*?)\s*\]/g)] : [];
-    
-    const cleanContent = content
-        .replace(/\[GRAPH:.*?\]/gi, '')
-        .replace(/\[ILLUSTRATE:.*?\]/gi, '')
-        .replace(/\[DIAGRAM:.*?\]/gi, '')
-        .replace(/\[ADVERSE:.*?\]/gi, '') // Strip any legacy adverse tags
-        .trim();
-        
-    return (
-        <div className="space-y-1.5">
-            <MarkdownRenderer content={cleanContent} />
-            
-            <div className="pt-0.5"><SourceRenderer text={content} /></div>
-            {allowVisuals && graphMatches.length > 0 && (<div className="space-y-2 mt-1">{graphMatches.map((m, i) => <ScientificGraph key={i} type={m[1].trim() as any} title="Physiological Model Visualization" />)}</div>)}
-            {allowVisuals && illustrateMatches.length > 0 && (
-                <div className="flex flex-wrap gap-2 mt-1">
-                    {illustrateMatches.map((m, i) => (
-                        <button key={i} onClick={() => onTriggerIllustration(m[1].trim())} title="Synthesize Clinical Illustration" className="group flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 dark:bg-blue-900/30 text-brand-blue dark:text-blue-300 border border-blue-200 dark:border-blue-800 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-all text-[9px] font-black shadow-xs">
-                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h14a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
-                            {T.visualVerificationButton}
-                        </button>
-                    ))}
-                </div>
-            )}
-        </div>
-    );
-};
-
 const SkeletonLoader: React.FC = () => (
     <div className="space-y-2 animate-pulse">
         <div className="h-3 bg-gray-200 dark:bg-slate-700 rounded w-3/4"></div>
@@ -387,6 +378,48 @@ export const PatientCaseView: React.FC<PatientCaseViewProps> = ({ patientCase: i
     setActiveImageGenerator({ content: { title: T.clinicalVisualization, description: desc, type: EducationalContentType.IMAGE, reference: T.aiSynthesizedEvidence }, index: sourceIndex }); 
   };
 
+  const handleTriggerDiagram = async (desc: string, sourceIndex: number) => {
+    logEvent('trigger_diagram', { source_index: sourceIndex });
+    try {
+        const diagramData = await generateDiagramForDiscussion(desc, patientCase.title + '\n' + patientCase.patientProfile, language);
+        setPatientCase(prev => {
+            const newCase = { ...prev };
+            if (sourceIndex === -1) {
+                // Add to educational content if it was a general trigger
+                if (!newCase.educationalContent) newCase.educationalContent = [];
+                newCase.educationalContent.push({
+                    type: EducationalContentType.DIAGRAM,
+                    title: desc,
+                    description: desc,
+                    reference: T.aiSynthesizedEvidence,
+                    diagramData
+                });
+            } else if (newCase.educationalContent && newCase.educationalContent[sourceIndex]) {
+                newCase.educationalContent[sourceIndex] = {
+                    ...newCase.educationalContent[sourceIndex],
+                    diagramData
+                };
+            }
+            return newCase;
+        });
+    } catch (error) {
+        console.error("Failed to generate diagram:", error);
+    }
+  };
+
+  const renderSmartContent = (value: string | undefined, allowVisuals: boolean = false, idx: number = -1, diagramData?: DiagramData, imageData?: string) => {
+    return <SmartContent 
+        content={value} 
+        language={language} 
+        T={T} 
+        onTriggerIllustration={(d) => handleTriggerIllustration(d, idx)} 
+        onTriggerDiagram={(d) => handleTriggerDiagram(d, idx)} 
+        allowVisuals={allowVisuals} 
+        diagramData={diagramData}
+        imageData={imageData}
+    />;
+  };
+
   const handleDownloadPdf = async () => {
     logEvent('download_case_pdf');
     const { jsPDF } = (window as any).jspdf;
@@ -430,6 +463,27 @@ export const PatientCaseView: React.FC<PatientCaseViewProps> = ({ patientCase: i
                     theme: 'grid'
                 });
                 y = (doc as any).lastAutoTable.finalY + 10;
+            } else if (block.type === 'illustration' && block.tag) {
+                const edu = patientCase.educationalContent?.find(e => e.description.includes(block.tag!) || e.title.includes(block.tag!));
+                const imgData = edu?.imageData || (patientCase.biochemicalPathway?.description.includes(block.tag!) ? patientCase.biochemicalPathway.imageData : null);
+                if (imgData) {
+                    if (y > 200) { doc.addPage(); y = 20; }
+                    const imgW = 140; 
+                    const imgH = 105;
+                    doc.addImage(imgData, 'PNG', (pageWidth - imgW) / 2, y, imgW, imgH);
+                    y += imgH + 10;
+                }
+            } else if ((block.type === 'diagram' || block.type === 'graph') && block.tag) {
+                const container = containerRef.current?.querySelector(`[data-tag="${block.tag}"]`);
+                const svg = container?.querySelector('svg');
+                if (svg) {
+                    const imgData = await captureSvgAsBase64(svg as SVGSVGElement);
+                    if (y > 200) { doc.addPage(); y = 20; }
+                    const imgW = 160;
+                    const imgH = 100;
+                    doc.addImage(imgData, 'PNG', (pageWidth - imgW) / 2, y, imgW, imgH);
+                    y += imgH + 10;
+                }
             }
         }
         y += 5;
@@ -485,21 +539,6 @@ export const PatientCaseView: React.FC<PatientCaseViewProps> = ({ patientCase: i
         await addSection('QUIZ', quizText);
     }
 
-    // Capture SVGs if any are visible in the container
-    if (containerRef.current) {
-        const svgs = containerRef.current.querySelectorAll('svg');
-        for (const svg of Array.from(svgs) as SVGSVGElement[]) {
-            if (svg.closest('.interactive-diagram') || svg.closest('.scientific-graph')) {
-                const imgData = await captureSvgAsBase64(svg);
-                if (y > 180) { doc.addPage(); y = 20; }
-                const imgW = pageWidth - (margin * 2);
-                const imgH = (imgW * svg.clientHeight) / svg.clientWidth;
-                doc.addImage(imgData, 'PNG', margin, y, imgW, imgH);
-                y += imgH + 10;
-            }
-        }
-    }
-
     // Add Knowledge Map if available
     if (onGetMapImage) {
         const mapImg = await onGetMapImage();
@@ -553,6 +592,26 @@ export const PatientCaseView: React.FC<PatientCaseViewProps> = ({ patientCase: i
                             theme: 'grid'
                         });
                         y = (doc as any).lastAutoTable.finalY + 8;
+                    } else if (block.type === 'illustration' && block.tag) {
+                        const imgData = msg.imageData;
+                        if (imgData) {
+                            if (y > 200) { doc.addPage(); y = 20; }
+                            const imgW = 120; 
+                            const imgH = 90;
+                            doc.addImage(imgData, 'PNG', (pageWidth - imgW) / 2, y, imgW, imgH);
+                            y += imgH + 10;
+                        }
+                    } else if ((block.type === 'diagram' || block.type === 'graph') && block.tag) {
+                        const container = document.querySelector(`[data-tag="${block.tag}"]`);
+                        const svg = container?.querySelector('svg');
+                        if (svg) {
+                            const imgData = await captureSvgAsBase64(svg as SVGSVGElement);
+                            if (y > 200) { doc.addPage(); y = 20; }
+                            const imgW = 140;
+                            const imgH = 80;
+                            doc.addImage(imgData, 'PNG', (pageWidth - imgW) / 2, y, imgW, imgH);
+                            y += imgH + 10;
+                        }
                     }
                 }
                 y += 4;
@@ -568,7 +627,7 @@ export const PatientCaseView: React.FC<PatientCaseViewProps> = ({ patientCase: i
     logEvent('download_case_word');
     const sections: any[] = [];
 
-    const addWordSection = (title: string, content: string) => {
+    const addWordSection = async (title: string, content: string) => {
         sections.push(new Paragraph({ text: title.toUpperCase(), heading: HeadingLevel.HEADING_2, spacing: { before: 400, after: 200 } }));
         const blocks = splitMessageContent(content);
         for (const block of blocks) {
@@ -592,81 +651,80 @@ export const PatientCaseView: React.FC<PatientCaseViewProps> = ({ patientCase: i
                 });
                 sections.push(table);
                 sections.push(new Paragraph({ text: '', spacing: { after: 200 } }));
+            } else if (block.type === 'illustration' && block.tag) {
+                const edu = patientCase.educationalContent?.find(e => e.description.includes(block.tag!) || e.title.includes(block.tag!));
+                const imgData = edu?.imageData || (patientCase.biochemicalPathway?.description.includes(block.tag!) ? patientCase.biochemicalPathway.imageData : null);
+                if (imgData) {
+                    try {
+                        const base64Data = imgData.split(',')[1];
+                        const buffer = Uint8Array.from(atob(base64Data), c => c.charCodeAt(0));
+                        sections.push(new Paragraph({
+                            children: [new ImageRun({ data: buffer, transformation: { width: 500, height: 375 } })],
+                            alignment: AlignmentType.CENTER,
+                            spacing: { before: 200, after: 200 }
+                        }));
+                    } catch (e) { console.error("Image embed error:", e); }
+                }
+            } else if ((block.type === 'diagram' || block.type === 'graph') && block.tag) {
+                const container = containerRef.current?.querySelector(`[data-tag="${block.tag}"]`);
+                const svg = container?.querySelector('svg');
+                if (svg) {
+                    try {
+                        const imgData = await captureSvgAsBase64(svg as SVGSVGElement);
+                        const base64Data = imgData.split(',')[1];
+                        const buffer = Uint8Array.from(atob(base64Data), c => c.charCodeAt(0));
+                        sections.push(new Paragraph({
+                            children: [new ImageRun({ data: buffer, transformation: { width: 550, height: 300 } })],
+                            alignment: AlignmentType.CENTER,
+                            spacing: { before: 200, after: 200 }
+                        }));
+                    } catch (e) { console.error("SVG embed error:", e); }
+                }
             }
         }
     };
 
-    addWordSection(T.patientProfile, patientCase.patientProfile);
-    addWordSection(T.presentingComplaint, patientCase.presentingComplaint);
-    addWordSection(T.history, patientCase.history);
-    if (patientCase.procedureDetails) addWordSection(T.procedureDetails, patientCase.procedureDetails.description);
-    if (patientCase.patientOutcome) addWordSection(T.patientOutcome, patientCase.patientOutcome.outcome);
+    await addWordSection(T.patientProfile, patientCase.patientProfile);
+    await addWordSection(T.presentingComplaint, patientCase.presentingComplaint);
+    await addWordSection(T.history, patientCase.history);
+    if (patientCase.procedureDetails) await addWordSection(T.procedureDetails, patientCase.procedureDetails.description);
+    if (patientCase.patientOutcome) await addWordSection(T.patientOutcome, patientCase.patientOutcome.outcome);
 
     if (patientCase.biochemicalPathway) {
-        addWordSection(patientCase.biochemicalPathway.title, patientCase.biochemicalPathway.description);
+        await addWordSection(patientCase.biochemicalPathway.title, patientCase.biochemicalPathway.description);
     }
 
     if (patientCase.multidisciplinaryConnections) {
         let connText = patientCase.multidisciplinaryConnections.map(c => `${c.discipline}: ${c.connection}`).join('\n\n');
-        addWordSection(T.multidisciplinaryConnections, connText);
+        await addWordSection(T.multidisciplinaryConnections, connText);
     }
 
     if (patientCase.disciplineSpecificConsiderations) {
         let consText = patientCase.disciplineSpecificConsiderations.map(c => `${c.aspect}: ${c.consideration}`).join('\n\n');
-        addWordSection(T.managementConsiderations, consText);
+        await addWordSection(T.managementConsiderations, consText);
     }
 
     if (patientCase.educationalContent) {
         for (const edu of patientCase.educationalContent) {
-            addWordSection(edu.title, edu.description);
-            if (edu.imageData) {
-                try {
-                    const base64Data = edu.imageData.split(',')[1];
-                    const buffer = Uint8Array.from(atob(base64Data), c => c.charCodeAt(0));
-                    sections.push(new Paragraph({
-                        children: [new ImageRun({ data: buffer, transformation: { width: 500, height: 375 } })],
-                        alignment: AlignmentType.CENTER,
-                        spacing: { before: 200, after: 200 }
-                    }));
-                } catch (e) { console.error("Image embed error:", e); }
-            }
+            await addWordSection(edu.title, edu.description);
         }
     }
 
     if (patientCase.traceableEvidence && patientCase.traceableEvidence.length > 0) {
         let evidenceText = patientCase.traceableEvidence.map(e => `${e.claim} (Source: ${e.source})`).join('\n\n');
-        addWordSection(T.traceableEvidence, evidenceText);
+        await addWordSection(T.traceableEvidence, evidenceText);
     }
 
     if (patientCase.furtherReadings && patientCase.furtherReadings.length > 0) {
         let readingText = patientCase.furtherReadings.map(r => `${r.topic}: ${r.reference}`).join('\n\n');
-        addWordSection(T.furtherReading, readingText);
+        await addWordSection(T.furtherReading, readingText);
     }
 
     if (patientCase.quiz && patientCase.quiz.length > 0) {
         let quizText = patientCase.quiz.map((q, i) => {
             return `Question ${i + 1}: ${q.question}\nOptions: ${q.options.join(', ')}\nCorrect Answer: ${q.options[q.correctAnswerIndex]}\nExplanation: ${q.explanation}`;
         }).join('\n\n');
-        addWordSection('QUIZ', quizText);
-    }
-
-    // SVGs
-    if (containerRef.current) {
-        const svgs = containerRef.current.querySelectorAll('svg');
-        for (const svg of Array.from(svgs) as SVGSVGElement[]) {
-            if (svg.closest('.interactive-diagram') || svg.closest('.scientific-graph')) {
-                try {
-                    const imgData = await captureSvgAsBase64(svg);
-                    const base64Data = imgData.split(',')[1];
-                    const buffer = Uint8Array.from(atob(base64Data), c => c.charCodeAt(0));
-                    sections.push(new Paragraph({
-                        children: [new ImageRun({ data: buffer, transformation: { width: 550, height: 300 } })],
-                        alignment: AlignmentType.CENTER,
-                        spacing: { before: 200, after: 200 }
-                    }));
-                } catch (e) { console.error("SVG embed error:", e); }
-            }
-        }
+        await addWordSection('QUIZ', quizText);
     }
 
     // Knowledge Map
@@ -781,7 +839,7 @@ export const PatientCaseView: React.FC<PatientCaseViewProps> = ({ patientCase: i
             </div>
         );
     }
-    return <SmartContent content={value} language={language} T={T} onTriggerIllustration={(d) => handleTriggerIllustration(d, -1)} allowVisuals={allowVisuals} />;
+    return renderSmartContent(value, allowVisuals);
   };
 
   const archivedDiscussions = (Object.entries(patientCase.discussions || {}) as [string, ChatMessage[]][]).filter(([_, msgs]) => msgs.length > 1);
@@ -858,7 +916,7 @@ export const PatientCaseView: React.FC<PatientCaseViewProps> = ({ patientCase: i
                                     <div className="p-1 rounded-lg bg-white dark:bg-slate-900 shadow-xs"><DisciplineIcon discipline={conn.discipline} className="h-3.5 w-3.5" style={{ color: DisciplineColors[conn.discipline] }} /></div>
                                     <h5 className="text-xs font-black text-gray-900 dark:text-slate-100 tracking-tight uppercase">{conn.discipline}</h5>
                                 </div>
-                                <div className="text-[10px] sm:text-[11px] text-gray-700 dark:text-slate-300 leading-relaxed mb-2"><SmartContent content={conn.connection} language={language} T={T} onTriggerIllustration={(d) => handleTriggerIllustration(d, -1)} /></div>
+                                <div className="text-[10px] sm:text-[11px] text-gray-700 dark:text-slate-300 leading-relaxed mb-2">{renderSmartContent(conn.connection, true)}</div>
                             </div>
                             <div className="flex items-center gap-2 self-end">
                                 <DiscussionBadge messages={patientCase.discussions?.[conn.discipline]} />
@@ -887,7 +945,7 @@ export const PatientCaseView: React.FC<PatientCaseViewProps> = ({ patientCase: i
                                         <button onClick={() => onOpenDiscussion(item)} className="text-[8px] bg-blue-50 dark:bg-blue-900/30 text-brand-blue dark:text-blue-300 font-black py-1 px-2 sm:px-2.5 rounded-full border border-blue-100 dark:border-blue-900 transition-all hover:bg-brand-blue hover:text-white uppercase tracking-widest shadow-xs">{T.discussButton}</button>
                                     </div>
                                 </div>
-                                <div className="mt-1 text-[11px] sm:text-sm"><SmartContent content={item.consideration} language={language} T={T} onTriggerIllustration={(d) => handleTriggerIllustration(d, -1)} /></div>
+                                <div className="mt-1 text-[11px] sm:text-sm">{renderSmartContent(item.consideration, true)}</div>
                             </div>
                         );
                     })}
@@ -913,17 +971,7 @@ export const PatientCaseView: React.FC<PatientCaseViewProps> = ({ patientCase: i
                                         </div>
                                     </div>
                                     <p className="text-[8px] text-gray-400 font-mono mb-2 uppercase tracking-tighter">{content.reference}</p>
-                                    <SmartContent content={content.description} language={language} T={T} onTriggerIllustration={(d) => handleTriggerIllustration(d, idx)} allowVisuals={true} />
-                                    
-                                    {content.imageData ? (
-                                        <div className="mt-4 rounded-xl overflow-hidden border border-gray-100 dark:border-dark-border shadow-md">
-                                            <img src={content.imageData} alt={content.title} className="w-full h-auto object-cover" referrerPolicy="no-referrer" />
-                                        </div>
-                                    ) : content.diagramData ? (
-                                        <div className="mt-4 h-[300px] rounded-xl border border-gray-100 dark:border-dark-border shadow-xs overflow-hidden">
-                                            <InteractiveDiagram id={`diagram-${idx}`} data={content.diagramData} />
-                                        </div>
-                                    ) : null}
+                                    {renderSmartContent(content.description, true, idx, content.diagramData, content.imageData)}
                                 </div>
                             ))}
                         </div>

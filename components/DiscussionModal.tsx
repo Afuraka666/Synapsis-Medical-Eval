@@ -28,6 +28,7 @@ import { ImageGenerator } from './ImageGenerator';
 import { SourceRenderer } from './SourceRenderer';
 import { ScientificGraph } from './ScientificGraph';
 import { AudioVisualizer } from './AudioVisualizer';
+import { SmartContent } from './SmartContent';
 import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType, ImageRun, Table, TableRow, TableCell, WidthType, BorderStyle } from 'docx';
 import { useAnalytics } from '../contexts/analytics';
 
@@ -133,51 +134,75 @@ function parseMarkdownTable(text: string) {
 }
 
 function splitMessageContent(text: string) {
-    const parts: {type: 'text' | 'table', content?: string, table?: {header: string[], data: string[][]}}[] = [];
-    const lines = text.split('\n');
-    let currentText = '';
-    let inTable = false;
-    let tableLines: string[] = [];
-
-    const isTableLine = (line: string) => line.trim().includes('|');
-    const isSeparator = (line: string) => line.trim().match(/^[|:\s-]*$/) && line.trim().includes('-') && line.trim().includes('|');
-
-    for (let i = 0; i < lines.length; i++) {
-        const line = lines[i];
+    const blocks: {
+        type: 'text' | 'table' | 'illustration' | 'diagram' | 'graph',
+        content?: string,
+        table?: {header: string[], data: string[][]},
+        tag?: string
+    }[] = [];
+    
+    // Split by tags first
+    const parts = text.split(/(\[\s*(?:GRAPH|ILLUSTRATE|DIAGRAM):\s*.*?\s*\])/gi);
+    
+    for (const part of parts) {
+        if (!part) continue;
         
-        if (isTableLine(line)) {
-            if (!inTable) {
-                // Check if this is a header followed by a separator
-                const nextLine = lines[i+1];
-                if (nextLine && isSeparator(nextLine)) {
-                    if (currentText.trim()) parts.push({type: 'text', content: currentText.trim()});
-                    currentText = '';
-                    inTable = true;
-                    tableLines = [line];
+        const graphMatch = part.match(/\[GRAPH:\s*(.*?)\s*\]/i);
+        const illustrateMatch = part.match(/\[ILLUSTRATE:\s*(.*?)\s*\]/i);
+        const diagramMatch = part.match(/\[DIAGRAM:\s*(.*?)\s*\]/i);
+        
+        if (graphMatch) {
+            blocks.push({ type: 'graph', tag: graphMatch[1].trim() });
+        } else if (illustrateMatch) {
+            blocks.push({ type: 'illustration', tag: illustrateMatch[1].trim() });
+        } else if (diagramMatch) {
+            blocks.push({ type: 'diagram', tag: diagramMatch[1].trim() });
+        } else {
+            // Handle tables within this text part
+            const lines = part.split('\n');
+            let currentText = '';
+            let inTable = false;
+            let tableLines: string[] = [];
+
+            const isTableLine = (line: string) => line.trim().includes('|');
+            const isSeparator = (line: string) => line.trim().match(/^[|:\s-]*$/) && line.trim().includes('-') && line.trim().includes('|');
+
+            for (let i = 0; i < lines.length; i++) {
+                const line = lines[i];
+                if (isTableLine(line)) {
+                    if (!inTable) {
+                        const nextLine = lines[i+1];
+                        if (nextLine && isSeparator(nextLine)) {
+                            if (currentText.trim()) blocks.push({type: 'text', content: currentText.trim()});
+                            currentText = '';
+                            inTable = true;
+                            tableLines = [line];
+                        } else {
+                            currentText += (currentText ? '\n' : '') + line;
+                        }
+                    } else {
+                        tableLines.push(line);
+                    }
                 } else {
+                    if (inTable) {
+                        const table = parseMarkdownTable(tableLines.join('\n'));
+                        if (table) blocks.push({type: 'table', table});
+                        else currentText += (currentText ? '\n' : '') + tableLines.join('\n');
+                        inTable = false;
+                        tableLines = [];
+                    }
                     currentText += (currentText ? '\n' : '') + line;
                 }
-            } else {
-                tableLines.push(line);
             }
-        } else {
             if (inTable) {
                 const table = parseMarkdownTable(tableLines.join('\n'));
-                if (table) parts.push({type: 'table', table});
+                if (table) blocks.push({type: 'table', table});
                 else currentText += (currentText ? '\n' : '') + tableLines.join('\n');
-                inTable = false;
-                tableLines = [];
             }
-            currentText += (currentText ? '\n' : '') + line;
+            if (currentText.trim()) blocks.push({type: 'text', content: currentText.trim()});
         }
     }
-    if (inTable) {
-        const table = parseMarkdownTable(tableLines.join('\n'));
-        if (table) parts.push({type: 'table', table});
-        else currentText += (currentText ? '\n' : '') + tableLines.join('\n');
-    }
-    if (currentText.trim()) parts.push({type: 'text', content: currentText.trim()});
-    return parts;
+    return blocks;
 }
 
 interface DiscussionModalProps {
@@ -230,8 +255,9 @@ export const DiscussionModal: React.FC<DiscussionModalProps> = ({
             1. **PHYSIOLOGY GRAPHS:** Use [GRAPH: type] tags. 
                - Available types: oxygen_dissociation, frank_starling, pressure_volume_loop (CARDIAC ONLY), respiratory_flow_volume (RESPIRATORY ONLY), cerebral_pressure_volume, cerebral_autoregulation, capnography, spirometry.
                - **IMPORTANT:** Use 'respiratory_flow_volume' for airway mechanics, NEVER 'pressure_volume_loop'.
-            2. **CLINICAL ALGORITHMS:** Use [DIAGRAM: specific description] for treatment cascades or anatomical pathways.
-            3. **DATA COMPARISON (CRITICAL):** ALWAYS use Markdown Tables for lab ranges, drug properties, dosage comparisons, or differential signs. For example, when comparing Calcium Chloride and Calcium Gluconate, use a table with columns for Feature, Calcium Chloride, and Calcium Gluconate.
+            2. **CLINICAL ALGORITHMS:** Use [DIAGRAM: specific description] (e.g., [DIAGRAM: iron_homeostasis_pathway]) for complex physiological pathways, treatment cascades, or anatomical relationships. The system will automatically synthesize an interactive node-link diagram.
+            3. **ILLUSTRATIONS:** Use [ILLUSTRATE: description] for anatomical or clinical visuals.
+            4. **DATA COMPARISON (CRITICAL):** ALWAYS use Markdown Tables for lab ranges, drug properties, dosage comparisons, or differential signs. For example, when comparing Calcium Chloride and Calcium Gluconate, use a table with columns for Feature, Calcium Chloride, and Calcium Gluconate.
             
             **STRICT FORMATTING (CRITICAL):**
             1. **NO LATEX:** Do NOT use LaTeX or dollar signs ($ or $$) for equations.
@@ -246,9 +272,10 @@ export const DiscussionModal: React.FC<DiscussionModalProps> = ({
             
             **ACADEMIC RIGOR & VERIFICATION:**
             1. All references MUST be real and traceable. Use PMIDs or DOIs. DO NOT FABRICATE URLs.
-            2. **GOOGLE SEARCH:** Use the search tool to verify any clinical claims or guidelines you mention.
-            3. **PREFERRED SOURCES:** Prioritize evidence from Google Scholar, PubMed, Medline Plus, clinicaltrials.gov, CDC, JAMA, NEJM, The Lancet, Cochrane Library, Mayo Clinic, and Johns Hopkins.
-            4. **URL VERIFICATION:** Every URL you provide MUST lead directly to the specific article or abstract mentioned. You MUST verify that the article title at the URL matches your claim.
+            2. **GOOGLE SEARCH:** Use the search tool to verify any clinical claims, guidelines, PMIDs, or DOIs you mention.
+            3. **PMID/DOI VERIFICATION (CRITICAL):** You MUST verify the PMID and DOI for every reference using Google Search. Do NOT rely on internal knowledge for these IDs as they are frequently hallucinated. Cross-reference the title with the ID.
+            4. **PREFERRED SOURCES:** Prioritize evidence from Google Scholar, PubMed, Medline Plus, clinicaltrials.gov, CDC, JAMA, NEJM, The Lancet, Cochrane Library, Mayo Clinic, and Johns Hopkins.
+            5. **URL VERIFICATION:** Every URL you provide MUST lead directly to the specific article or abstract mentioned. You MUST verify that the article title at the URL matches your claim.
             
             Language: ${language}.`;
 
@@ -424,6 +451,13 @@ export const DiscussionModal: React.FC<DiscussionModalProps> = ({
                     if (!currentResponse) throw chunkErr;
                 }
             }
+
+            // Auto-trigger diagram generation if [DIAGRAM: ...] is found in the final response
+            const diagramMatch = currentResponse.match(/\[\s*DIAGRAM:\s*(.*?)\s*\]/i);
+            if (diagramMatch) {
+                const aiMsgIndex = messages.length; // The index of the AI message we just added
+                handleGenerateDiagram(aiMsgIndex, diagramMatch[1]);
+            }
         } catch (error: any) {
             console.error('Chat error details:', {
                 message: error.message,
@@ -537,6 +571,34 @@ export const DiscussionModal: React.FC<DiscussionModalProps> = ({
                         margins: { top: 100, bottom: 100, left: 100, right: 100 }
                     }));
                     sections.push(new Paragraph({ text: '', spacing: { before: 200 } }));
+                } else if (block.type === 'illustration' && block.tag) {
+                    const imgData = m.imageData;
+                    if (imgData) {
+                        try {
+                            const base64Data = imgData.split(',')[1];
+                            const buffer = Uint8Array.from(atob(base64Data), c => c.charCodeAt(0));
+                            sections.push(new Paragraph({
+                                children: [new ImageRun({ data: buffer, transformation: { width: 500, height: 375 } })],
+                                alignment: AlignmentType.CENTER,
+                                spacing: { before: 200, after: 200 }
+                            }));
+                        } catch (e) { console.error("Image embed error:", e); }
+                    }
+                } else if ((block.type === 'diagram' || block.type === 'graph') && block.tag) {
+                    const container = document.querySelector(`[data-tag="${block.tag}"]`);
+                    const svg = container?.querySelector('svg');
+                    if (svg) {
+                        try {
+                            const imgData = await captureSvgAsBase64(svg as SVGSVGElement);
+                            const base64Data = imgData.split(',')[1];
+                            const buffer = Uint8Array.from(atob(base64Data), c => c.charCodeAt(0));
+                            sections.push(new Paragraph({
+                                children: [new ImageRun({ data: buffer, transformation: { width: 550, height: 300 } })],
+                                alignment: AlignmentType.CENTER,
+                                spacing: { before: 200, after: 200 }
+                            }));
+                        } catch (e) { console.error("SVG embed error:", e); }
+                    }
                 }
             }
 
@@ -734,59 +796,24 @@ export const DiscussionModal: React.FC<DiscussionModalProps> = ({
                 <main ref={scrollContainerRef} className={`p-4 overflow-y-auto flex-grow bg-gray-50/50 dark:bg-slate-900/50 transition-colors ${isFullscreen ? 'max-w-4xl mx-auto w-full' : ''}`}>
                     <div className="space-y-6">
                         {messages.map((msg, index) => {
-                            const illustrationMatch = msg.text.match(/\[\s*ILLUSTRATE:\s*(.*?)\s*\]/i);
-                            const diagramMatch = msg.text.match(/\[\s*DIAGRAM:\s*(.*?)\s*\]/i);
-                            const graphMatches = [...msg.text.matchAll(/\[\s*GRAPH:\s*(.*?)\s*\]/gi)];
-                            const textWithoutTags = msg.text
-                                .replace(/\[\s*(ILLUSTRATE|DIAGRAM|GRAPH):\s*.*?\s*\]/gi, '')
-                                .trim();
                             return (
                                 <div key={index} className={`msg-${index} flex items-start gap-3 ${msg.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
                                     {msg.role === 'model' && <div className="w-8 h-8 bg-brand-blue dark:bg-brand-blue-light text-white rounded-full flex items-center justify-center flex-shrink-0 text-xs font-bold shadow-sm">AI</div>}
                                     <div className={`max-w-[92%] sm:max-w-[85%] space-y-3 ${msg.role === 'user' ? 'items-end' : 'items-start'}`}>
                                         <div className={`px-3 py-2.5 sm:px-4 sm:py-3 rounded-2xl text-sm shadow-sm transition-colors font-serif ${msg.role === 'user' ? 'bg-brand-blue dark:bg-brand-blue-light text-white rounded-tr-none' : msg.role === 'model' ? 'bg-white dark:bg-dark-surface text-brand-text dark:text-slate-200 border border-gray-200 dark:border-dark-border rounded-tl-none' : 'text-center w-full text-gray-500 italic bg-transparent shadow-none'}`}>
                                             {msg.role === 'model' ? (
-                                                <div className="space-y-4">
-                                                    <MarkdownRenderer content={msg.text} />
-                                                    <div className="pt-2 mt-2 border-t border-gray-50 dark:border-dark-border">
-                                                        <SourceRenderer text={msg.text} groundingSources={msg.groundingSources} />
-                                                    </div>
-                                                </div>
+                                                <SmartContent 
+                                                    content={msg.text}
+                                                    language={language}
+                                                    T={T}
+                                                    onTriggerIllustration={(desc) => setActiveImagePrompt({ prompt: desc, index })}
+                                                    onTriggerDiagram={(desc) => handleGenerateDiagram(index, desc)}
+                                                    allowVisuals={true}
+                                                    diagramData={msg.diagramData}
+                                                    imageData={msg.imageData}
+                                                    groundingSources={msg.groundingSources}
+                                                />
                                             ) : <p className="whitespace-pre-wrap">{msg.text}</p>}
-                                            {diagramMatch && !msg.diagramData && (
-                                                <div className="mt-3 pt-3 border-t border-gray-100 dark:border-dark-border flex justify-center">
-                                                    <button onClick={() => handleGenerateDiagram(index, diagramMatch[1])} className="flex items-center gap-2 px-4 py-2 bg-blue-50 dark:bg-blue-900/30 text-brand-blue dark:text-blue-300 hover:bg-blue-100 border border-blue-200 rounded-lg transition text-xs font-semibold">
-                                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
-                                                        {T.generateMedicalDiagram}
-                                                    </button>
-                                                </div>
-                                            )}
-                                            {msg.diagramData && (
-                                                <div className="mt-4 h-[300px] border border-gray-100 dark:border-dark-border rounded-xl overflow-hidden bg-white">
-                                                    <InteractiveDiagram data={msg.diagramData} id={`chat-diag-${index}`} />
-                                                </div>
-                                            )}
-                                            {illustrationMatch && !msg.imageData && (
-                                                <div className="mt-3 pt-3 border-t border-gray-100 dark:border-dark-border flex justify-center">
-                                                    <button onClick={() => setActiveImagePrompt({ prompt: illustrationMatch[1], index })} className="flex items-center gap-2 px-4 py-2 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 border border-indigo-200 rounded-lg transition text-xs font-semibold">
-                                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h14a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
-                                                        {T.generateIllustration}
-                                                    </button>
-                                                </div>
-                                            )}
-                                            {graphMatches.length > 0 && (
-                                                <div className="space-y-4 mt-4 pt-4 border-t border-gray-100 dark:border-dark-border">
-                                                    {graphMatches.map((m, i) => (
-                                                        <ScientificGraph 
-                                                            key={i} 
-                                                            type={m[1].trim().toLowerCase().replace(/[\s-]+/g, '_') as any} 
-                                                            title={T[GRAPH_TITLES[m[1].trim().toLowerCase().replace(/[\s-]+/g, '_')]] || "Model"} 
-                                                            className="scale-100" 
-                                                        />
-                                                    ))}
-                                                </div>
-                                            )}
-                                            {msg.imageData && <div className="mt-3"><img src={`data:image/png;base64,${msg.imageData}`} alt="Illustration" className="rounded-lg border border-gray-100 shadow-sm max-w-full h-auto" /></div>}
                                         </div>
                                     </div>
                                 </div>
