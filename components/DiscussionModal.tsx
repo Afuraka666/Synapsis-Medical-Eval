@@ -448,6 +448,9 @@ export const DiscussionModal: React.FC<DiscussionModalProps> = ({
         
         let aiMessageId = (Date.now() + 1).toString();
         
+        const modelName = 'gemini-3.1-pro-preview';
+        const fallbackModelName = 'gemini-3-flash-preview';
+
         try {
             // Re-initialize AI client to ensure we have the latest API key
             const apiKey = process.env.GEMINI_API_KEY || process.env.API_KEY;
@@ -459,20 +462,20 @@ export const DiscussionModal: React.FC<DiscussionModalProps> = ({
             // Always create a fresh chat instance with current history to avoid stale client issues
             // and ensure we use the most up-to-date API key as per platform guidelines.
             const history = messages
-                .filter(m => m.role === 'user' || m.role === 'ai')
+                .filter(m => (m.role === 'user' || m.role === 'ai') && m.text && m.text.trim() !== '')
+                .slice(-15) // Limit history to last 15 messages to stay within token limits
                 .map(m => ({ 
                     role: (m.role === 'ai' ? 'model' : m.role) as 'user' | 'model', 
                     parts: [{ text: m.text }] 
                 }));
-
-            const modelName = 'gemini-3.1-pro-preview';
-            const fallbackModelName = 'gemini-3-flash-preview';
 
             const createChat = (model: string, useTools: boolean = true) => ai.chats.create({
                 model,
                 config: { 
                     systemInstruction: getSystemInstruction(),
                     tools: useTools ? [{ googleSearch: {} }] : undefined,
+                    maxOutputTokens: 16384,
+                    thinkingConfig: { thinkingLevel: ThinkingLevel.LOW }
                 },
                 history
             });
@@ -543,7 +546,8 @@ export const DiscussionModal: React.FC<DiscussionModalProps> = ({
                 status: error.status,
                 stack: error.stack,
                 apiKeyPresent: !!(process.env.GEMINI_API_KEY || process.env.API_KEY),
-                model: 'gemini-3-flash-preview'
+                model: modelName,
+                errorObj: error
             });
             
             // Restore user input so they don't lose their message
@@ -555,7 +559,19 @@ export const DiscussionModal: React.FC<DiscussionModalProps> = ({
             // Remove the empty or partial AI message if it exists
             setMessages(prev => {
                 const filtered = prev.filter(m => m.id !== aiMessageId);
-                const errorMessage = error?.message || T.errorChat;
+                
+                // Extract the most descriptive error message possible
+                let errorMessage = T.errorChat;
+                if (error?.message) {
+                    errorMessage = error.message;
+                } else if (error?.error?.message) {
+                    errorMessage = error.error.message;
+                } else if (typeof error === 'string') {
+                    errorMessage = error;
+                } else if (error?.status) {
+                    errorMessage = `Error ${error.status}: ${T.errorChat}`;
+                }
+                
                 return [...filtered, { id: Date.now().toString(), role: 'system', text: errorMessage, timestamp: new Date() }];
             });
 

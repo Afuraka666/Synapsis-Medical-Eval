@@ -20,7 +20,12 @@ export async function retryWithBackoff<T>(
         try {
             return await fn(currentModel);
         } catch (error: any) {
-            console.error(`Attempt ${i + 1} failed with model ${currentModel}:`, error);
+            console.error(`Attempt ${i + 1} failed with model ${currentModel}:`, {
+                message: error?.message,
+                status: error?.status,
+                code: error?.code,
+                errorObj: error
+            });
             lastError = error;
             
             // Extract status code and message
@@ -33,11 +38,20 @@ export async function retryWithBackoff<T>(
                                message.includes("quota") ||
                                message.includes("rate limit");
 
+            const isTokenLimit = message.includes("max tokens limit") || 
+                                message.includes("token limit exceeded") ||
+                                message.includes("16384");
+
             const isServerError = (status >= 500 && status < 600);
 
             // If it's not a retryable error, throw immediately
-            if (!isRateLimit && !isServerError) {
+            if (!isRateLimit && !isServerError && !isTokenLimit) {
                 throw error;
+            }
+
+            // If it's a token limit error, we can't just retry with same model/prompt
+            if (isTokenLimit) {
+                throw new Error("The discussion has become too complex for the current model. Please try starting a new discussion or asking a more specific, shorter question.");
             }
 
             // If it's a rate limit on the fast model, try the fallback model on next attempt
@@ -59,8 +73,17 @@ export async function retryWithBackoff<T>(
     }
 
     // If we've exhausted all retries, try to provide a more user-friendly message
-    if (lastError && (lastError.status === 429 || lastError.code === 429)) {
-        throw new Error("The medical intelligence service is currently experiencing high demand. Please wait a few minutes and try again.");
+    if (lastError) {
+        const status = lastError.status || lastError.code;
+        if (status === 429) {
+            throw new Error("The medical intelligence service is currently experiencing high demand. Please wait a few minutes and try again.");
+        }
+        if (status === 401 || status === 403) {
+            throw new Error("Medical intelligence service authentication failed. Please verify your API key configuration.");
+        }
+        if (status === 404) {
+            throw new Error(`The requested model (${currentModel}) was not found. Please check your configuration.`);
+        }
     }
     
     throw lastError;
@@ -389,7 +412,7 @@ export const generateFullCaseStream = async function* (condition: string, discip
             config: { 
                 responseMimeType: "application/json", 
                 responseSchema: coreCaseSchema,
-                maxOutputTokens: 4096,
+                maxOutputTokens: 16384,
                 thinkingConfig: { thinkingLevel: ThinkingLevel.LOW },
                 tools: [{ googleSearch: {} }]
             },
@@ -453,7 +476,7 @@ export const generateFullCase = async (condition: string, discipline: string, di
                 config: { 
                     responseMimeType: "application/json", 
                     responseSchema: coreCaseSchema,
-                    maxOutputTokens: 4096,
+                    maxOutputTokens: 16384,
                     thinkingConfig: { thinkingLevel: ThinkingLevel.LOW }
                 },
             });
@@ -478,7 +501,7 @@ export const generateFullCase = async (condition: string, discipline: string, di
                 config: { 
                     responseMimeType: "application/json", 
                     responseSchema: knowledgeMapSchema,
-                    maxOutputTokens: 2048,
+                    maxOutputTokens: 4096,
                     thinkingConfig: { thinkingLevel: ThinkingLevel.LOW }
                 },
             });
@@ -531,7 +554,7 @@ export const generateKnowledgeMap = async (condition: string, discipline: string
             config: { 
                 responseMimeType: "application/json", 
                 responseSchema: knowledgeMapSchema,
-                maxOutputTokens: 2048,
+                maxOutputTokens: 4096,
                 thinkingConfig: { thinkingLevel: ThinkingLevel.LOW }
             },
         });
@@ -589,6 +612,8 @@ export const generateEvidenceAndQuiz = async (condition: string, discipline: str
                 config: { 
                     responseMimeType: "application/json", 
                     responseSchema: evidenceAndQuizSchema,
+                    maxOutputTokens: 16384,
+                    thinkingConfig: { thinkingLevel: ThinkingLevel.LOW },
                     tools: [{ googleSearch: {} }]
                 },
             });
@@ -776,8 +801,9 @@ export const enrichCaseWithWebSources = async (patientCase: PatientCase, languag
         config: { 
             responseMimeType: "application/json",
             responseSchema: sourcesSchema,
+            maxOutputTokens: 8192,
+            thinkingConfig: { thinkingLevel: ThinkingLevel.LOW },
             tools: [{ googleSearch: {} }], 
-            temperature: 0.2
         },
     }));
 
