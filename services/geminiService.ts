@@ -86,18 +86,19 @@ const EVIDENCE_GUIDELINE = `
 **VERIFICATION RULES:**
 1. **GOOGLE SEARCH:** You MUST use Google Search to verify clinical trials, PMIDs, and latest guidelines for the specific condition. 
 2. **PMID/DOI VERIFICATION (CRITICAL):** You MUST verify the PMID and DOI for every reference using Google Search. Do NOT rely on internal knowledge for these IDs as they are frequently hallucinated. Cross-reference the title with the ID.
+   - **MANDATORY:** You MUST include the PMID (e.g., "PMID: 12345678") or DOI (e.g., "10.1056/NEJMoa2206286") directly in the 'source' or 'reference' text field.
 3. **PREFERRED SOURCES:** Prioritize evidence from:
    - Google Scholar
    - Government/Public Health Databases: PubMed, Medline Plus, clinicaltrials.gov, CDC.
    - Peer-Reviewed Medical Journals: JAMA Network, NEJM, The Lancet, Cochrane Library.
    - Academic Medical Centers: Mayo Clinic, Johns Hopkins Medicine, Cleveland Clinic.
-3. **ACADEMIC RIGOR:** All "traceableEvidence" and "furtherReadings" MUST be real, existing publications. DO NOT FABRICATE PMIDs, DOIs, OR URLs.
-4. **URL VERIFICATION:** The "url" field for each source MUST be a real, working link that leads DIRECTLY to the specific article, abstract, or guideline mentioned.
+4. **ACADEMIC RIGOR:** All "traceableEvidence" and "furtherReadings" MUST be real, existing publications. DO NOT FABRICATE PMIDs, DOIs, OR URLs.
+5. **URL VERIFICATION:** The "url" field for each source MUST be a real, working link that leads DIRECTLY to the specific article, abstract, or guideline mentioned.
    - **CRITICAL:** You MUST verify that the article title at the URL matches your claim. Do NOT provide a URL if you are not 100% certain it leads to the correct material.
    - Do NOT use generic search result pages or homepage URLs.
-5. **QUIZ:** Generate exactly 5 high-yield MCQs with explanations.
-6. **NO LATEX:** Do NOT use LaTeX or dollar signs ($ or $$) for equations. Use Unicode subscripts/superscripts.
-7. **COMPLETENESS:** Ensure all 5 questions are fully generated.
+6. **QUIZ:** Generate exactly 5 high-yield MCQs with explanations.
+7. **NO LATEX:** Do NOT use LaTeX or dollar signs ($ or $$) for equations. Use Unicode subscripts/superscripts.
+8. **COMPLETENESS:** Ensure all 5 questions are fully generated.
 `;
 
 const diagramNodeSchema = {
@@ -758,10 +759,11 @@ export const enrichCaseWithWebSources = async (patientCase: PatientCase, languag
     **MANDATORY VERIFICATION:** 
     1. Use the Google Search tool to verify all clinical evidence.
     2. Every PMID or DOI MUST be factually verified for accuracy and relevance using the search tool. Do NOT rely on internal memory for these IDs.
-    3. PREFERRED SOURCES: Google Scholar, PubMed, clinicaltrials.gov, CDC, JAMA, NEJM, The Lancet, Cochrane Library, Mayo Clinic, Johns Hopkins.
-    4. YOU MUST INCLUDE A VALID, CLICKABLE URL (e.g., https://pubmed.ncbi.nlm.nih.gov/...) in the "url" field for each source and reference.
-    5. **CRITICAL:** The URL MUST lead directly to the article or abstract. You MUST verify that the article title at the URL matches your claim.
-    6. DO NOT FABRICATE URLs. Use the actual URLs found via the search tool.
+    3. **MANDATORY:** You MUST include the PMID (e.g., "PMID: 12345678") or DOI (e.g., "10.1056/NEJMoa2206286") directly in the 'source' or 'reference' text field.
+    4. PREFERRED SOURCES: Google Scholar, PubMed, clinicaltrials.gov, CDC, JAMA, NEJM, The Lancet, Cochrane Library, Mayo Clinic, Johns Hopkins.
+    5. YOU MUST INCLUDE A VALID, CLICKABLE URL (e.g., https://pubmed.ncbi.nlm.nih.gov/...) in the "url" field for each source and reference.
+    6. **CRITICAL:** The URL MUST lead directly to the article or abstract. You MUST verify that the article title at the URL matches your claim.
+    7. DO NOT FABRICATE URLs. Use the actual URLs found via the search tool.
     Language: ${language}.`;
     
     const response: GenerateContentResponse = await retryWithBackoff((model) => ai.models.generateContent({

@@ -96,13 +96,10 @@ const cleanTextForDownload = (text: string): string => {
         .replace(/\bO2\b/g, 'O₂')
         .replace(/\bH2O\b/g, 'H₂O')
         .replace(/\bt1\/2\b/gi, 'T½')
-        .replace(/\*/g, '')
+        // Preserve some basic structure but remove markdown noise
+        .replace(/\*\*/g, '')
         .replace(/__/g, '')
-        .replace(/#/g, '')
-        .replace(/>/g, '')
-        .replace(/\[/g, '')
-        .replace(/\]/g, '')
-        .replace(/;/g, '')
+        .replace(/^#+\s*/gm, '')
         .trim();
 };
 
@@ -160,11 +157,11 @@ function splitMessageContent(text: string) {
         } else {
             // Handle tables within this text part
             const lines = part.split('\n');
-            let currentText = '';
+            let currentTextLines: string[] = [];
             let inTable = false;
             let tableLines: string[] = [];
 
-            const isTableLine = (line: string) => line.trim().includes('|');
+            const isTableLine = (line: string) => line.trim().startsWith('|') && line.trim().endsWith('|');
             const isSeparator = (line: string) => line.trim().match(/^[|:\s-]*$/) && line.trim().includes('-') && line.trim().includes('|');
 
             for (let i = 0; i < lines.length; i++) {
@@ -173,12 +170,14 @@ function splitMessageContent(text: string) {
                     if (!inTable) {
                         const nextLine = lines[i+1];
                         if (nextLine && isSeparator(nextLine)) {
-                            if (currentText.trim()) blocks.push({type: 'text', content: currentText.trim()});
-                            currentText = '';
+                            if (currentTextLines.length > 0) {
+                                blocks.push({type: 'text', content: currentTextLines.join('\n').trim()});
+                                currentTextLines = [];
+                            }
                             inTable = true;
                             tableLines = [line];
                         } else {
-                            currentText += (currentText ? '\n' : '') + line;
+                            currentTextLines.push(line);
                         }
                     } else {
                         tableLines.push(line);
@@ -186,20 +185,28 @@ function splitMessageContent(text: string) {
                 } else {
                     if (inTable) {
                         const table = parseMarkdownTable(tableLines.join('\n'));
-                        if (table) blocks.push({type: 'table', table});
-                        else currentText += (currentText ? '\n' : '') + tableLines.join('\n');
+                        if (table) {
+                            blocks.push({type: 'table', table});
+                        } else {
+                            currentTextLines.push(...tableLines);
+                        }
                         inTable = false;
                         tableLines = [];
                     }
-                    currentText += (currentText ? '\n' : '') + line;
+                    currentTextLines.push(line);
                 }
             }
+            
             if (inTable) {
                 const table = parseMarkdownTable(tableLines.join('\n'));
                 if (table) blocks.push({type: 'table', table});
-                else currentText += (currentText ? '\n' : '') + tableLines.join('\n');
+                else currentTextLines.push(...tableLines);
             }
-            if (currentText.trim()) blocks.push({type: 'text', content: currentText.trim()});
+            
+            if (currentTextLines.length > 0) {
+                const finalContent = currentTextLines.join('\n').trim();
+                if (finalContent) blocks.push({type: 'text', content: finalContent});
+            }
         }
     }
     return blocks;
@@ -247,7 +254,7 @@ export const DiscussionModal: React.FC<DiscussionModalProps> = ({
             const getSystemInstruction = () => `You are an expert medical tutor. Facilitate a deep Socratic discussion about "${topic.aspect}" for "${caseTitle}". 
             
             **CONVERSATIONAL STYLE (CRITICAL):**
-            1. **NO MARKDOWN SYMBOLS:** Do NOT use markdown symbols like ** (bold) or ### (headers) in your text. Use plain text for structure.
+            1. **NO MARKDOWN SYMBOLS FOR HEADERS/BOLD:** Do NOT use markdown symbols like ** (bold) or ### (headers) in your text. Use plain text for structure.
             2. **NATURAL FLOW:** Keep the discussion conversational and professional.
             
             **VISUAL PREFERENCE & PHYSIOLOGICAL FIDELITY (MANDATORY):**
@@ -257,7 +264,7 @@ export const DiscussionModal: React.FC<DiscussionModalProps> = ({
                - **IMPORTANT:** Use 'respiratory_flow_volume' for airway mechanics, NEVER 'pressure_volume_loop'.
             2. **CLINICAL ALGORITHMS:** Use [DIAGRAM: specific description] (e.g., [DIAGRAM: iron_homeostasis_pathway]) for complex physiological pathways, treatment cascades, or anatomical relationships. The system will automatically synthesize an interactive node-link diagram.
             3. **ILLUSTRATIONS:** Use [ILLUSTRATE: description] for anatomical or clinical visuals.
-            4. **DATA COMPARISON (CRITICAL):** ALWAYS use Markdown Tables for lab ranges, drug properties, dosage comparisons, or differential signs. For example, when comparing Calcium Chloride and Calcium Gluconate, use a table with columns for Feature, Calcium Chloride, and Calcium Gluconate.
+            4. **DATA COMPARISON (CRITICAL):** ALWAYS use Markdown Tables for lab ranges, drug properties, dosage comparisons, or differential signs. Markdown tables ARE allowed and encouraged even if other markdown symbols are restricted.
             
             **STRICT FORMATTING (CRITICAL):**
             1. **NO LATEX:** Do NOT use LaTeX or dollar signs ($ or $$) for equations.
@@ -455,8 +462,15 @@ export const DiscussionModal: React.FC<DiscussionModalProps> = ({
             // Auto-trigger diagram generation if [DIAGRAM: ...] is found in the final response
             const diagramMatch = currentResponse.match(/\[\s*DIAGRAM:\s*(.*?)\s*\]/i);
             if (diagramMatch) {
-                const aiMsgIndex = messages.length; // The index of the AI message we just added
+                const aiMsgIndex = messages.length;
                 handleGenerateDiagram(aiMsgIndex, diagramMatch[1]);
+            }
+
+            // Auto-trigger illustration prompt if [ILLUSTRATE: ...] is found
+            const illustrateMatch = currentResponse.match(/\[\s*ILLUSTRATE:\s*(.*?)\s*\]/i);
+            if (illustrateMatch) {
+                const aiMsgIndex = messages.length;
+                setActiveImagePrompt({ prompt: illustrateMatch[1], index: aiMsgIndex });
             }
         } catch (error: any) {
             console.error('Chat error details:', {
@@ -798,10 +812,10 @@ export const DiscussionModal: React.FC<DiscussionModalProps> = ({
                         {messages.map((msg, index) => {
                             return (
                                 <div key={index} className={`msg-${index} flex items-start gap-3 ${msg.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
-                                    {msg.role === 'model' && <div className="w-8 h-8 bg-brand-blue dark:bg-brand-blue-light text-white rounded-full flex items-center justify-center flex-shrink-0 text-xs font-bold shadow-sm">AI</div>}
+                                    {(msg.role === 'model' || msg.role === 'ai') && <div className="w-8 h-8 bg-brand-blue dark:bg-brand-blue-light text-white rounded-full flex items-center justify-center flex-shrink-0 text-xs font-bold shadow-sm">AI</div>}
                                     <div className={`max-w-[92%] sm:max-w-[85%] space-y-3 ${msg.role === 'user' ? 'items-end' : 'items-start'}`}>
-                                        <div className={`px-3 py-2.5 sm:px-4 sm:py-3 rounded-2xl text-sm shadow-sm transition-colors font-serif ${msg.role === 'user' ? 'bg-brand-blue dark:bg-brand-blue-light text-white rounded-tr-none' : msg.role === 'model' ? 'bg-white dark:bg-dark-surface text-brand-text dark:text-slate-200 border border-gray-200 dark:border-dark-border rounded-tl-none' : 'text-center w-full text-gray-500 italic bg-transparent shadow-none'}`}>
-                                            {msg.role === 'model' ? (
+                                        <div className={`px-3 py-2.5 sm:px-4 sm:py-3 rounded-2xl text-sm shadow-sm transition-colors font-serif ${msg.role === 'user' ? 'bg-brand-blue dark:bg-brand-blue-light text-white rounded-tr-none' : (msg.role === 'model' || msg.role === 'ai') ? 'bg-white dark:bg-dark-surface text-brand-text dark:text-slate-200 border border-gray-200 dark:border-dark-border rounded-tl-none' : 'text-center w-full text-gray-500 italic bg-transparent shadow-none'}`}>
+                                            {msg.role !== 'user' ? (
                                                 <SmartContent 
                                                     content={msg.text}
                                                     language={language}

@@ -31,7 +31,8 @@ import {
     BrainCircuit,
     FileType,
     ExternalLink,
-    FileDown
+    FileDown,
+    Trash2
 } from 'lucide-react';
 import { EducationalContentType, Discipline } from '../types';
 import type { PatientCase, EducationalContent, QuizQuestion, DisciplineSpecificConsideration, MultidisciplinaryConnection, TraceableEvidence, FurtherReading, ProcedureDetails, PatientOutcome, KnowledgeMapData, Snippet, ChatMessage, DiagramData } from '../types';
@@ -258,7 +259,8 @@ const Section: React.FC<{
   isEnriching?: boolean;
   groundingSources?: any[];
   children: React.ReactNode;
-}> = ({ title, icon, onCopy, onSaveSnippet, onEnrich, isEnriching, groundingSources, children, T }) => {
+  extraAction?: React.ReactNode;
+}> = ({ title, icon, onCopy, onSaveSnippet, onEnrich, isEnriching, groundingSources, children, T, extraAction }) => {
   const [isCopied, setIsCopied] = useState(false);
   const [isSnippetSaved, setIsSnippetSaved] = useState(false);
   const [isExpanded, setIsExpanded] = useState(true);
@@ -276,6 +278,7 @@ const Section: React.FC<{
           <h3 className="text-sm sm:text-base font-black text-gray-900 dark:text-slate-100 uppercase tracking-tight">{title}</h3>
         </div>
         <div className="flex items-center space-x-1">
+            {extraAction}
             {onEnrich && (
                 <button onClick={onEnrich} disabled={isEnriching} title={T.enrichButton} className="p-1.5 rounded-lg text-gray-400 hover:bg-white dark:hover:bg-slate-700 hover:text-brand-blue transition-all shadow-sm border border-transparent hover:border-gray-200 dark:hover:border-slate-600">
                     {isEnriching ? <Activity className="animate-spin h-4 w-4" /> : <Search className="h-4 w-4" />}
@@ -900,7 +903,9 @@ export const PatientCaseView: React.FC<PatientCaseViewProps> = ({ patientCase: i
                         <button onClick={() => onOpenDiscussion({ aspect: patientCase.biochemicalPathway!.title, consideration: patientCase.biochemicalPathway!.description })} className="text-[8px] bg-brand-blue dark:bg-brand-blue-light text-white font-black py-1 px-2 sm:px-2.5 rounded-full shadow-xs transition-transform hover:scale-105 uppercase tracking-widest">{T.discussButton}</button>
                     </div>
                 </div>
-                <p className="text-[8px] text-gray-400 font-mono mb-1 uppercase tracking-tighter">{patientCase.biochemicalPathway.reference}</p>
+                <div className="mt-1 mb-2">
+                    <SourceRenderer text={patientCase.biochemicalPathway.reference} />
+                </div>
                 <SmartContent content={patientCase.biochemicalPathway.description} language={language} T={T} onTriggerIllustration={(d) => handleTriggerIllustration(d, -1)} allowVisuals={true} />
                 {patientCase.biochemicalPathway.diagramData && <div className="mt-2 h-[200px] sm:h-[280px] rounded-xl border border-gray-100 dark:border-dark-border shadow-xs overflow-hidden"><InteractiveDiagram id="diagram-biochem" data={patientCase.biochemicalPathway.diagramData} /></div>}
             </Section>
@@ -970,7 +975,9 @@ export const PatientCaseView: React.FC<PatientCaseViewProps> = ({ patientCase: i
                                             <button onClick={() => onOpenDiscussion({ aspect: content.title, consideration: content.description })} className="text-[8px] bg-brand-blue dark:bg-brand-blue-light text-white font-black py-1 px-2.5 rounded-full shadow-xs transition-transform hover:scale-105 uppercase tracking-widest">{T.discussButton}</button>
                                         </div>
                                     </div>
-                                    <p className="text-[8px] text-gray-400 font-mono mb-2 uppercase tracking-tighter">{content.reference}</p>
+                                    <div className="mt-1 mb-3">
+                                        <SourceRenderer text={content.reference} />
+                                    </div>
                                     {renderSmartContent(content.description, true, idx, content.diagramData, content.imageData)}
                                 </div>
                             ))}
@@ -985,7 +992,22 @@ export const PatientCaseView: React.FC<PatientCaseViewProps> = ({ patientCase: i
         ) : null }
 
         { archivedDiscussions.length > 0 && (
-            <Section icon={<MessageSquare className="w-4 h-4" />} title={T.sessionDiscussionsArchive} onCopy={() => {}} onSaveSnippet={() => {}} T={T}>
+            <Section 
+                icon={<MessageSquare className="w-4 h-4" />} 
+                title={T.sessionDiscussionsArchive} 
+                onCopy={() => {}} 
+                onSaveSnippet={() => {}} 
+                T={T}
+                extraAction={
+                    <button 
+                        onClick={() => onSave({ ...patientCase, discussions: {} })} 
+                        className="p-1.5 rounded-lg text-gray-400 hover:bg-white dark:hover:bg-slate-700 hover:text-red-500 transition-all shadow-sm border border-transparent hover:border-gray-200 dark:hover:border-slate-600"
+                        title={T.clearHistory}
+                    >
+                        <RotateCcw className="h-4 w-4" />
+                    </button>
+                }
+            >
                 <div className="grid grid-cols-1 gap-2 mt-2">
                     {archivedDiscussions.map(([topicId, msgs]) => (
                         <div key={topicId} className="bg-slate-50 dark:bg-slate-800/20 rounded-lg p-3 border border-gray-100 dark:border-dark-border flex items-center justify-between gap-4">
@@ -993,7 +1015,20 @@ export const PatientCaseView: React.FC<PatientCaseViewProps> = ({ patientCase: i
                                 <h5 className="font-bold text-gray-900 dark:text-slate-100 text-xs truncate">{topicId}</h5>
                                 <p className="text-[10px] text-gray-500 dark:text-gray-400 italic truncate mt-0.5">Last: "{msgs[msgs.length - 1].text.substring(0, 60)}..."</p>
                             </div>
-                            <button onClick={() => onOpenDiscussion({ aspect: topicId, consideration: '' })} className="flex-shrink-0 bg-white dark:bg-slate-700 px-3 py-1.5 rounded-lg border border-blue-100 dark:border-blue-900 text-brand-blue dark:text-blue-300 font-black text-[9px] uppercase tracking-widest shadow-xs hover:bg-brand-blue hover:text-white transition-all">{T.reopenHistoryButton}</button>
+                            <div className="flex items-center gap-2">
+                                <button onClick={() => onOpenDiscussion({ aspect: topicId, consideration: '' })} className="flex-shrink-0 bg-white dark:bg-slate-700 px-3 py-1.5 rounded-lg border border-blue-100 dark:border-blue-900 text-brand-blue dark:text-blue-300 font-black text-[9px] uppercase tracking-widest shadow-xs hover:bg-brand-blue hover:text-white transition-all">{T.reopenHistoryButton}</button>
+                                <button 
+                                    onClick={() => {
+                                        const updatedDiscussions = { ...patientCase.discussions };
+                                        delete updatedDiscussions[topicId];
+                                        onSave({ ...patientCase, discussions: updatedDiscussions });
+                                    }} 
+                                    className="flex-shrink-0 bg-white dark:bg-slate-700 p-1.5 rounded-lg border border-red-100 dark:border-red-900 text-red-500 hover:bg-red-500 hover:text-white transition-all"
+                                    title={T.deleteButton}
+                                >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                            </div>
                         </div>
                     ))}
                 </div>
@@ -1014,7 +1049,9 @@ export const PatientCaseView: React.FC<PatientCaseViewProps> = ({ patientCase: i
                                     {patientCase.traceableEvidence.map((e, i) => (
                                         <li key={i} className="bg-slate-50 dark:bg-slate-800/20 p-3 rounded-xl border-l-4 border-green-500 shadow-xs">
                                             <span className="font-bold block text-[11px] text-gray-800 dark:text-slate-100 mb-1 leading-tight">"{e.claim}"</span>
-                                            <span className="block text-[10px] text-gray-500 dark:text-gray-400"><SourceRenderer text={e.source} onSearchClick={() => setActiveSourceSearch(e.source)} /></span>
+                                            <div className="mt-1">
+                                                <SourceRenderer text={e.source} onSearchClick={() => setActiveSourceSearch(e.source)} />
+                                            </div>
                                             {e.url && (
                                                 <a href={e.url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 mt-1.5 text-[10px] font-bold text-blue-600 dark:text-blue-400 hover:underline">
                                                     <ExternalLink className="w-3 h-3" />
@@ -1040,7 +1077,9 @@ export const PatientCaseView: React.FC<PatientCaseViewProps> = ({ patientCase: i
                                     {patientCase.furtherReadings.map((r, i) => (
                                         <li key={i} className="bg-blue-50/50 dark:bg-blue-900/10 p-3 rounded-xl border border-blue-100 dark:border-blue-900/30">
                                             <span className="font-bold text-[11px] text-brand-blue dark:text-blue-300 block mb-1">{r.topic}</span>
-                                            <p className="text-[10px] text-gray-600 dark:text-gray-400 leading-snug italic">{r.reference}</p>
+                                            <div className="mt-1">
+                                                <SourceRenderer text={r.reference} />
+                                            </div>
                                             {r.url && (
                                                 <a href={r.url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 mt-1.5 text-[10px] font-bold text-blue-600 dark:text-blue-400 hover:underline">
                                                     <ExternalLink className="w-3 h-3" />
