@@ -465,43 +465,31 @@ export const DiscussionModal: React.FC<DiscussionModalProps> = ({
                     parts: [{ text: m.text }] 
                 }));
 
-            const modelName = 'gemini-3-flash-preview';
-            const fallbackModelName = 'gemini-3.1-pro-preview';
+            const modelName = 'gemini-3.1-pro-preview';
+            const fallbackModelName = 'gemini-3-flash-preview';
 
-            const createChat = (model: string) => ai.chats.create({
+            const createChat = (model: string, useTools: boolean = true) => ai.chats.create({
                 model,
                 config: { 
                     systemInstruction: getSystemInstruction(),
-                    tools: [{ googleSearch: {} }],
-                    thinkingConfig: { thinkingLevel: ThinkingLevel.LOW }
+                    tools: useTools ? [{ googleSearch: {} }] : undefined,
                 },
                 history
             });
 
-            chatRef.current = createChat(modelName);
-
             let result;
             try {
-                result = await retryWithBackoff(() => chatRef.current!.sendMessageStream({ message: text })) as AsyncIterable<GenerateContentResponse>;
+                // Primary attempt with tools and retry logic that actually switches models if needed
+                result = await retryWithBackoff(async (model) => {
+                    const currentModel = model || modelName;
+                    chatRef.current = createChat(currentModel);
+                    return await chatRef.current.sendMessageStream({ message: text });
+                }, 5, 2000, modelName) as AsyncIterable<GenerateContentResponse>;
             } catch (streamErr: any) {
-                console.warn(`Initial stream with ${modelName} failed, retrying with ${fallbackModelName}...`, streamErr);
-                try {
-                    // One more attempt with a completely fresh session and fallback model if the first one failed
-                    chatRef.current = createChat(fallbackModelName);
-                    result = await retryWithBackoff(() => chatRef.current!.sendMessageStream({ message: text })) as AsyncIterable<GenerateContentResponse>;
-                } catch (fallbackErr: any) {
-                    console.warn(`Fallback stream with ${fallbackModelName} failed, retrying without tools...`, fallbackErr);
-                    // Final attempt without tools
-                    chatRef.current = ai.chats.create({
-                        model: modelName,
-                        config: { 
-                            systemInstruction: getSystemInstruction(),
-                            thinkingConfig: { thinkingLevel: ThinkingLevel.LOW }
-                        },
-                        history
-                    });
-                    result = await retryWithBackoff(() => chatRef.current!.sendMessageStream({ message: text })) as AsyncIterable<GenerateContentResponse>;
-                }
+                console.warn(`Stream with tools failed, retrying without tools...`, streamErr);
+                // Final attempt without tools using the fast model
+                chatRef.current = createChat(fallbackModelName, false);
+                result = await retryWithBackoff(() => chatRef.current!.sendMessageStream({ message: text })) as AsyncIterable<GenerateContentResponse>;
             }
 
             let currentResponse = '';
@@ -567,7 +555,8 @@ export const DiscussionModal: React.FC<DiscussionModalProps> = ({
             // Remove the empty or partial AI message if it exists
             setMessages(prev => {
                 const filtered = prev.filter(m => m.id !== aiMessageId);
-                return [...filtered, { id: Date.now().toString(), role: 'system', text: T.errorChat, timestamp: new Date() }];
+                const errorMessage = error?.message || T.errorChat;
+                return [...filtered, { id: Date.now().toString(), role: 'system', text: errorMessage, timestamp: new Date() }];
             });
 
             if (error.status === 404) {

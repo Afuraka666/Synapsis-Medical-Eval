@@ -10,16 +10,17 @@ const getAiClient = () => {
 export async function retryWithBackoff<T>(
     fn: (model?: string) => Promise<T>,
     maxRetries: number = 5,
-    initialDelay: number = 2000
+    initialDelay: number = 2000,
+    initialModel: string = FAST_MODEL
 ): Promise<T> {
     let lastError: any;
-    let currentModel = FAST_MODEL;
+    let currentModel = initialModel;
 
     for (let i = 0; i < maxRetries; i++) {
         try {
             return await fn(currentModel);
         } catch (error: any) {
-            console.error(`Attempt ${i + 1} failed:`, error);
+            console.error(`Attempt ${i + 1} failed with model ${currentModel}:`, error);
             lastError = error;
             
             // Extract status code and message
@@ -43,6 +44,9 @@ export async function retryWithBackoff<T>(
             if (isRateLimit && currentModel === FAST_MODEL && i < maxRetries - 1) {
                 console.warn("Fast model exhausted, switching to fallback model for next attempt...");
                 currentModel = FALLBACK_MODEL;
+            } else if (isRateLimit && currentModel === PRO_MODEL && i < maxRetries - 1) {
+                console.warn("Pro model exhausted, switching to fast model for next attempt...");
+                currentModel = FAST_MODEL;
             }
 
             // Exponential backoff with jitter
