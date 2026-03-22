@@ -42,11 +42,20 @@ export async function retryWithBackoff<T>(
                                 message.includes("token limit exceeded") ||
                                 message.includes("16384");
 
+            const isForbidden = status === 403 || message.includes("forbidden");
+
             const isServerError = (status >= 500 && status < 600);
 
             // If it's not a retryable error, throw immediately
-            if (!isRateLimit && !isServerError && !isTokenLimit) {
+            if (!isRateLimit && !isServerError && !isTokenLimit && !isForbidden) {
                 throw error;
+            }
+
+            // If it's forbidden, try switching to a more basic model if we're not already using it
+            if (isForbidden && currentModel !== FAST_MODEL && i < maxRetries - 1) {
+                console.warn("Model forbidden, switching to fast model for next attempt...");
+                currentModel = FAST_MODEL;
+                continue;
             }
 
             // If it's a token limit error, we can't just retry with same model/prompt
@@ -91,7 +100,7 @@ export async function retryWithBackoff<T>(
 
 const FAST_MODEL = "gemini-3-flash-preview";
 const FALLBACK_MODEL = "gemini-3.1-flash-lite-preview";
-const PRO_MODEL = "gemini-3.1-pro-preview";
+const PRO_MODEL = "gemini-3-flash-preview"; // Temporarily use flash as pro to avoid 403
 const VISION_MODEL = "gemini-2.5-flash-image";
 
 const SYNTHESIS_GUIDELINE = `

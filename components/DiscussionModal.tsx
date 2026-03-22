@@ -448,10 +448,18 @@ export const DiscussionModal: React.FC<DiscussionModalProps> = ({
         
         let aiMessageId = (Date.now() + 1).toString();
         
-        const modelName = 'gemini-3.1-pro-preview';
-        const fallbackModelName = 'gemini-3-flash-preview';
+            const modelName = 'gemini-3-flash-preview';
+            const fallbackModelName = 'gemini-3.1-flash-lite-preview';
 
         try {
+            // Check for API key selection if using a potentially restricted model
+            if (typeof window !== 'undefined' && window.aistudio) {
+                const hasKey = await window.aistudio.hasSelectedApiKey();
+                if (!hasKey) {
+                    await window.aistudio.openSelectKey();
+                }
+            }
+
             // Re-initialize AI client to ensure we have the latest API key
             const apiKey = process.env.GEMINI_API_KEY || process.env.API_KEY;
             if (!apiKey) {
