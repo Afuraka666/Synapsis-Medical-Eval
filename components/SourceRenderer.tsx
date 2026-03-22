@@ -5,9 +5,10 @@ interface SourceRendererProps {
     text: string;
     groundingSources?: any[];
     onSearchClick?: () => void;
+    hideText?: boolean;
 }
 
-export const SourceRenderer: React.FC<SourceRendererProps> = ({ text, groundingSources, onSearchClick }) => {
+export const SourceRenderer: React.FC<SourceRendererProps> = ({ text, groundingSources, onSearchClick, hideText = false }) => {
     const pmidRegex = /(\bPMID:?\s*\d{7,8}\b)/gi;
     const doiRegex = /(\b10\.\d{4,9}\/[-._;()/:A-Z0-9]+\b)/gi;
     const urlRegex = /(https?:\/\/[^\s]+)/g;
@@ -29,11 +30,15 @@ export const SourceRenderer: React.FC<SourceRendererProps> = ({ text, groundingS
 
     const hasLinks = pmids.length > 0 || dois.length > 0 || allUrls.length > 0 || allMaps.length > 0;
 
+    if (!hasLinks && (!text || hideText)) return null;
+
     return (
         <div className="flex flex-col gap-1.5">
-            <div className="text-[10px] leading-relaxed text-gray-600 dark:text-gray-400">
-                {text}
-            </div>
+            {!hideText && text && (
+                <div className="text-[10px] leading-relaxed text-gray-600 dark:text-gray-400 italic">
+                    {text}
+                </div>
+            )}
             {hasLinks && (
                 <div className="flex flex-wrap items-center gap-2">
                     {pmids.map((pmidStr, index) => {

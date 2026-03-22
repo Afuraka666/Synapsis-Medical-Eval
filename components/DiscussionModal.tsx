@@ -132,14 +132,14 @@ function parseMarkdownTable(text: string) {
 
 function splitMessageContent(text: string) {
     const blocks: {
-        type: 'text' | 'table' | 'illustration' | 'diagram' | 'graph',
+        type: 'text' | 'table' | 'illustration' | 'diagram' | 'graph' | 'chart',
         content?: string,
         table?: {header: string[], data: string[][]},
         tag?: string
     }[] = [];
     
     // Split by tags first
-    const parts = text.split(/(\[\s*(?:GRAPH|ILLUSTRATE|DIAGRAM):\s*.*?\s*\])/gi);
+    const parts = text.split(/(\[\s*(?:GRAPH|ILLUSTRATE|DIAGRAM|CHART):\s*.*?\s*\])/gi);
     
     for (const part of parts) {
         if (!part) continue;
@@ -147,6 +147,7 @@ function splitMessageContent(text: string) {
         const graphMatch = part.match(/\[GRAPH:\s*(.*?)\s*\]/i);
         const illustrateMatch = part.match(/\[ILLUSTRATE:\s*(.*?)\s*\]/i);
         const diagramMatch = part.match(/\[DIAGRAM:\s*(.*?)\s*\]/i);
+        const chartMatch = part.match(/\[CHART:\s*(.*?)\s*\]/i);
         
         if (graphMatch) {
             blocks.push({ type: 'graph', tag: graphMatch[1].trim() });
@@ -154,6 +155,8 @@ function splitMessageContent(text: string) {
             blocks.push({ type: 'illustration', tag: illustrateMatch[1].trim() });
         } else if (diagramMatch) {
             blocks.push({ type: 'diagram', tag: diagramMatch[1].trim() });
+        } else if (chartMatch) {
+            blocks.push({ type: 'chart', tag: chartMatch[1].trim() });
         } else {
             // Handle tables within this text part
             const lines = part.split('\n');
@@ -257,14 +260,14 @@ export const DiscussionModal: React.FC<DiscussionModalProps> = ({
             1. **NO MARKDOWN SYMBOLS FOR HEADERS/BOLD:** Do NOT use markdown symbols like ** (bold) or ### (headers) in your text. Use plain text for structure.
             2. **NATURAL FLOW:** Keep the discussion conversational and professional.
             
-            **VISUAL PREFERENCE & PHYSIOLOGICAL FIDELITY (MANDATORY):**
-            Do NOT explain physiological curves in text. You MUST use visual triggers:
-            1. **PHYSIOLOGY GRAPHS:** Use [GRAPH: type] tags. 
-               - Available types: oxygen_dissociation, frank_starling, pressure_volume_loop (CARDIAC ONLY), respiratory_flow_volume (RESPIRATORY ONLY), cerebral_pressure_volume, cerebral_autoregulation, capnography, spirometry.
-               - **IMPORTANT:** Use 'respiratory_flow_volume' for airway mechanics, NEVER 'pressure_volume_loop'.
-            2. **CLINICAL ALGORITHMS:** Use [DIAGRAM: specific description] (e.g., [DIAGRAM: iron_homeostasis_pathway]) for complex physiological pathways, treatment cascades, or anatomical relationships. The system will automatically synthesize an interactive node-link diagram.
-            3. **ILLUSTRATIONS:** Use [ILLUSTRATE: description] for anatomical or clinical visuals.
-            4. **DATA COMPARISON (CRITICAL):** ALWAYS use Markdown Tables for lab ranges, drug properties, dosage comparisons, or differential signs. Markdown tables ARE allowed and encouraged even if other markdown symbols are restricted.
+            **VISUALIZATION STANDARDS (MANDATORY):**
+            When generating UI components or data presentations, you MUST adhere to these standards:
+            1. **DATA TABLES:** Do NOT use plain text lists for structured data. ALWAYS use Markdown Tables. These will be rendered as interactive components with sorting and pagination.
+            2. **GRAPHS AND CHARTS:** Do NOT describe data visually in text. 
+               - Use [GRAPH: type] for pre-defined physiological models (oxygen_dissociation, frank_starling, pressure_volume_loop, respiratory_flow_volume, cerebral_pressure_volume, cerebral_autoregulation, capnography, spirometry).
+               - Use [CHART: json_data] for custom data. The JSON structure MUST be: {"type": "bar"|"line", "title": "Title", "xAxisLabel": "X", "yAxisLabel": "Y", "data": [{"label": "A", "value": 10, "color": "#hex"}]}.
+            3. **DIAGRAMS/FLOWCHARTS:** For process flows, utilize [DIAGRAM: description] tags. These trigger SVG-based interactive node-link diagrams. Nodes are interactive.
+            4. **ILLUSTRATIONS:** Use [ILLUSTRATE: description] for anatomical or clinical visuals.
             
             **STRICT FORMATTING (CRITICAL):**
             1. **NO LATEX:** Do NOT use LaTeX or dollar signs ($ or $$) for equations.
@@ -283,6 +286,9 @@ export const DiscussionModal: React.FC<DiscussionModalProps> = ({
             3. **PMID/DOI VERIFICATION (CRITICAL):** You MUST verify the PMID and DOI for every reference using Google Search. Do NOT rely on internal knowledge for these IDs as they are frequently hallucinated. Cross-reference the title with the ID.
             4. **PREFERRED SOURCES:** Prioritize evidence from Google Scholar, PubMed, Medline Plus, clinicaltrials.gov, CDC, JAMA, NEJM, The Lancet, Cochrane Library, Mayo Clinic, and Johns Hopkins.
             5. **URL VERIFICATION:** Every URL you provide MUST lead directly to the specific article or abstract mentioned. You MUST verify that the article title at the URL matches your claim.
+            
+            **VERIFICATION:**
+            All visual components (tables, graphs, diagrams) must be responsive and accessible (WCAG 2.1 compliant).
             
             Language: ${language}.`;
 

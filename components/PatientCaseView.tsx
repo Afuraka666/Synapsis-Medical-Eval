@@ -46,6 +46,7 @@ import { enrichCaseWithWebSources, generateDiagramForDiscussion } from '../servi
 import { DisciplineIcon } from './DisciplineIcon';
 import { MarkdownRenderer } from './MarkdownRenderer';
 import { SourceRenderer } from './SourceRenderer';
+import { DataTable } from './DataTable';
 import { ScientificGraph } from './ScientificGraph';
 import { AudioVisualizer } from './AudioVisualizer';
 import { useAnalytics } from '../contexts/analytics';
@@ -260,7 +261,7 @@ const Section: React.FC<{
   groundingSources?: any[];
   children: React.ReactNode;
   extraAction?: React.ReactNode;
-}> = ({ title, icon, onCopy, onSaveSnippet, onEnrich, isEnriching, groundingSources, children, T, extraAction }) => {
+}> = ({ title, icon, onCopy, onSaveSnippet, onEnrich, isEnriching, children, T, extraAction }) => {
   const [isCopied, setIsCopied] = useState(false);
   const [isSnippetSaved, setIsSnippetSaved] = useState(false);
   const [isExpanded, setIsExpanded] = useState(true);
@@ -298,12 +299,6 @@ const Section: React.FC<{
       {isExpanded && (
         <div className="p-4 sm:p-6 animate-fade-in">
           <div className="text-sm sm:text-base text-gray-900 dark:text-slate-100 leading-relaxed font-serif">{children}</div>
-          {groundingSources && groundingSources.length > 0 && (
-            <div className="mt-6 pt-4 border-t border-gray-100 dark:border-dark-border">
-              <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3">{T.groundingSourcesTitle}</h4>
-              <SourceRenderer text="" groundingSources={groundingSources} />
-            </div>
-          )}
         </div>
       )}
     </section>
@@ -410,7 +405,7 @@ export const PatientCaseView: React.FC<PatientCaseViewProps> = ({ patientCase: i
     }
   };
 
-  const renderSmartContent = (value: string | undefined, allowVisuals: boolean = false, idx: number = -1, diagramData?: DiagramData, imageData?: string) => {
+  const renderSmartContent = (value: string | undefined, allowVisuals: boolean = false, idx: number = -1, diagramData?: DiagramData, imageData?: string, groundingSources?: any[], reference?: string) => {
     return <SmartContent 
         content={value} 
         language={language} 
@@ -420,6 +415,8 @@ export const PatientCaseView: React.FC<PatientCaseViewProps> = ({ patientCase: i
         allowVisuals={allowVisuals} 
         diagramData={diagramData}
         imageData={imageData}
+        groundingSources={groundingSources}
+        reference={reference}
     />;
   };
 
@@ -895,7 +892,7 @@ export const PatientCaseView: React.FC<PatientCaseViewProps> = ({ patientCase: i
         <Section icon={<History className="w-4 h-4" />} title={T.history} onCopy={() => {}} onSaveSnippet={() => onSaveSnippet(T.history, patientCase.history)} T={T}><EditableField value={patientCase.history} fieldKey="history" isEditing={isEditing} /></Section>
         
         { patientCase.biochemicalPathway ? (
-            <Section icon={<FlaskConical className="w-4 h-4" />} title={T.biochemicalPathwaySection} onCopy={() => {}} onSaveSnippet={() => onSaveSnippet(patientCase.biochemicalPathway!.title, patientCase.biochemicalPathway!.description, { diagramData: patientCase.biochemicalPathway!.diagramData })} T={T} groundingSources={patientCase.groundingSources}>
+            <Section icon={<FlaskConical className="w-4 h-4" />} title={T.biochemicalPathwaySection} onCopy={() => {}} onSaveSnippet={() => onSaveSnippet(patientCase.biochemicalPathway!.title, patientCase.biochemicalPathway!.description, { diagramData: patientCase.biochemicalPathway!.diagramData })} T={T}>
                 <div className="flex items-center justify-between mb-1 gap-2">
                     <div className="flex items-center gap-2 min-w-0"><h4 className="text-xs sm:text-sm font-black text-gray-900 dark:text-slate-100 uppercase tracking-tighter truncate">{patientCase.biochemicalPathway.title}</h4><TextToSpeechPlayer textToRead={`${patientCase.biochemicalPathway.title}. ${patientCase.biochemicalPathway.description}`} language={language} /></div>
                     <div className="flex items-center gap-2 flex-shrink-0">
@@ -903,10 +900,7 @@ export const PatientCaseView: React.FC<PatientCaseViewProps> = ({ patientCase: i
                         <button onClick={() => onOpenDiscussion({ aspect: patientCase.biochemicalPathway!.title, consideration: patientCase.biochemicalPathway!.description })} className="text-[8px] bg-brand-blue dark:bg-brand-blue-light text-white font-black py-1 px-2 sm:px-2.5 rounded-full shadow-xs transition-transform hover:scale-105 uppercase tracking-widest">{T.discussButton}</button>
                     </div>
                 </div>
-                <div className="mt-1 mb-2">
-                    <SourceRenderer text={patientCase.biochemicalPathway.reference} />
-                </div>
-                <SmartContent content={patientCase.biochemicalPathway.description} language={language} T={T} onTriggerIllustration={(d) => handleTriggerIllustration(d, -1)} allowVisuals={true} />
+                {renderSmartContent(patientCase.biochemicalPathway.description, true, -1, patientCase.biochemicalPathway.diagramData, undefined, patientCase.groundingSources, patientCase.biochemicalPathway.reference)}
                 {patientCase.biochemicalPathway.diagramData && <div className="mt-2 h-[200px] sm:h-[280px] rounded-xl border border-gray-100 dark:border-dark-border shadow-xs overflow-hidden"><InteractiveDiagram id="diagram-biochem" data={patientCase.biochemicalPathway.diagramData} /></div>}
             </Section>
         ) : isGeneratingDetails ? <Section icon={<FlaskConical className="w-4 h-4" />} title={T.biochemicalPathwaySection} onCopy={() => {}} onSaveSnippet={() => {}} T={T}><SkeletonLoader /></Section> : null }
@@ -975,10 +969,7 @@ export const PatientCaseView: React.FC<PatientCaseViewProps> = ({ patientCase: i
                                             <button onClick={() => onOpenDiscussion({ aspect: content.title, consideration: content.description })} className="text-[8px] bg-brand-blue dark:bg-brand-blue-light text-white font-black py-1 px-2.5 rounded-full shadow-xs transition-transform hover:scale-105 uppercase tracking-widest">{T.discussButton}</button>
                                         </div>
                                     </div>
-                                    <div className="mt-1 mb-3">
-                                        <SourceRenderer text={content.reference} />
-                                    </div>
-                                    {renderSmartContent(content.description, true, idx, content.diagramData, content.imageData)}
+                                    {renderSmartContent(content.description, true, idx, content.diagramData, content.imageData, undefined, content.reference)}
                                 </div>
                             ))}
                         </div>
@@ -1036,7 +1027,7 @@ export const PatientCaseView: React.FC<PatientCaseViewProps> = ({ patientCase: i
         )}
 
         { (isGeneratingDetails || (Array.isArray(patientCase.traceableEvidence) && patientCase.traceableEvidence.length > 0) || (Array.isArray(patientCase.furtherReadings) && patientCase.furtherReadings.length > 0)) ? (
-            <Section icon={<BookOpen className="w-4 h-4" />} title={T.evidenceAndReading} onCopy={() => {}} onSaveSnippet={() => {}} T={T} onEnrich={handleEnrichSources} isEnriching={isEnrichingEvidence} groundingSources={groundingSources}>
+            <Section icon={<BookOpen className="w-4 h-4" />} title={T.evidenceAndReading} onCopy={() => {}} onSaveSnippet={() => {}} T={T} onEnrich={handleEnrichSources} isEnriching={isEnrichingEvidence}>
                 {isGeneratingDetails && !patientCase.traceableEvidence?.length ? <SkeletonLoader /> : (
                     <>
                         {Array.isArray(patientCase.traceableEvidence) && patientCase.traceableEvidence.length > 0 ? (
@@ -1045,22 +1036,32 @@ export const PatientCaseView: React.FC<PatientCaseViewProps> = ({ patientCase: i
                                     <svg className="w-3 h-3 text-green-500" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M2.166 4.9L9.03 9.069a2.25 2.25 0 002.248 0l6.863-4.17A2.25 2.25 0 0015.83 2H4.477a2.25 2.25 0 00-2.311 2.9z" /><path d="M11 11.235V20l7-4.24V8.765l-7 2.47z" /><path d="M9 11.235V20L2 15.76V8.765l7 2.47z" /></svg>
                                     {T.traceableEvidence}
                                 </h4>
-                                <ul className="space-y-2">
-                                    {patientCase.traceableEvidence.map((e, i) => (
-                                        <li key={i} className="bg-slate-50 dark:bg-slate-800/20 p-3 rounded-xl border-l-4 border-green-500 shadow-xs">
-                                            <span className="font-bold block text-[11px] text-gray-800 dark:text-slate-100 mb-1 leading-tight">"{e.claim}"</span>
-                                            <div className="mt-1">
-                                                <SourceRenderer text={e.source} onSearchClick={() => setActiveSourceSearch(e.source)} />
-                                            </div>
-                                            {e.url && (
-                                                <a href={e.url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 mt-1.5 text-[10px] font-bold text-blue-600 dark:text-blue-400 hover:underline">
+                                <DataTable<TraceableEvidence> 
+                                    data={patientCase.traceableEvidence}
+                                    pageSize={3}
+                                    columns={[
+                                        { 
+                                            header: "Claim", 
+                                            accessor: (e: TraceableEvidence) => <span className="font-bold block leading-tight">"{e.claim}"</span>,
+                                            sortable: true
+                                        },
+                                        { 
+                                            header: "Source", 
+                                            accessor: (e: TraceableEvidence) => <SourceRenderer text={e.source} onSearchClick={() => setActiveSourceSearch(e.source)} />,
+                                            sortable: true
+                                        },
+                                        { 
+                                            header: "Link", 
+                                            accessor: (e: TraceableEvidence) => e.url ? (
+                                                <a href={e.url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400 hover:underline">
                                                     <ExternalLink className="w-3 h-3" />
-                                                    View Source
+                                                    View
                                                 </a>
-                                            )}
-                                        </li>
-                                    ))}
-                                </ul>
+                                            ) : null
+                                        }
+                                    ]}
+                                    emptyMessage={T.noTraceableEvidenceAvailable}
+                                />
                             </div>
                         ) : !isGeneratingDetails && (
                             <div className="text-center text-gray-500 dark:text-slate-400 text-xs italic py-2">
@@ -1073,26 +1074,42 @@ export const PatientCaseView: React.FC<PatientCaseViewProps> = ({ patientCase: i
                                     <svg className="w-3 h-3 text-blue-500" fill="currentColor" viewBox="0 0 20 20"><path d="M9 4.804A7.993 7.993 0 0113.196 4c1.63 0 3.133.488 4.39 1.324a.75.75 0 01.143 1.183L15.035 9.202a.75.75 0 01-1.06 0L12.31 7.537a.75.75 0 00-1.06 0l-2.25 2.25a.75.75 0 01-1.06 0L6.275 8.122a.75.75 0 00-1.06 0L2.27 11.067a.75.75 0 01-1.183-.143A7.995 7.995 0 014.804 9 7.993 7.993 0 019 4.804z" /><path d="M13.196 16c1.63 0 3.133-.488 4.39-1.324a.75.75 0 00.143-1.183L15.035 10.798a.75.75 0 00-1.06 0l-1.665 1.665a.75.75 0 01-1.06 0l-2.25-2.25a.75.75 0 00-1.06 0L6.275 11.878a.75.75 0 01-1.06 0L2.27 8.933a.75.75 0 00-1.183.143A7.995 7.995 0 004.804 11 7.993 7.993 0 009 15.196z" /></svg>
                                     {T.furtherReading}
                                 </h4>
-                                <ul className="space-y-2">
-                                    {patientCase.furtherReadings.map((r, i) => (
-                                        <li key={i} className="bg-blue-50/50 dark:bg-blue-900/10 p-3 rounded-xl border border-blue-100 dark:border-blue-900/30">
-                                            <span className="font-bold text-[11px] text-brand-blue dark:text-blue-300 block mb-1">{r.topic}</span>
-                                            <div className="mt-1">
-                                                <SourceRenderer text={r.reference} />
-                                            </div>
-                                            {r.url && (
-                                                <a href={r.url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 mt-1.5 text-[10px] font-bold text-blue-600 dark:text-blue-400 hover:underline">
+                                <DataTable<FurtherReading> 
+                                    data={patientCase.furtherReadings}
+                                    pageSize={3}
+                                    columns={[
+                                        { 
+                                            header: "Topic", 
+                                            accessor: (r: FurtherReading) => <span className="font-bold text-brand-blue dark:text-blue-300 block">{r.topic}</span>,
+                                            sortable: true
+                                        },
+                                        { 
+                                            header: "Reference", 
+                                            accessor: (r: FurtherReading) => <SourceRenderer text={r.reference} />,
+                                            sortable: true
+                                        },
+                                        { 
+                                            header: "Link", 
+                                            accessor: (r: FurtherReading) => r.url ? (
+                                                <a href={r.url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400 hover:underline">
                                                     <ExternalLink className="w-3 h-3" />
-                                                    Read More
+                                                    Read
                                                 </a>
-                                            )}
-                                        </li>
-                                    ))}
-                                </ul>
+                                            ) : null
+                                        }
+                                    ]}
+                                    emptyMessage={T.noReadingsAvailable}
+                                />
                             </div>
                         ) : !isGeneratingDetails && (
                             <div className="text-center text-gray-500 dark:text-slate-400 text-xs italic py-2">
                                 {T.noReadingsAvailable}
+                            </div>
+                        )}
+                        {groundingSources && groundingSources.length > 0 && (
+                            <div className="mt-6 pt-4 border-t border-gray-100 dark:border-dark-border">
+                                <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3">{T.groundingSourcesTitle}</h4>
+                                <SourceRenderer text="" groundingSources={groundingSources} />
                             </div>
                         )}
                     </>

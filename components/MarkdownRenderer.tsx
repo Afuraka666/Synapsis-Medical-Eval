@@ -4,6 +4,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkMath from 'remark-math';
 import remarkGfm from 'remark-gfm';
 import rehypeKatex from 'rehype-katex';
+import { DataTable } from './DataTable';
 
 interface MarkdownRendererProps {
     content: string;
@@ -185,11 +186,58 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, cla
                     h2: ({ node, ...props }) => <h2 {...props} className="text-xl font-black mt-5 mb-3 text-gray-900 dark:text-slate-100 border-b-2 border-slate-100 dark:border-dark-border pb-1" />,
                     h3: ({ node, ...props }) => <h3 {...props} className="text-lg font-black mt-4 mb-2 text-gray-900 dark:text-slate-100" />,
                     blockquote: ({ node, ...props }) => <blockquote {...props} className="border-l-4 border-brand-blue/20 pl-4 italic my-4 bg-slate-50 dark:bg-slate-800/40 py-3 pr-3 text-gray-700 dark:text-slate-300 rounded-r-xl" />,
-                    table: ({ node, ...props }) => (
-                        <div className="overflow-x-auto my-8 border-t-2 border-b-2 border-gray-900 dark:border-slate-200 py-1">
-                            <table {...props} className="min-w-full border-collapse" />
-                        </div>
-                    ),
+                    table: ({ node, ...props }: any) => {
+                        try {
+                            const rows = node?.children as any[];
+                            if (!rows || rows.length < 1) return <table {...props} className="min-w-full border-collapse" />;
+
+                            const thead = rows.find(r => r.type === 'tableHead');
+                            const tbody = rows.find(r => r.type === 'tableBody');
+                            const allRows = rows.filter(r => r.type === 'tableRow');
+                            
+                            let headerRow = thead ? thead.children[0] : allRows[0];
+                            let bodyRows = tbody ? tbody.children : allRows.slice(1);
+
+                            if (!headerRow) return <table {...props} className="min-w-full border-collapse" />;
+
+                            const headers = headerRow.children.map((cell: any) => {
+                                return cell.children.map((c: any) => c.value || '').join('').trim();
+                            });
+
+                            const data = bodyRows.map((row: any, rowIndex: number) => {
+                                const rowData: any = { id: rowIndex };
+                                row.children.forEach((cell: any, cellIndex: number) => {
+                                    const key = headers[cellIndex] || `col${cellIndex}`;
+                                    rowData[key] = cell.children.map((c: any) => c.value || '').join('').trim();
+                                });
+                                return rowData;
+                            });
+
+                            const columns = headers.map((h: string) => ({
+                                header: h,
+                                accessor: h,
+                                sortable: true
+                            }));
+
+                            return (
+                                <div className="my-8 animate-fade-in">
+                                    <DataTable 
+                                        data={data} 
+                                        columns={columns} 
+                                        pageSize={5} 
+                                        searchable={data.length > 5}
+                                    />
+                                </div>
+                            );
+                        } catch (e) {
+                            console.error("Failed to render DataTable from markdown", e);
+                            return (
+                                <div className="overflow-x-auto my-8 border-t-2 border-b-2 border-gray-900 dark:border-slate-200 py-1">
+                                    <table {...props} className="min-w-full border-collapse" />
+                                </div>
+                            );
+                        }
+                    },
                     thead: ({ node, ...props }) => <thead {...props} className="border-b border-gray-900 dark:border-slate-200" />,
                     th: ({ node, ...props }) => (
                         <th 

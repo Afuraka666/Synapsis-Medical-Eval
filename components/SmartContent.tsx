@@ -4,6 +4,7 @@ import { MarkdownRenderer } from './MarkdownRenderer';
 import { SourceRenderer } from './SourceRenderer';
 import { ScientificGraph } from './ScientificGraph';
 import { InteractiveDiagram } from './InteractiveDiagram';
+import { ClinicalChart } from './ClinicalChart';
 import type { DiagramData } from '../types';
 
 interface SmartContentProps {
@@ -16,6 +17,7 @@ interface SmartContentProps {
     diagramData?: DiagramData;
     imageData?: string;
     groundingSources?: any[];
+    reference?: string;
 }
 
 export const SmartContent: React.FC<SmartContentProps> = ({ 
@@ -27,17 +29,39 @@ export const SmartContent: React.FC<SmartContentProps> = ({
     allowVisuals = false,
     diagramData,
     imageData,
-    groundingSources
+    groundingSources,
+    reference
 }) => {
     if (!content) return null;
 
     // Split content by the tags, capturing the tags in the result array
-    const parts = content.split(/(\[\s*(?:GRAPH|ILLUSTRATE|DIAGRAM):\s*.*?\s*\])/gi);
+    const parts = content.split(/(\[\s*(?:GRAPH|ILLUSTRATE|DIAGRAM|CHART):\s*.*?\s*\])/gi);
 
     return (
         <div className="space-y-4">
             {parts.map((part, index) => {
                 if (!part) return null;
+
+                const chartMatch = part.match(/\[CHART:\s*(.*?)\s*\]/i);
+                if (chartMatch && allowVisuals) {
+                    try {
+                        const chartConfig = JSON.parse(chartMatch[1].trim());
+                        return (
+                            <div key={index} className="my-6 h-[350px] border border-gray-100 dark:border-dark-border rounded-2xl overflow-hidden bg-white dark:bg-slate-900/50 shadow-lg animate-fade-in clinical-chart-container relative group">
+                                <ClinicalChart 
+                                    type={chartConfig.type || 'bar'} 
+                                    data={chartConfig.data || []} 
+                                    title={chartConfig.title}
+                                    xAxisLabel={chartConfig.xAxisLabel}
+                                    yAxisLabel={chartConfig.yAxisLabel}
+                                />
+                            </div>
+                        );
+                    } catch (e) {
+                        console.error("Failed to parse chart JSON:", e);
+                        return null;
+                    }
+                }
 
                 const graphMatch = part.match(/\[GRAPH:\s*(.*?)\s*\]/i);
                 if (graphMatch && allowVisuals) {
@@ -149,9 +173,14 @@ export const SmartContent: React.FC<SmartContentProps> = ({
 
                 return <MarkdownRenderer key={index} content={cleanPart} />;
             })}
-            <div className="pt-2 border-t border-gray-50 dark:border-dark-border/10">
-                <SourceRenderer text={content} groundingSources={groundingSources} />
-            </div>
+            {(groundingSources?.length || content?.match(/pmid|doi|http/i) || reference) ? (
+                <div className="pt-2 border-t border-gray-50 dark:border-dark-border/10">
+                    <SourceRenderer text={`${content || ""} ${reference || ""}`} groundingSources={groundingSources} hideText={true} />
+                    {reference && !reference.match(/pmid|doi|http/i) && (
+                        <div className="text-[10px] text-gray-500 italic mt-1">{reference}</div>
+                    )}
+                </div>
+            ) : null}
         </div>
     );
 };
