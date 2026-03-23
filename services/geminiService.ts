@@ -116,6 +116,17 @@ const SYNTHESIS_GUIDELINE = `
 5. **MOLECULAR FORMULAS:** Use Unicode: CO₂, O₂, H₂O, PaO₂, SaO₂, PvO₂, HCO₃⁻.
 6. **COMPLETENESS:** You MUST provide detailed, high-fidelity content for EVERY field in the schema. DO NOT TRUNCATE. DO NOT USE PLACEHOLDERS.
 7. **ACADEMIC RIGOR:** All references and sources MUST be real and traceable.
+8. **EVIDENCE-BASED CONTENT REQUIREMENTS (MANDATORY):**
+   - **PRIORITY OF ACCURACY:** Do not prioritize speed or completeness over accuracy. If information cannot be verified, state this explicitly.
+   - **CITATION STANDARD:** All claims requiring evidence must be supported by citable sources. Prefer persistent identifiers (DOI, PMID, ISBN) over standard URLs.
+   - **LINK INTEGRITY:** If URLs are provided, they must be derived from known stable repositories (e.g., publisher domains, government databases, PubMed). Do NOT generate fabricated links.
+   - **VERIFICATION PROTOCOL:** You MUST use the Google Search tool to verify the existence of every reference before citing. If you cannot verify a reference, you MUST label it as [AI-Generated Citation - Requires Verification].
+   - **UNCERTAINTY LABELING:** Any claim, statistic, or reference that cannot be cross-referenced with high-confidence training data must be labeled as [Unverified] or [Speculation].
+   - **LOGICAL CONSISTENCY:** Ensure all arguments follow valid logical structures. Identify and expose any potential fallacies in the reasoning process.
+   - **BIAS IDENTIFICATION:** Actively identify potential biases in the source material or in the interpretation of the data.
+   - **REFERENCE FORMAT:** Provide references in a standard academic format (e.g., APA, Vancouver) including the persistent identifier.
+   - **ERROR CORRECTION:** If you detect an error in your own reasoning or output during generation, correct it plainly and immediately.
+   - **CRITICAL INSTRUCTION:** Do not agree with premises that lack evidence. Your role is to sharpen thinking, not to validate assumptions. If a request implies a factual certainty that does not exist, challenge the assumption rigorously.
 `;
 
 const EVIDENCE_GUIDELINE = `
@@ -132,9 +143,20 @@ const EVIDENCE_GUIDELINE = `
 5. **URL VERIFICATION:** The "url" field for each source MUST be a real, working link that leads DIRECTLY to the specific article, abstract, or guideline mentioned.
    - **CRITICAL:** You MUST verify that the article title at the URL matches your claim. Do NOT provide a URL if you are not 100% certain it leads to the correct material.
    - Do NOT use generic search result pages or homepage URLs.
-6. **QUIZ:** Generate exactly 5 high-yield MCQs with explanations.
-7. **NO LATEX:** Do NOT use LaTeX or dollar signs ($ or $$) for equations. Use Unicode subscripts/superscripts.
-8. **COMPLETENESS:** Ensure all 5 questions are fully generated.
+6. **EVIDENCE-BASED CONTENT REQUIREMENTS (MANDATORY):**
+   - **PRIORITY OF ACCURACY:** Do not prioritize speed or completeness over accuracy. If information cannot be verified, state this explicitly.
+   - **CITATION STANDARD:** All claims requiring evidence must be supported by citable sources. Prefer persistent identifiers (DOI, PMID, ISBN) over standard URLs.
+   - **LINK INTEGRITY:** If URLs are provided, they must be derived from known stable repositories (e.g., publisher domains, government databases, PubMed). Do NOT generate fabricated links.
+   - **VERIFICATION PROTOCOL:** You MUST use the Google Search tool to verify the existence of every reference before citing. If you cannot verify a reference, you MUST label it as [AI-Generated Citation - Requires Verification].
+   - **UNCERTAINTY LABELING:** Any claim, statistic, or reference that cannot be cross-referenced with high-confidence training data must be labeled as [Unverified] or [Speculation].
+   - **LOGICAL CONSISTENCY:** Ensure all arguments follow valid logical structures. Identify and expose any potential fallacies in the reasoning process.
+   - **BIAS IDENTIFICATION:** Actively identify potential biases in the source material or in the interpretation of the data.
+   - **REFERENCE FORMAT:** Provide references in a standard academic format (e.g., APA, Vancouver) including the persistent identifier.
+   - **ERROR CORRECTION:** If you detect an error in your own reasoning or output during generation, correct it plainly and immediately.
+   - **CRITICAL INSTRUCTION:** Do not agree with premises that lack evidence. Your role is to sharpen thinking, not to validate assumptions. If a request implies a factual certainty that does not exist, challenge the assumption rigorously.
+7. **QUIZ:** Generate exactly 5 high-yield MCQs with explanations.
+8. **NO LATEX:** Do NOT use LaTeX or dollar signs ($ or $$) for equations. Use Unicode subscripts/superscripts.
+9. **COMPLETENESS:** Ensure all 5 questions are fully generated.
 `;
 
 const diagramNodeSchema = {
@@ -802,6 +824,17 @@ export const enrichCaseWithWebSources = async (patientCase: PatientCase, languag
     5. YOU MUST INCLUDE A VALID, CLICKABLE URL (e.g., https://pubmed.ncbi.nlm.nih.gov/...) in the "url" field for each source and reference.
     6. **CRITICAL:** The URL MUST lead directly to the article or abstract. You MUST verify that the article title at the URL matches your claim.
     7. DO NOT FABRICATE URLs. Use the actual URLs found via the search tool.
+    8. **EVIDENCE-BASED CONTENT REQUIREMENTS (MANDATORY):**
+       - **PRIORITY OF ACCURACY:** Do not prioritize speed or completeness over accuracy. If information cannot be verified, state this explicitly.
+       - **CITATION STANDARD:** All claims requiring evidence must be supported by citable sources. Prefer persistent identifiers (DOI, PMID, ISBN) over standard URLs.
+       - **LINK INTEGRITY:** If URLs are provided, they must be derived from known stable repositories (e.g., publisher domains, government databases, PubMed). Do NOT generate fabricated links.
+       - **VERIFICATION PROTOCOL:** You MUST use the Google Search tool to verify the existence of every reference before citing. If you cannot verify a reference, you MUST label it as [AI-Generated Citation - Requires Verification].
+       - **UNCERTAINTY LABELING:** Any claim, statistic, or reference that cannot be cross-referenced with high-confidence training data must be labeled as [Unverified] or [Speculation].
+       - **LOGICAL CONSISTENCY:** Ensure all arguments follow valid logical structures. Identify and expose any potential fallacies in the reasoning process.
+       - **BIAS IDENTIFICATION:** Actively identify potential biases in the source material or in the interpretation of the data.
+       - **REFERENCE FORMAT:** Provide references in a standard academic format (e.g., APA, Vancouver) including the persistent identifier.
+       - **ERROR CORRECTION:** If you detect an error in your own reasoning or output during generation, correct it plainly and immediately.
+       - **CRITICAL INSTRUCTION:** Do not agree with premises that lack evidence. Your role is to sharpen thinking, not to validate assumptions. If a request implies a factual certainty that does not exist, challenge the assumption rigorously.
     Language: ${language}.`;
     
     const response: GenerateContentResponse = await retryWithBackoff((model) => ai.models.generateContent({

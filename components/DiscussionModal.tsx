@@ -289,6 +289,17 @@ export const DiscussionModal: React.FC<DiscussionModalProps> = ({
             3. **PMID/DOI VERIFICATION (CRITICAL):** You MUST verify the PMID and DOI for every reference using Google Search. Do NOT rely on internal knowledge for these IDs as they are frequently hallucinated. Cross-reference the title with the ID.
             4. **PREFERRED SOURCES:** Prioritize evidence from Google Scholar, PubMed, Medline Plus, clinicaltrials.gov, CDC, JAMA, NEJM, The Lancet, Cochrane Library, Mayo Clinic, and Johns Hopkins.
             5. **URL VERIFICATION:** Every URL you provide MUST lead directly to the specific article or abstract mentioned. You MUST verify that the article title at the URL matches your claim.
+            6. **EVIDENCE-BASED CONTENT REQUIREMENTS (MANDATORY):**
+               - **PRIORITY OF ACCURACY:** Do not prioritize speed or completeness over accuracy. If information cannot be verified, state this explicitly.
+               - **CITATION STANDARD:** All claims requiring evidence must be supported by citable sources. Prefer persistent identifiers (DOI, PMID, ISBN) over standard URLs.
+               - **LINK INTEGRITY:** If URLs are provided, they must be derived from known stable repositories (e.g., publisher domains, government databases, PubMed). Do NOT generate fabricated links.
+               - **VERIFICATION PROTOCOL:** You MUST use the Google Search tool to verify the existence of every reference before citing. If you cannot verify a reference, you MUST label it as [AI-Generated Citation - Requires Verification].
+               - **UNCERTAINTY LABELING:** Any claim, statistic, or reference that cannot be cross-referenced with high-confidence training data must be labeled as [Unverified] or [Speculation].
+               - **LOGICAL CONSISTENCY:** Ensure all arguments follow valid logical structures. Identify and expose any potential fallacies in the reasoning process.
+               - **BIAS IDENTIFICATION:** Actively identify potential biases in the source material or in the interpretation of the data.
+               - **REFERENCE FORMAT:** Provide references in a standard academic format (e.g., APA, Vancouver) including the persistent identifier.
+               - **ERROR CORRECTION:** If you detect an error in your own reasoning or output during generation, correct it plainly and immediately.
+               - **CRITICAL INSTRUCTION:** Do not agree with premises that lack evidence. Your role is to sharpen thinking, not to validate assumptions. If a request implies a factual certainty that does not exist, challenge the assumption rigorously.
             
             **VERIFICATION:**
             All visual components (tables, graphs, diagrams) must be responsive and accessible (WCAG 2.1 compliant).
@@ -453,10 +464,10 @@ export const DiscussionModal: React.FC<DiscussionModalProps> = ({
 
         try {
             // Check for API key selection if using a potentially restricted model
-            if (typeof window !== 'undefined' && window.aistudio) {
-                const hasKey = await window.aistudio.hasSelectedApiKey();
+            if (typeof window !== 'undefined' && (window as any).aistudio) {
+                const hasKey = await (window as any).aistudio.hasSelectedApiKey();
                 if (!hasKey) {
-                    await window.aistudio.openSelectKey();
+                    await (window as any).aistudio.openSelectKey();
                 }
             }
 

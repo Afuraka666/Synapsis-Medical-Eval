@@ -145,9 +145,9 @@ export const App: React.FC = () => {
         // This is crucial for D3 simulations that depend on container dimensions
         const timer = setTimeout(() => {
             window.dispatchEvent(new Event('resize'));
-        }, 100);
+        }, 150); // Slightly longer delay for better stability
         return () => clearTimeout(timer);
-    }, [mobileView]);
+    }, [mobileView, isDesktopResp]); // Also trigger when desktop mode changes
     const caseScrollRef = useRef<HTMLDivElement>(null);
     const { density, isDesktop, size, orientation, isMobile } = useContentDensity();
 
@@ -621,12 +621,18 @@ export const App: React.FC = () => {
                     {patientCase ? (
                         <div className="flex-grow min-h-0 relative flex flex-col overflow-hidden">
                             <div 
-                                className="flex flex-grow h-full w-full transition-transform duration-500 ease-in-out lg:transform-none lg:flex-row lg:gap-4 min-h-0"
-                                style={!isDesktopResp ? { transform: `translateX(${mobileView === 'map' ? '-100%' : '0%'})` } : {}}
+                                className="flex flex-grow w-full transition-transform duration-500 ease-in-out lg:transform-none lg:flex-row lg:gap-4 min-h-0 h-full"
+                                style={!isDesktopResp ? { 
+                                    transform: `translateX(${mobileView === 'map' ? '-100%' : '0%'})`,
+                                    width: '200%',
+                                    display: 'flex',
+                                    flexDirection: 'row'
+                                } : {}}
                             >
-                                <div className={`w-full flex-shrink-0 h-full lg:w-[62%] lg:flex-shrink min-h-0 flex flex-col transition-opacity duration-300 ${mobileView === 'map' ? 'opacity-0 pointer-events-none lg:opacity-100 lg:pointer-events-auto' : 'opacity-100'}`}>
+                                {/* Case View Container */}
+                                <div className={`w-full flex-shrink-0 h-full lg:w-[62%] lg:flex-shrink min-h-0 flex flex-col transition-opacity duration-300 ${!isDesktopResp && mobileView === 'map' ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
                                     <div ref={caseScrollRef} className="flex-grow overflow-y-auto bg-white dark:bg-dark-surface rounded-2xl shadow-lg border border-gray-200 dark:border-dark-border">
-                                        <PatientCaseView
+                                        <PatientCaseView 
                                             patientCase={patientCase}
                                             isGeneratingDetails={isGeneratingDetails}
                                             onSave={handlePatientCaseUpdate}
@@ -643,7 +649,9 @@ export const App: React.FC = () => {
                                         />
                                     </div>
                                 </div>
-                                <div className={`w-full flex-shrink-0 h-full flex flex-col lg:w-[38%] lg:flex-shrink min-h-0 relative transition-opacity duration-300 ${mobileView === 'case' ? 'opacity-0 pointer-events-none lg:opacity-100 lg:pointer-events-auto' : 'opacity-100'}`}>
+
+                                {/* Map View Container */}
+                                <div className={`w-full flex-shrink-0 h-full flex flex-col lg:w-[38%] lg:flex-shrink min-h-0 relative transition-opacity duration-300 ${!isDesktopResp && mobileView === 'case' ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
                                     {/* Knowledge Map Label for Desktop */}
                                     <div className="hidden lg:flex absolute -top-6 left-0 items-center gap-2 text-[10px] font-black uppercase tracking-widest text-gray-400 dark:text-gray-500">
                                         <Network className="w-3 h-3" />
@@ -675,7 +683,15 @@ export const App: React.FC = () => {
                                         <div className="flex-grow h-full flex items-center justify-center bg-white dark:bg-dark-surface rounded-2xl shadow-lg border border-gray-200 dark:border-dark-border p-8 text-center text-dark-text">
                                             <LoadingOverlay message={T.buildingMapMessage} subMessages={[]} />
                                         </div>
-                                    ) : null}
+                                    ) : (
+                                        <div className="flex-grow h-full flex flex-col items-center justify-center bg-white dark:bg-dark-surface rounded-2xl shadow-lg border border-gray-200 dark:border-dark-border p-8 text-center">
+                                            <div className="p-4 bg-gray-50 dark:bg-slate-800 rounded-full mb-4">
+                                                <Network className="w-8 h-8 text-gray-300 dark:text-slate-600" />
+                                            </div>
+                                            <h3 className="text-lg font-medium text-gray-900 dark:text-slate-200 mb-2">{T.mapNotReadyTitle || "Knowledge Map"}</h3>
+                                            <p className="text-sm text-gray-500 dark:text-slate-400 max-w-xs">{T.mapNotReadyDesc || "The interactive knowledge map is being prepared. It will appear here shortly."}</p>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         </div>

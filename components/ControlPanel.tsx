@@ -342,7 +342,26 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
                 </div>
                 <button onClick={onOpenClinicalTools} disabled={disabled} title={T.clinicalToolsTooltip} className="bg-indigo-50 dark:bg-indigo-900/20 hover:bg-indigo-100 dark:hover:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400 font-bold py-2.5 sm:py-3 px-3 sm:px-4 rounded-xl transition-all flex items-center justify-center space-x-2 text-sm border border-indigo-100 dark:border-indigo-900/50 shadow-sm active:scale-95"><Calculator className="h-4 w-4" /><span className="hidden sm:inline">{T.calculatorsLabel}</span></button>
             </div>
-            <div className="lg:hidden flex-shrink-0"><div className="flex items-center bg-gray-100 dark:bg-slate-800 p-1 rounded-xl transition-colors"><button onClick={() => onSetMobileView('case')} title={T.textualViewTooltip} className={`p-2 rounded-lg transition-all ${mobileView === 'case' ? 'bg-white dark:bg-slate-700 text-brand-blue dark:text-brand-blue-light shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}><FileText className="h-5 w-5" /></button><button onClick={() => onSetMobileView('map')} title={T.knowledgeMapViewTooltip} className={`p-2 rounded-lg transition-all ${mobileView === 'map' ? 'bg-white dark:bg-slate-700 text-brand-blue dark:text-brand-blue-light shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}><Network className="h-5 w-5" /></button></div></div>
+            <div className="lg:hidden flex-shrink-0">
+                <div className="flex items-center bg-gray-100 dark:bg-slate-800 p-1 rounded-xl transition-colors">
+                    <button 
+                        onClick={() => onSetMobileView('case')} 
+                        title={T.textualViewTooltip} 
+                        className={`p-2 rounded-lg transition-all flex items-center gap-2 ${mobileView === 'case' ? 'bg-white dark:bg-slate-700 text-brand-blue dark:text-brand-blue-light shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}
+                    >
+                        <FileText className="h-5 w-5" />
+                        <span className="text-[10px] font-bold uppercase tracking-tighter hidden sm:inline">{T.caseLabel || 'Case'}</span>
+                    </button>
+                    <button 
+                        onClick={() => onSetMobileView('map')} 
+                        title={T.knowledgeMapViewTooltip} 
+                        className={`p-2 rounded-lg transition-all flex items-center gap-2 ${mobileView === 'map' ? 'bg-white dark:bg-slate-700 text-brand-blue dark:text-brand-blue-light shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}
+                    >
+                        <Network className="h-5 w-5" />
+                        <span className="text-[10px] font-bold uppercase tracking-tighter hidden sm:inline">{T.mapLabel || 'Map'}</span>
+                    </button>
+                </div>
+            </div>
             <button onClick={onGenerateNew} disabled={disabled} title={T.resetAppTooltip} className="bg-brand-blue hover:bg-blue-800 text-white font-black py-2.5 sm:py-3 px-4 sm:px-5 rounded-xl transition-all flex items-center justify-center space-x-2 shadow-lg shadow-brand-blue/20 active:scale-95 flex-shrink-0"><Plus className="h-5 w-5" /><span className="hidden sm:inline">{T.resetAppLabel}</span></button>
         </div>
       )}

@@ -336,15 +336,25 @@ export const KnowledgeMap = forwardRef<any, KnowledgeMapProps>(({ data, onNodeCl
     useEffect(() => {
         if (!containerRef.current || typeof d3 === 'undefined') return;
         
+        const handleResize = () => {
+            if (!containerRef.current) return;
+            const { width, height } = containerRef.current.getBoundingClientRect();
+            if (width > 0 && height > 0) {
+                setDimensions({ width, height });
+                if (simulationRef.current) {
+                    simulationRef.current.force('center', d3.forceCenter(width / 2, height / 2));
+                    simulationRef.current.alpha(0.3).restart();
+                }
+                // Delay resetZoom slightly to allow simulation to update
+                setTimeout(resetZoom, 150);
+            }
+        };
+
         const observer = new ResizeObserver((entries) => {
             for (const entry of entries) {
                 const { width, height } = entry.contentRect;
                 if (width > 0 && height > 0) {
-                    // Only update if dimensions actually changed to avoid unnecessary re-renders
-                    setDimensions(prev => {
-                        if (Math.abs(prev.width - width) < 1 && Math.abs(prev.height - height) < 1) return prev;
-                        return { width, height };
-                    });
+                    setDimensions({ width, height });
                     
                     window.requestAnimationFrame(() => {
                         if (simulationRef.current) {
@@ -353,14 +363,20 @@ export const KnowledgeMap = forwardRef<any, KnowledgeMapProps>(({ data, onNodeCl
                         }
                         
                         setIsLoading(false);
-                        resetZoom();
+                        // Delay resetZoom slightly to allow simulation to update
+                        setTimeout(resetZoom, 150);
                     });
                 }
             }
         });
         
         observer.observe(containerRef.current);
-        return () => observer.disconnect();
+        window.addEventListener('resize', handleResize);
+        
+        return () => {
+            observer.disconnect();
+            window.removeEventListener('resize', handleResize);
+        };
     }, [resetZoom]); // resetZoom is now stable
 
     useEffect(() => {
@@ -608,7 +624,7 @@ export const KnowledgeMap = forwardRef<any, KnowledgeMapProps>(({ data, onNodeCl
     }
 
     return (
-        <div ref={containerRef} className={`w-full h-full min-h-[400px] bg-slate-50 dark:bg-slate-900 shadow-inner border border-gray-200 dark:border-dark-border overflow-hidden transition-colors duration-300 ${isMapFullscreen ? 'fixed inset-0 z-40' : 'relative rounded-xl'}`}>
+        <div ref={containerRef} className={`w-full h-full min-h-[300px] bg-slate-50 dark:bg-slate-900 shadow-inner border border-gray-200 dark:border-dark-border overflow-hidden transition-colors duration-300 ${isMapFullscreen ? 'fixed inset-0 z-40' : 'relative rounded-xl'}`}>
             <div className="absolute inset-0 pointer-events-none opacity-50 dark:opacity-20" style={{ backgroundImage: 'radial-gradient(circle at 1px 1px, #94a3b8 1px, transparent 0)', backgroundSize: '24px 24px' }}></div>
             {isLoading && (
                 <div className="absolute inset-0 z-20 flex items-center justify-center bg-slate-50/80 dark:bg-dark-bg/80 backdrop-blur-sm">
@@ -618,7 +634,7 @@ export const KnowledgeMap = forwardRef<any, KnowledgeMapProps>(({ data, onNodeCl
             <svg 
                 ref={svgRef} 
                 className="w-full h-full touch-none relative z-0 block" 
-                style={{ minHeight: '400px' }}
+                style={{ minHeight: '300px' }}
                 onClick={onClearSelection}
                 onMouseMove={(e) => {
                     const rect = e.currentTarget.getBoundingClientRect();
