@@ -97,6 +97,10 @@ export const InteractiveDiagram: React.FC<InteractiveDiagramProps> = ({ data, id
     const chargeStrength = isMobile ? -1000 : -2000;
     const linkDistance = isMobile ? 120 : 200;
 
+    if (simulationRef.current) {
+        simulationRef.current.stop();
+    }
+
     simulationRef.current = d3.forceSimulation(nodes)
       .force("link", d3.forceLink(links).id((d: any) => d.id).distance(linkDistance).strength(0.5))
       .force("charge", d3.forceManyBody().strength(chargeStrength))
@@ -196,7 +200,7 @@ export const InteractiveDiagram: React.FC<InteractiveDiagramProps> = ({ data, id
     <div 
       ref={containerRef} 
       id={id} 
-      className={`bg-white touch-none ${fullscreen ? 'fixed inset-0 z-[9999] p-4 shadow-2xl' : 'relative w-full min-h-[300px] h-full rounded-lg'}`}
+      className={`bg-white touch-none ${fullscreen ? 'fixed inset-0 z-[10001] p-4 shadow-2xl' : 'relative w-full min-h-[300px] h-full rounded-lg'}`}
     >
       <svg ref={svgRef} className="w-full h-full" style={{ touchAction: 'none' }}></svg>
       <div className="absolute top-2 left-2 flex flex-col gap-2 z-10">

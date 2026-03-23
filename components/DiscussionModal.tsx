@@ -1,6 +1,5 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { createPortal } from 'react-dom';
 import { 
     X, 
     Maximize, 
@@ -24,11 +23,9 @@ import type { DisciplineSpecificConsideration, ChatMessage, DiagramData, Educati
 import { EducationalContentType } from '../types';
 import { GoogleGenAI, GenerateContentResponse, ThinkingLevel } from "@google/genai";
 import { retryWithBackoff, generateDiagramForDiscussion } from '../services/geminiService';
-import { InteractiveDiagram } from './InteractiveDiagram';
 import { MarkdownRenderer } from './MarkdownRenderer';
 import { ImageGenerator } from './ImageGenerator';
 import { SourceRenderer } from './SourceRenderer';
-import { ScientificGraph } from './ScientificGraph';
 import { AudioVisualizer } from './AudioVisualizer';
 import { SmartContent } from './SmartContent';
 import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType, ImageRun, Table, TableRow, TableCell, WidthType, BorderStyle } from 'docx';
@@ -270,7 +267,7 @@ export const DiscussionModal: React.FC<DiscussionModalProps> = ({
             2. **GRAPHS AND CHARTS:** Do NOT describe data visually in text. 
                - Use [GRAPH: type] for pre-defined physiological models (oxygen_dissociation, frank_starling, pressure_volume_loop, respiratory_flow_volume, cerebral_pressure_volume, cerebral_autoregulation, capnography, spirometry).
                - Use [CHART: json_data] for custom data. The JSON structure MUST be: {"type": "bar"|"line", "title": "Title", "xAxisLabel": "X", "yAxisLabel": "Y", "data": [{"label": "A", "value": 10, "color": "#hex"}]}.
-            3. **DIAGRAMS/FLOWCHARTS:** For process flows, utilize [DIAGRAM: description] tags. These trigger SVG-based interactive node-link diagrams. Nodes are interactive.
+            3. **DIAGRAMS/FLOWCHARTS:** For process flows, utilize [DIAGRAM: description] tags. These trigger SVG-based interactive node-link diagrams. Nodes are interactive. Do NOT duplicate the same diagram or illustration multiple times in the discussion. Only generate a visual tag once per concept.
             4. **ILLUSTRATIONS:** Use [ILLUSTRATE: description] for anatomical or clinical visuals.
             
             **STRICT FORMATTING (CRITICAL):**
@@ -550,14 +547,14 @@ export const DiscussionModal: React.FC<DiscussionModalProps> = ({
             // Auto-trigger diagram generation if [DIAGRAM: ...] is found in the final response
             const diagramMatch = currentResponse.match(/\[\s*DIAGRAM:\s*(.*?)\s*\]/i);
             if (diagramMatch) {
-                const aiMsgIndex = messages.length;
+                const aiMsgIndex = messages.length + 1;
                 handleGenerateDiagram(aiMsgIndex, diagramMatch[1]);
             }
 
             // Auto-trigger illustration prompt if [ILLUSTRATE: ...] is found
             const illustrateMatch = currentResponse.match(/\[\s*ILLUSTRATE:\s*(.*?)\s*\]/i);
             if (illustrateMatch) {
-                const aiMsgIndex = messages.length;
+                const aiMsgIndex = messages.length + 1;
                 setActiveImagePrompt({ prompt: illustrateMatch[1], index: aiMsgIndex });
             }
         } catch (error: any) {
@@ -841,7 +838,7 @@ export const DiscussionModal: React.FC<DiscussionModalProps> = ({
     if (!isOpen) return null;
 
     if (isMinimised) {
-        return createPortal(
+        return (
             <div className="fixed bottom-6 right-6 z-[10000] animate-bounce-slow">
                 <button 
                     onClick={() => setIsMinimised(false)}
@@ -857,12 +854,11 @@ export const DiscussionModal: React.FC<DiscussionModalProps> = ({
                     </div>
                     {isLoading && <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full animate-ping border-2 border-white"></div>}
                 </button>
-            </div>,
-            document.body
+            </div>
         );
     }
 
-    return createPortal(
+    return (
         <div className={`fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[10000] p-4 animate-fade-in ${isFullscreen ? 'bg-white dark:bg-dark-bg' : ''}`} aria-modal="true" role="dialog">
             <div className={`bg-white dark:bg-dark-surface flex flex-col transition-all duration-300 ${isFullscreen ? 'w-full h-full rounded-none' : 'medical-card w-full max-w-lg h-[90dvh] sm:h-[85dvh]'}`}>
                 <header className={`p-3 sm:p-4 border-b border-gray-100 dark:border-dark-border bg-white/80 dark:bg-dark-surface/80 backdrop-blur-md z-10 transition-colors ${isFullscreen ? 'rounded-none' : 'rounded-t-2xl'}`}>
@@ -1022,7 +1018,6 @@ export const DiscussionModal: React.FC<DiscussionModalProps> = ({
                 </footer>
             </div>
             {activeImagePrompt && <ImageGenerator content={{ title: 'Clinical Illustration', description: activeImagePrompt.prompt, type: EducationalContentType.IMAGE, reference: 'AI Generated' }} onClose={() => setActiveImagePrompt(null)} language={language} T={T} onImageGenerated={(data) => handleImageGenerated(activeImagePrompt.index, data)} />}
-        </div>,
-        document.body
+        </div>
     );
 };

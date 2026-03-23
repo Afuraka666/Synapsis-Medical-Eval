@@ -187,7 +187,7 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, cla
                     h3: ({ node, ...props }) => <h3 {...props} className="text-lg font-black mt-4 mb-2 text-gray-900 dark:text-slate-100" />,
                     blockquote: ({ node, ...props }) => <blockquote {...props} className="border-l-4 border-brand-blue/20 pl-4 italic my-4 bg-slate-50 dark:bg-slate-800/40 py-3 pr-3 text-gray-700 dark:text-slate-300 rounded-r-xl" />,
                     table: ({ node, ...props }: any) => (
-                        <div className="overflow-x-auto my-6">
+                        <div className="overflow-x-auto my-6 not-prose">
                             <table {...props} className="min-w-full border-collapse border-2 border-gray-900 dark:border-slate-200" />
                         </div>
                     ),

@@ -40,7 +40,6 @@ import { DisciplineColors } from './KnowledgeMap';
 import { QuizView } from './QuizView';
 import { ImageGenerator } from './ImageGenerator';
 import { TextToSpeechPlayer } from './TextToSpeechPlayer';
-import { InteractiveDiagram } from './InteractiveDiagram';
 import { SourceSearchModal } from './SourceSearchModal';
 import { enrichCaseWithWebSources, generateDiagramForDiscussion } from '../services/geminiService';
 import { DisciplineIcon } from './DisciplineIcon';
@@ -901,7 +900,6 @@ export const PatientCaseView: React.FC<PatientCaseViewProps> = ({ patientCase: i
                     </div>
                 </div>
                 {renderSmartContent(patientCase.biochemicalPathway.description, true, -1, patientCase.biochemicalPathway.diagramData, undefined, patientCase.groundingSources, patientCase.biochemicalPathway.reference)}
-                {patientCase.biochemicalPathway.diagramData && <div className="mt-2 h-[200px] sm:h-[280px] rounded-xl border border-gray-100 dark:border-dark-border shadow-xs overflow-hidden"><InteractiveDiagram id="diagram-biochem" data={patientCase.biochemicalPathway.diagramData} /></div>}
             </Section>
         ) : isGeneratingDetails ? <Section icon={<FlaskConical className="w-4 h-4" />} title={T.biochemicalPathwaySection} onCopy={() => {}} onSaveSnippet={() => {}} T={T}><SkeletonLoader /></Section> : null }
 
