@@ -18,7 +18,7 @@
 
 @layer base {
   body {
-    @apply bg-brand-gray text-brand-text antialiased selection:bg-brand-blue/10 selection:text-brand-blue;
+    @apply bg-brand-gray text-brand-text antialiased selection:bg-brand-blue/10 selection:text-brand-blue overflow-x-hidden;
   }
   .dark body {
     @apply bg-dark-bg text-dark-text selection:bg-brand-blue-light/20 selection:text-brand-blue-light;

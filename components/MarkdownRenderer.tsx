@@ -189,7 +189,7 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, cla
                     table: ({ node, ...props }: any) => {
                         try {
                             const rows = node?.children as any[];
-                            if (!rows || rows.length < 1) return <table {...props} className="min-w-full border-collapse" />;
+                            if (!rows || rows.length < 1) return <div className="overflow-x-auto my-4"><table {...props} className="min-w-full border-collapse" /></div>;
 
                             const thead = rows.find(r => r.type === 'tableHead');
                             const tbody = rows.find(r => r.type === 'tableBody');
@@ -198,7 +198,7 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, cla
                             let headerRow = thead ? thead.children[0] : allRows[0];
                             let bodyRows = tbody ? tbody.children : allRows.slice(1);
 
-                            if (!headerRow) return <table {...props} className="min-w-full border-collapse" />;
+                            if (!headerRow) return <div className="overflow-x-auto my-4"><table {...props} className="min-w-full border-collapse" /></div>;
 
                             const headers = headerRow.children.map((cell: any) => {
                                 return cell.children.map((c: any) => c.value || '').join('').trim();
@@ -260,7 +260,7 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, cla
                     code: ({ node, className, children, ...props }) => {
                         const isInline = !className;
                         return isInline ? (
-                            <code {...props} className="bg-slate-100 dark:bg-slate-800 rounded-md px-1.5 py-0.5 text-[1em] font-mono font-bold text-blue-700 dark:text-blue-400">
+                            <code {...props} className="bg-slate-100 dark:bg-slate-800 rounded-md px-1.5 py-0.5 text-[1em] font-mono font-bold text-blue-700 dark:text-blue-400 break-words">
                                 {children}
                             </code>
                         ) : (
@@ -268,7 +268,10 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, cla
                                 {children}
                             </code>
                         )
-                    }
+                    },
+                    pre: ({ node, ...props }) => (
+                        <pre {...props} className="overflow-x-auto bg-slate-900 rounded-xl p-0 my-4" />
+                    )
                 }}
             >
                 {cleanContent}

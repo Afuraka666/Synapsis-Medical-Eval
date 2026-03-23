@@ -630,8 +630,8 @@ export const App: React.FC = () => {
                                 } : {}}
                             >
                                 {/* Case View Container */}
-                                <div className={`w-full lg:w-[62%] flex-shrink-0 lg:flex-shrink h-full min-h-0 flex flex-col transition-opacity duration-300 ${!isDesktopResp ? 'w-1/2' : ''} ${!isDesktopResp && mobileView === 'map' ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
-                                    <div ref={caseScrollRef} className="flex-grow overflow-y-auto bg-white dark:bg-dark-surface rounded-2xl shadow-lg border border-gray-200 dark:border-dark-border">
+                                <div className={`flex-shrink-0 lg:flex-shrink h-full min-h-0 flex flex-col transition-opacity duration-300 ${!isDesktopResp ? 'w-1/2' : 'w-full lg:w-[62%]'} ${!isDesktopResp && mobileView === 'map' ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
+                                    <div ref={caseScrollRef} className="flex-grow overflow-y-auto overflow-x-hidden bg-white dark:bg-dark-surface rounded-2xl shadow-lg border border-gray-200 dark:border-dark-border">
                                         <PatientCaseView 
                                             patientCase={patientCase}
                                             isGeneratingDetails={isGeneratingDetails}
@@ -651,7 +651,7 @@ export const App: React.FC = () => {
                                 </div>
 
                                 {/* Map View Container */}
-                                <div className={`w-full lg:w-[38%] flex-shrink-0 lg:flex-shrink h-full flex flex-col min-h-[300px] relative transition-opacity duration-300 ${!isDesktopResp ? 'w-1/2' : ''} ${!isDesktopResp && mobileView === 'case' ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
+                                <div className={`flex-shrink-0 lg:flex-shrink h-full flex flex-col min-h-[300px] relative transition-opacity duration-300 ${!isDesktopResp ? 'w-1/2' : 'w-full lg:w-[38%]'} ${!isDesktopResp && mobileView === 'case' ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
                                     {/* Knowledge Map Label for Desktop */}
                                     <div className="hidden lg:flex absolute -top-6 left-0 items-center gap-2 text-[10px] font-black uppercase tracking-widest text-gray-400 dark:text-gray-500">
                                         <Network className="w-3 h-3" />
