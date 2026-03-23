@@ -46,7 +46,7 @@ export const ConceptCard: React.FC<ConceptCardProps> = ({ nodeInfo, onClose, onD
         </div>
         <button
           onClick={onClose}
-          className="p-2 text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-slate-800 rounded-full transition-all"
+          className="p-2 text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-slate-800 rounded-full transition-all touch-manipulation"
           aria-label="Close"
           title="Dismiss concept detail"
         >
@@ -81,7 +81,7 @@ export const ConceptCard: React.FC<ConceptCardProps> = ({ nodeInfo, onClose, onD
               onClick={() => onDiscuss(nodeInfo)}
               disabled={loading}
               title="Initiate deep-dive medical discussion on this concept"
-              className="w-full bg-brand-blue dark:bg-brand-blue-light hover:bg-brand-blue-dark dark:hover:bg-brand-blue text-white font-black py-4 px-6 rounded-2xl transition-all text-[10px] uppercase tracking-[0.2em] flex items-center justify-center gap-2 shadow-xl shadow-brand-blue/20 dark:shadow-brand-blue-light/20 disabled:opacity-50 disabled:shadow-none hover:scale-[1.02] active:scale-[0.98]"
+              className="w-full bg-brand-blue dark:bg-brand-blue-light hover:bg-brand-blue-dark dark:hover:bg-brand-blue text-white font-black py-4 px-6 rounded-2xl transition-all text-[10px] uppercase tracking-[0.2em] flex items-center justify-center gap-2 shadow-xl shadow-brand-blue/20 dark:shadow-brand-blue-light/20 disabled:opacity-50 disabled:shadow-none hover:scale-[1.02] active:scale-[0.98] touch-manipulation"
           >
               <span title="Discuss">
                 <MessageSquare className="w-4 h-4" />

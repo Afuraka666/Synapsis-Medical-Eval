@@ -163,6 +163,16 @@ export const InteractiveDiagram: React.FC<InteractiveDiagramProps> = ({ data, id
   }, [componentId, handleResetZoom]);
 
   useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isDiagramFullscreen) {
+        setIsDiagramFullscreen(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isDiagramFullscreen]);
+
+  useEffect(() => {
     if (!containerRef.current) return;
     const observer = new ResizeObserver(() => {
         window.requestAnimationFrame(() => {
@@ -177,19 +187,37 @@ export const InteractiveDiagram: React.FC<InteractiveDiagramProps> = ({ data, id
   }, [initDiagram, dataString, isDiagramFullscreen]);
 
   const ControlButton: React.FC<{ onClick: () => void, title: string, children: React.ReactNode }> = ({ onClick, title, children }) => (
-    <button onClick={onClick} title={title} className="bg-white/90 hover:bg-white p-2 rounded-lg shadow-md border border-gray-200 text-gray-700 hover:text-brand-blue transition">
+    <button onClick={onClick} title={title} className="bg-white/90 hover:bg-white p-2 rounded-lg shadow-md border border-gray-200 text-gray-700 hover:text-brand-blue transition touch-manipulation">
       {children}
     </button>
   );
   
   const renderDiagramContent = (fullscreen: boolean) => (
-    <div ref={containerRef} id={id} className={`bg-white ${fullscreen ? 'fixed inset-0 z-[9999] w-screen h-screen p-4 shadow-2xl' : 'relative w-full min-h-[300px] h-full rounded-lg'}`}>
+    <div 
+      ref={containerRef} 
+      id={id} 
+      className={`bg-white touch-none ${fullscreen ? 'fixed inset-0 z-[9999] p-4 shadow-2xl' : 'relative w-full min-h-[300px] h-full rounded-lg'}`}
+    >
       <svg ref={svgRef} className="w-full h-full" style={{ touchAction: 'none' }}></svg>
       <div className="absolute top-2 left-2 flex flex-col gap-2 z-10">
-            <ControlButton onClick={() => d3.select(svgRef.current).transition().call(zoomRef.current.scaleBy, 1.2)} title="Zoom In">
+            <ControlButton onClick={() => {
+                if (svgRef.current && zoomRef.current && containerRef.current) {
+                    const { width, height } = containerRef.current.getBoundingClientRect();
+                    const effectiveWidth = width || window.innerWidth;
+                    const effectiveHeight = height || window.innerHeight;
+                    d3.select(svgRef.current).transition().call(zoomRef.current.scaleBy, 1.2, [effectiveWidth / 2, effectiveHeight / 2]);
+                }
+            }} title="Zoom In">
                <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" /></svg>
             </ControlButton>
-            <ControlButton onClick={() => d3.select(svgRef.current).transition().call(zoomRef.current.scaleBy, 0.8)} title="Zoom Out">
+            <ControlButton onClick={() => {
+                if (svgRef.current && zoomRef.current && containerRef.current) {
+                    const { width, height } = containerRef.current.getBoundingClientRect();
+                    const effectiveWidth = width || window.innerWidth;
+                    const effectiveHeight = height || window.innerHeight;
+                    d3.select(svgRef.current).transition().call(zoomRef.current.scaleBy, 0.8, [effectiveWidth / 2, effectiveHeight / 2]);
+                }
+            }} title="Zoom Out">
                <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M3 10a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clipRule="evenodd" /></svg>
             </ControlButton>
             <ControlButton onClick={handleResetZoom} title="Reset View">
@@ -208,5 +236,12 @@ export const InteractiveDiagram: React.FC<InteractiveDiagramProps> = ({ data, id
     </div>
   );
 
-  return isDiagramFullscreen ? createPortal(renderDiagramContent(true), document.body) : renderDiagramContent(false);
+  return isDiagramFullscreen ? (
+    <>
+      <div className="w-full min-h-[300px] h-full rounded-lg bg-gray-50 border border-gray-200 flex items-center justify-center">
+        <p className="text-gray-500">Diagram is in fullscreen mode</p>
+      </div>
+      {createPortal(renderDiagramContent(true), document.body)}
+    </>
+  ) : renderDiagramContent(false);
 };

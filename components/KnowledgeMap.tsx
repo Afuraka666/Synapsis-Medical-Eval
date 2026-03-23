@@ -1,5 +1,6 @@
 
 import React, { useEffect, useRef, useCallback, useState, useMemo, forwardRef, useImperativeHandle } from 'react';
+import { createPortal } from 'react-dom';
 import { 
     ZoomIn, 
     ZoomOut, 
@@ -146,70 +147,71 @@ interface MapControlsProps {
 }
 
 const MapControls: React.FC<MapControlsProps & { onToggleLegend: () => void; showLegend: boolean }> = ({ onZoomIn, onZoomOut, onReset, onToggleFullscreen, onSaveMap, onDownloadMap, onAddNode, onAddLink, onToggleLegend, showLegend, isFullscreen, T }) => {
-    const buttonClasses = "bg-white dark:bg-slate-800 hover:bg-gray-50 dark:hover:bg-slate-700 text-gray-700 dark:text-slate-200 rounded-xl w-10 h-10 flex items-center justify-center transition-all hover:scale-105 active:scale-95 border border-gray-200 dark:border-slate-700 shadow-sm";
+    const buttonClasses = "bg-white dark:bg-slate-800 hover:bg-gray-50 dark:hover:bg-slate-700 text-gray-700 dark:text-slate-200 rounded-xl w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center transition-all hover:scale-105 active:scale-95 border border-gray-200 dark:border-slate-700 shadow-sm touch-manipulation";
+    const iconClasses = "h-4 w-4 sm:h-5 sm:w-5";
     return (
-        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex flex-row gap-2 z-10 bg-white/95 dark:bg-slate-800/95 backdrop-blur-md p-2 rounded-2xl shadow-2xl border border-gray-200/50 dark:border-slate-700/50">
+        <div className="absolute left-1/2 -translate-x-1/2 flex flex-row gap-1 sm:gap-2 z-10 bg-white/95 dark:bg-slate-800/95 backdrop-blur-md p-1.5 sm:p-2 rounded-2xl shadow-2xl border border-gray-200/50 dark:border-slate-700/50" style={{ bottom: 'calc(1.5rem + env(safe-area-inset-bottom, 0px))' }}>
             <button onClick={onZoomIn} title={T.zoomInButton} className={buttonClasses}>
                  <span title={T.zoomInButton}>
-                    <ZoomIn className="h-5 w-5" />
+                    <ZoomIn className={iconClasses} />
                  </span>
             </button>
             <button onClick={onZoomOut} title={T.zoomOutButton} className={buttonClasses}>
                 <span title={T.zoomOutButton}>
-                    <ZoomOut className="h-5 w-5" />
+                    <ZoomOut className={iconClasses} />
                 </span>
             </button>
-            <div className="w-px h-6 bg-gray-200 dark:bg-slate-700 self-center mx-1"></div>
+            <div className="w-px h-5 sm:h-6 bg-gray-200 dark:bg-slate-700 self-center mx-0.5 sm:mx-1"></div>
             <button onClick={onReset} title={T.resetViewButton} className={buttonClasses}>
                  <span title={T.resetViewButton}>
-                    <RotateCcw className="h-5 w-5" />
+                    <RotateCcw className={iconClasses} />
                  </span>
             </button>
              <button onClick={onToggleFullscreen} title={isFullscreen ? T.exitFullscreenButton : T.enterFullscreenButton} className={buttonClasses}>
                 {isFullscreen ? (
                     <span title={T.exitFullscreenButton}>
-                        <Minimize className="h-5 w-5" />
+                        <Minimize className={iconClasses} />
                     </span>
                 ) : (
                     <span title={T.enterFullscreenButton}>
-                        <Maximize className="h-5 w-5" />
+                        <Maximize className={iconClasses} />
                     </span>
                 )}
             </button>
-            <div className="w-px h-6 bg-gray-200 dark:bg-slate-700 self-center mx-1"></div>
+            <div className="w-px h-5 sm:h-6 bg-gray-200 dark:bg-slate-700 self-center mx-0.5 sm:mx-1"></div>
             <button onClick={onToggleLegend} title={T.toggleLegend} className={`${buttonClasses} ${showLegend ? 'bg-brand-blue/10 dark:bg-brand-blue-light/10 text-brand-blue dark:text-brand-blue-light border-brand-blue/30' : ''}`}>
                 <span title={T.toggleLegend}>
-                    <Network className="h-5 w-5" />
+                    <Network className={iconClasses} />
                 </span>
             </button>
             {(onAddNode || onAddLink) && (
                 <>
-                    <div className="w-px h-6 bg-gray-200 dark:bg-slate-700 self-center mx-1"></div>
+                    <div className="w-px h-5 sm:h-6 bg-gray-200 dark:bg-slate-700 self-center mx-0.5 sm:mx-1"></div>
                     {onAddNode && (
                         <button onClick={onAddNode} title={T.addNodeButton} className={buttonClasses}>
-                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+                            <svg xmlns="http://www.w3.org/2000/svg" className={iconClasses} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
                         </button>
                     )}
                     {onAddLink && (
                         <button onClick={onAddLink} title={T.addLinkButton} className={buttonClasses}>
-                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+                            <svg xmlns="http://www.w3.org/2000/svg" className={iconClasses} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
                         </button>
                     )}
                 </>
             )}
             {(onSaveMap || onDownloadMap) && (
                 <>
-                    <div className="w-px h-6 bg-gray-200 dark:bg-slate-700 self-center mx-1"></div>
+                    <div className="w-px h-5 sm:h-6 bg-gray-200 dark:bg-slate-700 self-center mx-0.5 sm:mx-1"></div>
                     {onSaveMap && (
                         <button onClick={onSaveMap} title={T.saveMapToCollection} className={`${buttonClasses} text-brand-blue dark:text-brand-blue-light`}>
                             <span title={T.saveMapButton}>
-                                <Save className="h-5 w-5" />
+                                <Save className={iconClasses} />
                             </span>
                         </button>
                     )}
                     {onDownloadMap && (
                         <button onClick={onDownloadMap} title={T.downloadMapAsImage} className={`${buttonClasses} text-brand-blue dark:text-brand-blue-light`}>
-                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-download"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
+                            <svg xmlns="http://www.w3.org/2000/svg" className={iconClasses} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
                         </button>
                     )}
                 </>
@@ -346,6 +348,16 @@ export const KnowledgeMap = forwardRef<any, KnowledgeMapProps>(({ data, onNodeCl
     }, [isLoading, nodes.length, resetZoom]);
 
     useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.key === 'Escape' && isMapFullscreen) {
+                setIsMapFullscreen(false);
+            }
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [isMapFullscreen, setIsMapFullscreen]);
+
+    useEffect(() => {
         if (!containerRef.current || typeof d3 === 'undefined') return;
         
         const handleResize = () => {
@@ -393,7 +405,7 @@ export const KnowledgeMap = forwardRef<any, KnowledgeMapProps>(({ data, onNodeCl
             observer.disconnect();
             window.removeEventListener('resize', handleResize);
         };
-    }, [resetZoom]); // resetZoom is now stable
+    }, [resetZoom, isMapFullscreen]); // resetZoom is now stable
 
     useEffect(() => {
         if (!svgRef.current || !containerRef.current || typeof d3 === 'undefined') return;
@@ -617,7 +629,7 @@ export const KnowledgeMap = forwardRef<any, KnowledgeMapProps>(({ data, onNodeCl
         return () => {
             if (simulationRef.current) simulationRef.current.stop();
         };
-    }, [nodes, links, onNodeClick, resetZoom, theme]);
+    }, [nodes, links, onNodeClick, resetZoom, theme, isMapFullscreen]);
 
     if (typeof d3 === 'undefined') {
         return (
@@ -639,8 +651,11 @@ export const KnowledgeMap = forwardRef<any, KnowledgeMapProps>(({ data, onNodeCl
         );
     }
 
-    return (
-        <div ref={containerRef} className={`w-full h-full min-h-[300px] bg-slate-50 dark:bg-slate-900 shadow-inner border border-gray-200 dark:border-dark-border overflow-hidden transition-colors duration-300 ${isMapFullscreen ? 'fixed inset-0 z-40' : 'relative rounded-xl'}`}>
+    const renderMapContent = (fullscreen: boolean) => (
+        <div 
+            ref={containerRef} 
+            className={`w-full h-full min-h-[300px] bg-slate-50 dark:bg-slate-900 shadow-inner border border-gray-200 dark:border-dark-border overflow-hidden transition-colors duration-300 touch-none ${fullscreen ? 'fixed inset-0 z-[9999]' : 'relative rounded-xl'}`}
+        >
             <div className="absolute inset-0 pointer-events-none opacity-50 dark:opacity-20" style={{ backgroundImage: 'radial-gradient(circle at 1px 1px, #94a3b8 1px, transparent 0)', backgroundSize: '24px 24px' }}></div>
             {isLoading && (
                 <div className="absolute inset-0 z-20 flex items-center justify-center bg-slate-50/80 dark:bg-dark-bg/80 backdrop-blur-sm">
@@ -681,14 +696,20 @@ export const KnowledgeMap = forwardRef<any, KnowledgeMapProps>(({ data, onNodeCl
             <MapControls 
                 onZoomIn={() => {
                     logEvent('map_zoom_in');
-                    if (typeof d3 !== 'undefined' && zoomRef.current && svgRef.current) {
-                        d3.select(svgRef.current).transition().call(zoomRef.current.scaleBy, 1.3);
+                    if (typeof d3 !== 'undefined' && zoomRef.current && svgRef.current && containerRef.current) {
+                        const { width, height } = containerRef.current.getBoundingClientRect();
+                        const effectiveWidth = width || window.innerWidth;
+                        const effectiveHeight = height || window.innerHeight;
+                        d3.select(svgRef.current).transition().call(zoomRef.current.scaleBy, 1.3, [effectiveWidth / 2, effectiveHeight / 2]);
                     }
                 }} 
                 onZoomOut={() => {
                     logEvent('map_zoom_out');
-                    if (typeof d3 !== 'undefined' && zoomRef.current && svgRef.current) {
-                        d3.select(svgRef.current).transition().call(zoomRef.current.scaleBy, 0.7);
+                    if (typeof d3 !== 'undefined' && zoomRef.current && svgRef.current && containerRef.current) {
+                        const { width, height } = containerRef.current.getBoundingClientRect();
+                        const effectiveWidth = width || window.innerWidth;
+                        const effectiveHeight = height || window.innerHeight;
+                        d3.select(svgRef.current).transition().call(zoomRef.current.scaleBy, 0.7, [effectiveWidth / 2, effectiveHeight / 2]);
                     }
                 }} 
                 onReset={() => {
@@ -696,8 +717,8 @@ export const KnowledgeMap = forwardRef<any, KnowledgeMapProps>(({ data, onNodeCl
                     resetZoom();
                 }} 
                 onToggleFullscreen={() => {
-                    logEvent('map_toggle_fullscreen', { is_fullscreen: !isMapFullscreen });
-                    setIsMapFullscreen(!isMapFullscreen);
+                    logEvent('map_toggle_fullscreen', { is_fullscreen: !fullscreen });
+                    setIsMapFullscreen(!fullscreen);
                 }} 
                 onToggleLegend={() => setShowLegend(!showLegend)}
                 showLegend={showLegend}
@@ -725,7 +746,7 @@ export const KnowledgeMap = forwardRef<any, KnowledgeMapProps>(({ data, onNodeCl
                         });
                     }
                 } : undefined}
-                isFullscreen={isMapFullscreen} 
+                isFullscreen={fullscreen} 
                 T={T}
             />
             <NodeTooltip node={hoveredNode?.node || null} position={hoveredNode?.position || null} T={T} />
@@ -753,7 +774,7 @@ export const KnowledgeMap = forwardRef<any, KnowledgeMapProps>(({ data, onNodeCl
             )}
 
             {hoveredLink && (
-                <div className="absolute bottom-4 right-4 bg-white/90 dark:bg-slate-800/90 p-2 px-3 rounded-lg shadow-lg border border-brand-blue/20 text-[10px] max-w-[200px] animate-fade-in pointer-events-none">
+                <div className="absolute right-4 bg-white/90 dark:bg-slate-800/90 p-2 px-3 rounded-lg shadow-lg border border-brand-blue/20 text-[10px] max-w-[200px] animate-fade-in pointer-events-none" style={{ bottom: 'calc(1rem + env(safe-area-inset-bottom, 0px))' }}>
                     <p className="font-black uppercase text-gray-600 dark:text-slate-400 mb-1">{T.relationshipLabel}</p>
                     <p className="text-gray-900 dark:text-slate-100 leading-tight italic font-medium">{hoveredLink.description}</p>
                 </div>
@@ -762,4 +783,13 @@ export const KnowledgeMap = forwardRef<any, KnowledgeMapProps>(({ data, onNodeCl
             {selectedNodeInfo && <ConceptCard nodeInfo={selectedNodeInfo} onClose={onClearSelection} onDiscuss={onDiscussNode} T={T} />}
         </div>
     );
+
+    return isMapFullscreen ? (
+        <>
+            <div className="w-full h-full min-h-[300px] bg-slate-50 dark:bg-slate-900 rounded-xl border border-gray-200 dark:border-dark-border flex items-center justify-center">
+                <p className="text-gray-500 dark:text-slate-400">{T?.mapInFullscreen || 'Map is in fullscreen mode'}</p>
+            </div>
+            {createPortal(renderMapContent(true), document.body)}
+        </>
+    ) : renderMapContent(false);
 });
