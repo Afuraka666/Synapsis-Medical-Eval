@@ -856,7 +856,7 @@ export const PatientCaseView: React.FC<PatientCaseViewProps> = ({ patientCase: i
   }, [!!patientCase.quiz, isGeneratingDetails]);
 
   return (
-    <div ref={containerRef} className={`relative bg-white dark:bg-dark-surface transition-colors duration-300 ${
+    <div ref={containerRef} className={`relative bg-white dark:bg-dark-surface transition-colors duration-300 break-words overflow-x-hidden ${
         density === 'compact' ? 'p-1 sm:p-3 pb-24' : 
         density === 'relaxed' ? 'p-4 sm:p-8 pb-48' : 
         'p-2 sm:p-5 pb-40'

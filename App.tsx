@@ -42,7 +42,6 @@ import { translations, supportedLanguages } from './i18n';
 import { useAnalytics } from './contexts/analytics';
 import { ContentDensityProvider, useContentDensity } from './contexts/ContentDensityContext';
 import { useCollaboration } from './contexts/CollaborationContext';
-import { useResponsive } from './hooks/useResponsive';
 import { useToast } from './contexts/ToastContext';
 
 // Helper: Decompresses a URL-safe Base64 string back into a JSON object
@@ -74,7 +73,7 @@ async function decodeAndDecompress(encodedString: string): Promise<any | null> {
 
 export const App: React.FC = () => {
     const { logEvent } = useAnalytics();
-    const { isMobile: isMobileResp, isTablet, isDesktop: isDesktopResp } = useResponsive();
+    const { isMobile: isMobileResp, isTablet, isDesktop: isDesktopResp, orientation } = useContentDensity();
     const { joinRoom, broadcastUpdate, remoteUpdate, isConnected, roomId } = useCollaboration();
     const { addToast } = useToast();
 
@@ -149,7 +148,7 @@ export const App: React.FC = () => {
         return () => clearTimeout(timer);
     }, [mobileView, isDesktopResp]); // Also trigger when desktop mode changes
     const caseScrollRef = useRef<HTMLDivElement>(null);
-    const { density, isDesktop, size, orientation, isMobile } = useContentDensity();
+    const { density, isDesktop, size, isMobile } = useContentDensity();
 
     // Automatically detect screen size and adjust layout state
     const wasDesktop = useRef(isDesktopResp);
@@ -621,16 +620,17 @@ export const App: React.FC = () => {
                     {patientCase ? (
                         <div className="flex-grow min-h-0 relative flex flex-col overflow-hidden">
                             <div 
+                                key={`${orientation}-${mobileView}`}
                                 className="flex flex-grow w-full transition-transform duration-500 ease-in-out lg:transform-none lg:flex-row lg:gap-4 min-h-0 h-full"
                                 style={!isDesktopResp ? { 
-                                    transform: `translateX(${mobileView === 'map' ? '-100%' : '0%'})`,
+                                    transform: `translateX(${mobileView === 'map' ? '-50%' : '0%'})`,
                                     width: '200%',
                                     display: 'flex',
                                     flexDirection: 'row'
                                 } : {}}
                             >
                                 {/* Case View Container */}
-                                <div className={`w-full flex-shrink-0 h-full lg:w-[62%] lg:flex-shrink min-h-0 flex flex-col transition-opacity duration-300 ${!isDesktopResp && mobileView === 'map' ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
+                                <div className={`w-full lg:w-[62%] flex-shrink-0 lg:flex-shrink h-full min-h-0 flex flex-col transition-opacity duration-300 ${!isDesktopResp ? 'w-1/2' : ''} ${!isDesktopResp && mobileView === 'map' ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
                                     <div ref={caseScrollRef} className="flex-grow overflow-y-auto bg-white dark:bg-dark-surface rounded-2xl shadow-lg border border-gray-200 dark:border-dark-border">
                                         <PatientCaseView 
                                             patientCase={patientCase}
@@ -651,7 +651,7 @@ export const App: React.FC = () => {
                                 </div>
 
                                 {/* Map View Container */}
-                                <div className={`w-full flex-shrink-0 h-full flex flex-col lg:w-[38%] lg:flex-shrink min-h-0 relative transition-opacity duration-300 ${!isDesktopResp && mobileView === 'case' ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
+                                <div className={`w-full lg:w-[38%] flex-shrink-0 lg:flex-shrink h-full flex flex-col min-h-[300px] relative transition-opacity duration-300 ${!isDesktopResp ? 'w-1/2' : ''} ${!isDesktopResp && mobileView === 'case' ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
                                     {/* Knowledge Map Label for Desktop */}
                                     <div className="hidden lg:flex absolute -top-6 left-0 items-center gap-2 text-[10px] font-black uppercase tracking-widest text-gray-400 dark:text-gray-500">
                                         <Network className="w-3 h-3" />

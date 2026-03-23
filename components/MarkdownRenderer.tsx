@@ -172,7 +172,7 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, cla
     const cleanContent = useMemo(() => sanitizeContent(content), [content]);
 
     return (
-        <div className={`prose prose-sm max-w-none text-gray-900 dark:text-slate-100 font-serif ${className || ''}`}>
+        <div className={`prose prose-sm max-w-none text-gray-900 dark:text-slate-100 font-serif break-words overflow-x-hidden ${className || ''}`}>
             <ReactMarkdown
                 remarkPlugins={[remarkMath, remarkGfm]}
                 rehypePlugins={[rehypeKatex]}

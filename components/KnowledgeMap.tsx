@@ -281,7 +281,19 @@ export const KnowledgeMap = forwardRef<any, KnowledgeMapProps>(({ data, onNodeCl
     const [hoveredLink, setHoveredLink] = useState<KnowledgeLink | null>(null);
     const [showLegend, setShowLegend] = useState(false);
     
-    const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
+    const [dimensions, setDimensions] = useState({ 
+        width: typeof window !== 'undefined' ? window.innerWidth : 0, 
+        height: typeof window !== 'undefined' ? window.innerHeight : 0 
+    });
+    
+    useEffect(() => {
+        if (containerRef.current) {
+            const { width, height } = containerRef.current.getBoundingClientRect();
+            if (width > 0 && height > 0) {
+                setDimensions({ width, height });
+            }
+        }
+    }, []);
     
     const nodes = useMemo(() => (data?.nodes || []).map(n => ({ ...n })), [data?.nodes]);
     const links = useMemo(() => (data?.links || []).map(l => ({ ...l })), [data?.links]);
