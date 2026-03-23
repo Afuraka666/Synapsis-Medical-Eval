@@ -654,7 +654,7 @@ export const KnowledgeMap = forwardRef<any, KnowledgeMapProps>(({ data, onNodeCl
     const renderMapContent = (fullscreen: boolean) => (
         <div 
             ref={containerRef} 
-            className={`w-full h-full min-h-[300px] bg-slate-50 dark:bg-slate-900 shadow-inner border border-gray-200 dark:border-dark-border overflow-hidden transition-colors duration-300 touch-none ${fullscreen ? 'fixed inset-0 z-[9999]' : 'relative rounded-xl'}`}
+            className={`w-full h-full min-h-[300px] bg-slate-50 dark:bg-slate-900 shadow-inner border border-gray-200 dark:border-dark-border overflow-hidden transition-colors duration-300 ${fullscreen ? 'fixed inset-0 z-[9999]' : 'relative rounded-xl'}`}
         >
             <div className="absolute inset-0 pointer-events-none opacity-50 dark:opacity-20" style={{ backgroundImage: 'radial-gradient(circle at 1px 1px, #94a3b8 1px, transparent 0)', backgroundSize: '24px 24px' }}></div>
             {isLoading && (

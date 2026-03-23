@@ -897,7 +897,7 @@ export const PatientCaseView: React.FC<PatientCaseViewProps> = ({ patientCase: i
                     <div className="flex items-center gap-2 min-w-0"><h4 className="text-xs sm:text-sm font-black text-gray-900 dark:text-slate-100 uppercase tracking-tighter truncate">{patientCase.biochemicalPathway.title}</h4><TextToSpeechPlayer textToRead={`${patientCase.biochemicalPathway.title}. ${patientCase.biochemicalPathway.description}`} language={language} /></div>
                     <div className="flex items-center gap-2 flex-shrink-0">
                         <DiscussionBadge messages={patientCase.discussions?.[patientCase.biochemicalPathway.title]} />
-                        <button onClick={() => onOpenDiscussion({ aspect: patientCase.biochemicalPathway!.title, consideration: patientCase.biochemicalPathway!.description })} className="text-[8px] bg-brand-blue dark:bg-brand-blue-light text-white font-black py-1 px-2 sm:px-2.5 rounded-full shadow-xs transition-transform hover:scale-105 uppercase tracking-widest">{T.discussButton}</button>
+                        <button onClick={() => onOpenDiscussion({ aspect: patientCase.biochemicalPathway!.title, consideration: patientCase.biochemicalPathway!.description })} className="text-[10px] sm:text-[8px] bg-brand-blue dark:bg-brand-blue-light text-white font-black py-2 px-3 sm:py-1 sm:px-2.5 rounded-full shadow-xs transition-transform hover:scale-105 uppercase tracking-widest touch-manipulation">{T.discussButton}</button>
                     </div>
                 </div>
                 {renderSmartContent(patientCase.biochemicalPathway.description, true, -1, patientCase.biochemicalPathway.diagramData, undefined, patientCase.groundingSources, patientCase.biochemicalPathway.reference)}
@@ -919,7 +919,7 @@ export const PatientCaseView: React.FC<PatientCaseViewProps> = ({ patientCase: i
                             </div>
                             <div className="flex items-center gap-2 self-end">
                                 <DiscussionBadge messages={patientCase.discussions?.[conn.discipline]} />
-                                <button onClick={() => onOpenDiscussion({ aspect: conn.discipline, consideration: conn.connection })} className="flex items-center gap-1 text-[8px] bg-white dark:bg-slate-700 border border-blue-100 dark:border-blue-900 text-brand-blue dark:text-blue-300 hover:bg-brand-blue hover:text-white font-black py-1 px-2 sm:px-2.5 rounded-full transition-all shadow-xs uppercase tracking-widest">{T.consultButton}</button>
+                                <button onClick={() => onOpenDiscussion({ aspect: conn.discipline, consideration: conn.connection })} className="flex items-center justify-center gap-1 text-[10px] sm:text-[8px] bg-white dark:bg-slate-700 border border-blue-100 dark:border-blue-900 text-brand-blue dark:text-blue-300 hover:bg-brand-blue hover:text-white font-black py-2 px-3 sm:py-1 sm:px-2.5 rounded-full transition-all shadow-xs uppercase tracking-widest touch-manipulation">{T.consultButton}</button>
                             </div>
                         </div>
                     ))}
@@ -941,7 +941,7 @@ export const PatientCaseView: React.FC<PatientCaseViewProps> = ({ patientCase: i
                                     </div>
                                     <div className="flex items-center gap-2 flex-shrink-0">
                                         <DiscussionBadge messages={patientCase.discussions?.[item.aspect]} />
-                                        <button onClick={() => onOpenDiscussion(item)} className="text-[8px] bg-blue-50 dark:bg-blue-900/30 text-brand-blue dark:text-blue-300 font-black py-1 px-2 sm:px-2.5 rounded-full border border-blue-100 dark:border-blue-900 transition-all hover:bg-brand-blue hover:text-white uppercase tracking-widest shadow-xs">{T.discussButton}</button>
+                                        <button onClick={() => onOpenDiscussion(item)} className="text-[10px] sm:text-[8px] bg-blue-50 dark:bg-blue-900/30 text-brand-blue dark:text-blue-300 font-black py-2 px-3 sm:py-1 sm:px-2.5 rounded-full border border-blue-100 dark:border-blue-900 transition-all hover:bg-brand-blue hover:text-white uppercase tracking-widest shadow-xs touch-manipulation">{T.discussButton}</button>
                                     </div>
                                 </div>
                                 <div className="mt-1 text-[11px] sm:text-sm">{renderSmartContent(item.consideration, true)}</div>
@@ -966,7 +966,7 @@ export const PatientCaseView: React.FC<PatientCaseViewProps> = ({ patientCase: i
                                         </div>
                                         <div className="flex items-center gap-2">
                                             <DiscussionBadge messages={patientCase.discussions?.[content.title]} />
-                                            <button onClick={() => onOpenDiscussion({ aspect: content.title, consideration: content.description })} className="text-[8px] bg-brand-blue dark:bg-brand-blue-light text-white font-black py-1 px-2.5 rounded-full shadow-xs transition-transform hover:scale-105 uppercase tracking-widest">{T.discussButton}</button>
+                                            <button onClick={() => onOpenDiscussion({ aspect: content.title, consideration: content.description })} className="text-[10px] sm:text-[8px] bg-brand-blue dark:bg-brand-blue-light text-white font-black py-2 px-3 sm:py-1 sm:px-2.5 rounded-full shadow-xs transition-transform hover:scale-105 uppercase tracking-widest touch-manipulation">{T.discussButton}</button>
                                         </div>
                                     </div>
                                     {renderSmartContent(content.description, true, idx, content.diagramData, content.imageData, undefined, content.reference)}
@@ -1007,7 +1007,7 @@ export const PatientCaseView: React.FC<PatientCaseViewProps> = ({ patientCase: i
                                 <p className="text-[10px] text-gray-500 dark:text-gray-400 italic truncate mt-0.5">Last: "{msgs[msgs.length - 1].text.substring(0, 60)}..."</p>
                             </div>
                             <div className="flex items-center gap-2">
-                                <button onClick={() => onOpenDiscussion({ aspect: topicId, consideration: '' })} className="flex-shrink-0 bg-white dark:bg-slate-700 px-3 py-1.5 rounded-lg border border-blue-100 dark:border-blue-900 text-brand-blue dark:text-blue-300 font-black text-[9px] uppercase tracking-widest shadow-xs hover:bg-brand-blue hover:text-white transition-all">{T.reopenHistoryButton}</button>
+                                <button onClick={() => onOpenDiscussion({ aspect: topicId, consideration: '' })} className="flex-shrink-0 bg-white dark:bg-slate-700 px-4 py-2 sm:px-3 sm:py-1.5 rounded-lg border border-blue-100 dark:border-blue-900 text-brand-blue dark:text-blue-300 font-black text-[10px] sm:text-[9px] uppercase tracking-widest shadow-xs hover:bg-brand-blue hover:text-white transition-all touch-manipulation">{T.reopenHistoryButton}</button>
                                 <button 
                                     onClick={() => {
                                         const updatedDiscussions = { ...patientCase.discussions };
