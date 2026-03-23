@@ -358,7 +358,7 @@ export const KnowledgeMap = forwardRef<any, KnowledgeMapProps>(({ data, onNodeCl
                     simulationRef.current.alpha(0.3).restart();
                 }
                 // Delay resetZoom slightly to allow simulation to update
-                setTimeout(resetZoom, 150);
+                setTimeout(resetZoom, 200);
             }
         };
 
@@ -366,9 +366,10 @@ export const KnowledgeMap = forwardRef<any, KnowledgeMapProps>(({ data, onNodeCl
             for (const entry of entries) {
                 const { width, height } = entry.contentRect;
                 if (width > 0 && height > 0) {
-                    setDimensions({ width, height });
-                    
+                    // Use requestAnimationFrame to avoid "ResizeObserver loop limit exceeded"
                     window.requestAnimationFrame(() => {
+                        setDimensions({ width, height });
+                        
                         if (simulationRef.current) {
                             simulationRef.current.force('center', d3.forceCenter(width / 2, height / 2));
                             simulationRef.current.alpha(0.3).restart();
@@ -376,7 +377,7 @@ export const KnowledgeMap = forwardRef<any, KnowledgeMapProps>(({ data, onNodeCl
                         
                         setIsLoading(false);
                         // Delay resetZoom slightly to allow simulation to update
-                        setTimeout(resetZoom, 150);
+                        setTimeout(resetZoom, 200);
                     });
                 }
             }
@@ -384,6 +385,9 @@ export const KnowledgeMap = forwardRef<any, KnowledgeMapProps>(({ data, onNodeCl
         
         observer.observe(containerRef.current);
         window.addEventListener('resize', handleResize);
+        
+        // Initial check
+        handleResize();
         
         return () => {
             observer.disconnect();

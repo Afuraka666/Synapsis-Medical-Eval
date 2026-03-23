@@ -140,13 +140,13 @@ export const App: React.FC = () => {
     const [mobileView, setMobileView] = useState<'case' | 'map'>('case');
 
     useEffect(() => {
-        // Force a window resize event to trigger KnowledgeMap recalculation when switching views
+        // Force a window resize event to trigger KnowledgeMap recalculation when switching views or orientation
         // This is crucial for D3 simulations that depend on container dimensions
         const timer = setTimeout(() => {
             window.dispatchEvent(new Event('resize'));
-        }, 150); // Slightly longer delay for better stability
+        }, 300); // Slightly longer delay for better stability on mobile
         return () => clearTimeout(timer);
-    }, [mobileView, isDesktopResp]); // Also trigger when desktop mode changes
+    }, [mobileView, isDesktopResp, orientation]); // Added orientation to trigger on rotation
     const caseScrollRef = useRef<HTMLDivElement>(null);
     const { density, isDesktop, size, isMobile } = useContentDensity();
 
@@ -620,13 +620,13 @@ export const App: React.FC = () => {
                     {patientCase ? (
                         <div className="flex-grow min-h-0 relative flex flex-col overflow-hidden">
                             <div 
-                                key={`${orientation}-${mobileView}`}
                                 className="flex flex-grow w-full transition-transform duration-500 ease-in-out lg:transform-none lg:flex-row lg:gap-4 min-h-0 h-full"
                                 style={!isDesktopResp ? { 
                                     transform: `translateX(${mobileView === 'map' ? '-50%' : '0%'})`,
                                     width: '200%',
                                     display: 'flex',
-                                    flexDirection: 'row'
+                                    flexDirection: 'row',
+                                    overflowX: 'hidden'
                                 } : {}}
                             >
                                 {/* Case View Container */}
